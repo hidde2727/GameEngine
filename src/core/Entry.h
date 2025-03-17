@@ -4,7 +4,7 @@
 #include "Core/Game.h"
 
 namespace Engine {
-	Engine::Game* CreateApplication();
+	std::unique_ptr<Engine::Game> CreateApplication();
 }
 
 #endif

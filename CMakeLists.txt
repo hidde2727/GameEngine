@@ -13,6 +13,13 @@ add_library (GameEngine STATIC
 
 "src/renderer/Window.h"
 "src/renderer/Window.cpp"
+"src/renderer/vulkan/Context.h"
+"src/renderer/vulkan/Context.cpp"
+"src/renderer/vulkan/Swapchain.h"
+"src/renderer/vulkan/Swapchain.cpp"
+
+"src/util/Log.h"
+"src/util/Log.cpp"
 )
 target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_precompile_headers(GameEngine PUBLIC "src/core/PCH.h")

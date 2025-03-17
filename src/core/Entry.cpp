@@ -1,10 +1,10 @@
 #include "core/Entry.h"
 
 namespace Engine {
-	extern Game* CreateApplication();
+	extern std::unique_ptr<Engine::Game> CreateApplication();
 
 	int EngineMain(int c, char* v[]) {
-		Engine::Game* game = Engine::CreateApplication();
+		std::unique_ptr<Engine::Game> game = Engine::CreateApplication();
 		return game->Run();
 	}
 }
