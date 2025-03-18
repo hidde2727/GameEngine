@@ -40,6 +40,7 @@ namespace Vulkan {
 
     private:
         friend class Swapchain;
+        friend class Pipeline;
 
         QueueFamilyIndices GetQueueFamily(const QueueType queueType, const size_t amountQueues);
         int RateDevice(const VkPhysicalDevice device, const ContextCreationInfo info);

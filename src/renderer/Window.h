@@ -4,6 +4,7 @@
 #include "core/PCH.h"
 #include "renderer/vulkan/Context.h"
 #include "renderer/vulkan/Swapchain.h"
+#include "renderer/vulkan/Pipeline.h"
 
 namespace Engine{
 namespace Renderer{
@@ -23,6 +24,7 @@ namespace Renderer{
         GLFWwindow* _window = nullptr;
         Vulkan::Context _vkContext;
         Vulkan::Swapchain _vkSwapchain;
+        Vulkan::Pipeline _vkPipeline;
     };
 
 }

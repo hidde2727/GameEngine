@@ -23,8 +23,14 @@ namespace Renderer{
         int width, height;
         glfwGetFramebufferSize(_window, &width, &height);
         _vkSwapchain.Init(_vkContext, (uint32_t)width, (uint32_t)height);
+
+        Vulkan::PipelineCreator pipelineInfo;
+        pipelineInfo.SetShaders({ "/resources/engine/shaders/shader.vert", "/resources/engine/shaders/shader.frag" });
+        _vkPipeline.Init(pipelineInfo, _vkContext);
     }
     Window::~Window() {
+        _vkPipeline.Cleanup(_vkContext);
+        _vkSwapchain.Cleanup(_vkContext);
         _vkContext.CleanUp();
 
         glfwDestroyWindow(_window);

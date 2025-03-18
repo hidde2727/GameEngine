@@ -17,9 +17,15 @@ add_library (GameEngine STATIC
 "src/renderer/vulkan/Context.cpp"
 "src/renderer/vulkan/Swapchain.h"
 "src/renderer/vulkan/Swapchain.cpp"
+"src/renderer/vulkan/Pipeline.h"
+"src/renderer/vulkan/Pipeline.cpp"
 
 "src/util/Log.h"
 "src/util/Log.cpp"
+"src/util/Hashing.h"
+"src/util/Hashing.cpp"
+
+"lib/glslang/glslang/ResourceLimits/ResourceLimits.cpp"
 )
 target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_precompile_headers(GameEngine PUBLIC "src/core/PCH.h")
@@ -34,6 +40,11 @@ add_subdirectory ("lib")
 # GLFW
 target_link_libraries(GameEngine PRIVATE glfw)
 target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lib/glfw/include")
+
+# GLSL compiler
+target_link_libraries(GameEngine PRIVATE glslang)
+target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lib/glslang/")
+
 
 # Asio
 add_library(asio INTERFACE)
