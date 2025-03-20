@@ -19,6 +19,8 @@ add_library (GameEngine STATIC
 "src/renderer/vulkan/Swapchain.cpp"
 "src/renderer/vulkan/Pipeline.h"
 "src/renderer/vulkan/Pipeline.cpp"
+"src/renderer/vulkan/Renderpass.h"
+"src/renderer/vulkan/Renderpass.cpp"
 
 "src/util/Log.h"
 "src/util/Log.cpp"

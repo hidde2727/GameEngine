@@ -3,6 +3,7 @@
 
 #include "core/PCH.h"
 #include "renderer/vulkan/Context.h"
+#include "renderer/vulkan/Renderpass.h"
 
 namespace Engine {
 namespace Renderer {
@@ -11,11 +12,15 @@ namespace Vulkan {
     class Swapchain {
     public:
 
-        void Init(Context context, const uint32_t width, const uint32_t height);
+        // After calling Init also call Resize to fully setup the Swapchain
+        void Init(Context& context, const uint32_t width, const uint32_t height);
+        void Resize(Context& context, const RenderPass& renderPass, const uint32_t width, const uint32_t height);
 
-        void Cleanup(const Context context);
+        void Cleanup(const Context& context);
 
     private:
+        friend class RenderPass;
+
         VkSwapchainKHR _swapChain;
 
         uint32_t _queueFamilyIndices[2] = {0,0};

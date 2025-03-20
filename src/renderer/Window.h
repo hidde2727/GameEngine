@@ -3,6 +3,7 @@
 
 #include "core/PCH.h"
 #include "renderer/vulkan/Context.h"
+#include "renderer/vulkan/Renderpass.h"
 #include "renderer/vulkan/Swapchain.h"
 #include "renderer/vulkan/Pipeline.h"
 
@@ -23,6 +24,7 @@ namespace Renderer{
     private:
         GLFWwindow* _window = nullptr;
         Vulkan::Context _vkContext;
+        Vulkan::RenderPass _vkRenderPass;
         Vulkan::Swapchain _vkSwapchain;
         Vulkan::Pipeline _vkPipeline;
     };

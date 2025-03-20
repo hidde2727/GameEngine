@@ -20,7 +20,7 @@ namespace Renderer{
 namespace Vulkan{
 
     Context::Context() { }
-    void Context::Init(ContextCreationInfo info, GLFWwindow* window) {
+    void Context::Init(ContextCreationInfo& info, GLFWwindow* window) {
         // Create instance
         VkResult result = vkCreateInstance(&info._instanceInfo, nullptr, &_instance);
         ASSERT(result != VK_SUCCESS, "Failed to create vulkan instance");

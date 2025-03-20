@@ -31,7 +31,7 @@ namespace Vulkan {
     public:
 
         Context();
-        void Init(ContextCreationInfo info, GLFWwindow* window=nullptr);
+        void Init(ContextCreationInfo& info, GLFWwindow* window=nullptr);
         void CleanUp();
 
         VkDevice GetDevice() const { return _device; }
@@ -39,6 +39,7 @@ namespace Vulkan {
         VkQueue GetQueue(const QueueType type) { return _queues[type]; }
 
     private:
+        friend class RenderPass;
         friend class Swapchain;
         friend class Pipeline;
 

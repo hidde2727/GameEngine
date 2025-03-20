@@ -4,7 +4,7 @@ namespace Engine {
 namespace Renderer {
 namespace Vulkan {
 
-    void Swapchain::Init(Context context, const uint32_t width, const uint32_t height) {
+    void Swapchain::Init(Context& context, const uint32_t width, const uint32_t height) {
         uint32_t formatCount;
         vkGetPhysicalDeviceSurfaceFormatsKHR(context._physicalDevice, context._surfaceKHR, &formatCount, nullptr);
         std::vector<VkSurfaceFormatKHR> formats(formatCount);
@@ -61,22 +61,40 @@ namespace Vulkan {
         _createInfo.clipped = VK_TRUE;
         VkSwapchainKHR oldSwapchain = _swapChain;
         _createInfo.oldSwapchain = oldSwapchain;
+    }
+
+    void Swapchain::Resize(Context& context, const RenderPass& renderPass, const uint32_t width, const uint32_t height) {
+        if(_swapChain != VK_NULL_HANDLE) Cleanup(context);
+
+        VkSurfaceCapabilitiesKHR capabilities;
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context._physicalDevice, context._surfaceKHR, &capabilities);
+        VkExtent2D extent{};
+        if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+            extent = capabilities.currentExtent;
+        } else {    
+            extent.width = std::clamp(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+            extent.height = std::clamp(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+        }
+        _createInfo.imageExtent = extent;
+
+        VkSwapchainKHR oldSwapchain = _swapChain;
+        _createInfo.oldSwapchain = oldSwapchain;
 
         VkResult result = vkCreateSwapchainKHR(context._device, &_createInfo, nullptr, &_swapChain);
         ASSERT(result != VK_SUCCESS, "Failed to create vulkan swapchain");
 
         std::vector<VkImage> images;
-        vkGetSwapchainImagesKHR(context._device, _swapChain, &imageCount, nullptr);
-        images.resize(imageCount);
-        vkGetSwapchainImagesKHR(context._device, _swapChain, &imageCount, images.data());
+        vkGetSwapchainImagesKHR(context._device, _swapChain, &_createInfo.minImageCount, nullptr);
+        images.resize(_createInfo.minImageCount);
+        vkGetSwapchainImagesKHR(context._device, _swapChain, &_createInfo.minImageCount, images.data());
 
-        _imageViews.resize(imageCount);
-        for(size_t i = 0; i < imageCount; i++) {
+        _imageViews.resize(_createInfo.minImageCount);
+        for(size_t i = 0; i < _createInfo.minImageCount; i++) {
             VkImageViewCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
             createInfo.image = images[i];
             createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            createInfo.format = selectedFormat.format;
+            createInfo.format = _createInfo.imageFormat;
             createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
             createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
             createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -90,7 +108,8 @@ namespace Vulkan {
             ASSERT(result != VK_SUCCESS, "Failed to create vulkan swapchain image view");
         }
     }
-    void Swapchain::Cleanup(const Context context) {
+
+    void Swapchain::Cleanup(const Context& context) {
         for (auto imageView : _imageViews) {
             vkDestroyImageView(context._device, imageView, nullptr);
         }

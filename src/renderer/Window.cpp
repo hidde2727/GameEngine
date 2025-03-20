@@ -20,17 +20,24 @@ namespace Renderer{
         contextInfo.SetDeviceExtensions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME });
         _vkContext.Init(contextInfo, _window);
         
+
         int width, height;
         glfwGetFramebufferSize(_window, &width, &height);
         _vkSwapchain.Init(_vkContext, (uint32_t)width, (uint32_t)height);
 
+        _vkRenderPass.Init(_vkContext, _vkSwapchain);
+
+        _vkSwapchain.Resize(_vkContext, _vkRenderPass, width, height);
+
         Vulkan::PipelineCreator pipelineInfo;
         pipelineInfo.SetShaders({ "/resources/engine/shaders/shader.vert", "/resources/engine/shaders/shader.frag" });
-        _vkPipeline.Init(pipelineInfo, _vkContext);
+        pipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
+        _vkPipeline.Init(pipelineInfo, _vkContext, _vkRenderPass, 0);
     }
     Window::~Window() {
         _vkPipeline.Cleanup(_vkContext);
         _vkSwapchain.Cleanup(_vkContext);
+        _vkRenderPass.Cleanup(_vkContext);
         _vkContext.CleanUp();
 
         glfwDestroyWindow(_window);
