@@ -7,6 +7,7 @@ int Game::Run() {
 
     while(!_window.ShouldClose()) {
         _window.Update();
+        _window.Draw();
     }
 
     return 0;

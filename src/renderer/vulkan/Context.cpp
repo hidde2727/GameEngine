@@ -52,11 +52,18 @@ namespace Vulkan{
 
         // Create the logical device
         std::set<uint32_t> uniqueQueueFamilies;
+        uint32_t kHRPresentQueue = UINT32_MAX; // Used to check if the KHR present queue is alone in its queue family
         for(size_t i = 0; i < info._queueInfos.size(); i++) {
             QueueFamilyIndices queueFamily=GetQueueFamily(info._queues[i], 1);
             ASSERT(!queueFamily.has_value(), "No queue family found for a selected vulkan physical device");
             uniqueQueueFamilies.insert(queueFamily.value());
             _queueFamilies[info._queues[i]] = queueFamily.value();
+            if(info._queues[i] == QueueType::KHRPresentQueue) {
+                if(uniqueQueueFamilies.contains(queueFamily.value())) continue;
+                kHRPresentQueue = queueFamily.value();
+                continue;
+            }
+            if(queueFamily.value() == kHRPresentQueue) kHRPresentQueue = UINT32_MAX;
         }
         info._queueInfos.resize(uniqueQueueFamilies.size());
         size_t i = 0;
@@ -72,14 +79,30 @@ namespace Vulkan{
 
         // Create the queues
         std::map<uint32_t, VkQueue> queueFamilyToQueue;
+        std::map<uint32_t, VkCommandPool> queueFamilyToCommandPool;
         for(const uint32_t queueFamily : uniqueQueueFamilies) {
             VkQueue queue = VK_NULL_HANDLE;
             vkGetDeviceQueue(_device, queueFamily, 0, &queue);
-            queueFamilyToQueue[queueFamily] = queue;            
+            queueFamilyToQueue[queueFamily] = queue;
+            if(queueFamily != kHRPresentQueue) {
+                VkCommandPoolCreateInfo poolInfo{};
+                poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+                poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+                poolInfo.queueFamilyIndex = queueFamily;
+                result = vkCreateCommandPool(_device, &poolInfo, nullptr, &queueFamilyToCommandPool[queueFamily]);
+                _commandPools.push_back(queueFamilyToCommandPool[queueFamily]);
+                ASSERT(result!=VK_SUCCESS, "Failed to create vulkan command pool");
+            }
         }
         for(const auto&[type, queueFamily] : _queueFamilies) {
             _queues[type] = queueFamilyToQueue[_queueFamilies[type]];
+            if(type != QueueType::KHRPresentQueue)
+                _queueTypeToCommandPools[type] = queueFamilyToCommandPool[_queueFamilies[type]];
         }
+    }
+
+    void Context::WaitIdle() {
+        vkDeviceWaitIdle(_device);
     }
 
     int Context::RateDevice(const VkPhysicalDevice device, const ContextCreationInfo info) {
@@ -195,6 +218,10 @@ namespace Vulkan{
     }
 
     void Context::CleanUp() {
+        for(const VkCommandPool pool : _commandPools) {
+            vkDestroyCommandPool(_device, pool, nullptr);
+        }
+
         vkDestroyDevice(_device, nullptr);
         vkDestroySurfaceKHR(_instance, _surfaceKHR, nullptr);
         if(_debugMessenger != VK_NULL_HANDLE) DestroyDebugUtilsMessengerEXT(_instance, _debugMessenger, nullptr);

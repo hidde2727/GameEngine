@@ -84,12 +84,14 @@ namespace Vulkan {
         ASSERT(result != VK_SUCCESS, "Failed to create vulkan swapchain");
 
         std::vector<VkImage> images;
-        vkGetSwapchainImagesKHR(context._device, _swapChain, &_createInfo.minImageCount, nullptr);
-        images.resize(_createInfo.minImageCount);
-        vkGetSwapchainImagesKHR(context._device, _swapChain, &_createInfo.minImageCount, images.data());
+        uint32_t imageCount;
+        vkGetSwapchainImagesKHR(context._device, _swapChain, &imageCount, nullptr);
+        images.resize(imageCount);
+        vkGetSwapchainImagesKHR(context._device, _swapChain, &imageCount, images.data());
 
-        _imageViews.resize(_createInfo.minImageCount);
-        for(size_t i = 0; i < _createInfo.minImageCount; i++) {
+        _imageViews.resize(imageCount);
+        _framebuffers.resize(imageCount);
+        for(size_t i = 0; i < imageCount; i++) {
             VkImageViewCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
             createInfo.image = images[i];
@@ -104,12 +106,32 @@ namespace Vulkan {
             createInfo.subresourceRange.levelCount = 1;
             createInfo.subresourceRange.baseArrayLayer = 0;
             createInfo.subresourceRange.layerCount = 1;
+
             result = vkCreateImageView(context._device, &createInfo, nullptr, &_imageViews[i]);
             ASSERT(result != VK_SUCCESS, "Failed to create vulkan swapchain image view");
+
+            VkImageView attachments[] = {
+                _imageViews[i]
+            };
+            VkFramebufferCreateInfo framebufferInfo{};
+            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass = renderPass._renderPass;
+            framebufferInfo.attachmentCount = 1;
+            framebufferInfo.pAttachments = attachments;
+            framebufferInfo.width = _createInfo.imageExtent.width;
+            framebufferInfo.height = _createInfo.imageExtent.height;
+            framebufferInfo.layers = 1;
+
+            result = vkCreateFramebuffer(context._device, &framebufferInfo, nullptr, &_framebuffers[i]);
+            ASSERT(result != VK_SUCCESS, "Failed to create vulkan swapchain framebuffers");
+        
         }
     }
 
     void Swapchain::Cleanup(const Context& context) {
+        for (auto framebuffer : _framebuffers) {
+            vkDestroyFramebuffer(context._device, framebuffer, nullptr);
+        }
         for (auto imageView : _imageViews) {
             vkDestroyImageView(context._device, imageView, nullptr);
         }

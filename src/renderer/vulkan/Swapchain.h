@@ -20,6 +20,7 @@ namespace Vulkan {
 
     private:
         friend class RenderPass;
+        friend class CommandBuffer;
 
         VkSwapchainKHR _swapChain;
 
@@ -27,6 +28,9 @@ namespace Vulkan {
         VkSwapchainCreateInfoKHR _createInfo{};
 
         std::vector<VkImageView> _imageViews;
+
+        std::vector<VkFramebuffer> _framebuffers;
+        uint32_t _nextFramebuffer=0;
     };
 
 }

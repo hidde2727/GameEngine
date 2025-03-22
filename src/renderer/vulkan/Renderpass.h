@@ -14,12 +14,14 @@ namespace Vulkan {
     public:
 
         void Init(const Context& context, const Swapchain& swapchain);
-        // Init with a framebuffer
+        void Init(const Context& context, const VkFormat format);
 
         void Cleanup(const Context& context);
 
     private:
+        friend class Swapchain;
         friend class Pipeline;
+        friend class CommandBuffer;
 
         VkRenderPass _renderPass;
     };

@@ -3,7 +3,7 @@
 
 ### Setup
 All you need to run is the gen_extension_headers.py from the glslang library (/lib/glslang and run it)
-Then you can compile this library with CMake
+Then you can compile this framework with CMake
 
 ### Features
 - Vulkan renderer

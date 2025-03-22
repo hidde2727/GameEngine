@@ -164,6 +164,7 @@ namespace Vulkan {
                 i++;
                 continue;
             }
+            return;
         }
 
         // Else compile the files
@@ -185,7 +186,7 @@ namespace Vulkan {
             std::string shaderCode;
             std::ifstream inputStream(fileLocation);
             ASSERT(inputStream.fail(), ("Failed to open output stream for file '" + std::string(fileLocation) + "' because : \n\t" + std::string(strerror(errno))).c_str());
-            shaderCode.resize(inputStream.tellg());
+            shaderCode.resize(std::filesystem::file_size(fileLocation));
             inputStream.read(shaderCode.data(), shaderCode.size());
 
             shaders[i] = std::make_unique<glslang::TShader>(languageType);
@@ -194,10 +195,10 @@ namespace Vulkan {
 
             shaders[i]->setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);
             shaders[i]->setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_3);
-            shaders[i]->setEnvInput(glslang::EShSource::EShSourceHlsl,
+            shaders[i]->setEnvInput(glslang::EShSourceGlsl,
                 languageType,
-                glslang::EShClient::EShClientVulkan,
-                glslang::EShTargetClientVersion::EShTargetVulkan_1_3);
+                glslang::EShClientVulkan,
+                450);
             
             shaders[i]->setEntryPoint("main");
             const TBuiltInResource* resources = GetDefaultResources();

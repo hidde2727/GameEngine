@@ -34,6 +34,8 @@ namespace Vulkan {
         void Init(ContextCreationInfo& info, GLFWwindow* window=nullptr);
         void CleanUp();
 
+        void WaitIdle();
+
         VkDevice GetDevice() const { return _device; }
         VkPhysicalDevice GetPhysicalDevice() const { return _physicalDevice; }
         VkQueue GetQueue(const QueueType type) { return _queues[type]; }
@@ -42,6 +44,7 @@ namespace Vulkan {
         friend class RenderPass;
         friend class Swapchain;
         friend class Pipeline;
+        friend class CommandBuffer;
 
         QueueFamilyIndices GetQueueFamily(const QueueType queueType, const size_t amountQueues);
         int RateDevice(const VkPhysicalDevice device, const ContextCreationInfo info);
@@ -55,6 +58,8 @@ namespace Vulkan {
 
         std::map<QueueType, VkQueue> _queues;
         std::map<QueueType, uint32_t> _queueFamilies;
+        std::vector<VkCommandPool> _commandPools;
+        std::map<QueueType, VkCommandPool> _queueTypeToCommandPools;
     };
 
     class ContextCreationInfo {

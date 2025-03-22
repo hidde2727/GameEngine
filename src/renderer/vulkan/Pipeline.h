@@ -18,6 +18,8 @@ namespace Vulkan {
         void Cleanup(const Context& context);
 
     private:
+        friend class CommandBuffer;
+
         VkPipeline _pipeline;
         VkPipelineLayout _pipelineLayout;
     };

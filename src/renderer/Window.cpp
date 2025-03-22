@@ -14,8 +14,7 @@ namespace Renderer{
         contextInfo.SetValidationLayers({"VK_LAYER_KHRONOS_validation"}, &DebugCallback);
         contextInfo.SetNeccesaryQueues({
             Vulkan::QueueType::GraphicsQueue,
-            Vulkan::QueueType::KHRPresentQueue,
-            Vulkan::QueueType::TransferQueue
+            Vulkan::QueueType::KHRPresentQueue
         });
         contextInfo.SetDeviceExtensions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME });
         _vkContext.Init(contextInfo, _window);
@@ -33,8 +32,16 @@ namespace Renderer{
         pipelineInfo.SetShaders({ "/resources/engine/shaders/shader.vert", "/resources/engine/shaders/shader.frag" });
         pipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
         _vkPipeline.Init(pipelineInfo, _vkContext, _vkRenderPass, 0);
+
+        _vkCommandBuffer.Init(_vkContext, Vulkan::QueueType::GraphicsQueue);
+        _vkInFlightFence = _vkCommandBuffer.CreateFence(_vkContext, true);
+        _vkImageAvailableSemaphore = _vkCommandBuffer.CreateSemaphore(_vkContext);
+        _vkRenderFinishedSemaphore = _vkCommandBuffer.CreateSemaphore(_vkContext);
     }
     Window::~Window() {
+        _vkContext.WaitIdle();
+
+        _vkCommandBuffer.Cleanup(_vkContext);
         _vkPipeline.Cleanup(_vkContext);
         _vkSwapchain.Cleanup(_vkContext);
         _vkRenderPass.Cleanup(_vkContext);
@@ -49,6 +56,25 @@ namespace Renderer{
     }
     void Window::Update() {
         glfwPollEvents();
+    }
+    void Window::Draw() {
+        _vkCommandBuffer.AcquireNextSwapchainFrame(_vkContext, _vkSwapchain, _vkImageAvailableSemaphore);
+        _vkCommandBuffer.WaitFence(_vkContext, _vkInFlightFence);
+
+        _vkCommandBuffer.StartRecording(_vkContext);
+        _vkCommandBuffer.BeginRenderPass(_vkRenderPass, _vkSwapchain, {{{0,0,0,1.f}}}, true);
+        _vkCommandBuffer.BindGraphicsPipeline(_vkPipeline);
+        _vkCommandBuffer.Draw(3, 1);
+        _vkCommandBuffer.EndRenderPass();
+        _vkCommandBuffer.EndRecording();
+
+        _vkCommandBuffer.Submit(
+            _vkContext, 
+            { {_vkImageAvailableSemaphore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT} }, 
+            {_vkRenderFinishedSemaphore}, 
+            _vkInFlightFence
+        );
+        _vkCommandBuffer.PresentResult(_vkContext, _vkSwapchain, { _vkRenderFinishedSemaphore });
     }
 
     VKAPI_ATTR VkBool32 VKAPI_CALL Window::DebugCallback(

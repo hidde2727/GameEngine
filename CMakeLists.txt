@@ -21,6 +21,8 @@ add_library (GameEngine STATIC
 "src/renderer/vulkan/Pipeline.cpp"
 "src/renderer/vulkan/Renderpass.h"
 "src/renderer/vulkan/Renderpass.cpp"
+"src/renderer/vulkan/CommandBuffer.h"
+"src/renderer/vulkan/CommandBuffer.cpp"
 
 "src/util/Log.h"
 "src/util/Log.cpp"

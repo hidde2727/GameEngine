@@ -6,6 +6,7 @@
 #include "renderer/vulkan/Renderpass.h"
 #include "renderer/vulkan/Swapchain.h"
 #include "renderer/vulkan/Pipeline.h"
+#include "renderer/vulkan/CommandBuffer.h"
 
 namespace Engine{
 namespace Renderer{
@@ -18,6 +19,7 @@ namespace Renderer{
 
         bool ShouldClose();
         void Update();
+        void Draw();
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
 
@@ -27,6 +29,11 @@ namespace Renderer{
         Vulkan::RenderPass _vkRenderPass;
         Vulkan::Swapchain _vkSwapchain;
         Vulkan::Pipeline _vkPipeline;
+        Vulkan::CommandBuffer _vkCommandBuffer;
+
+        Vulkan::Fence _vkInFlightFence;
+        Vulkan::Semaphore _vkImageAvailableSemaphore;
+        Vulkan::Semaphore _vkRenderFinishedSemaphore;
     };
 
 }
