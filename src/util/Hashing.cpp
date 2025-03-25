@@ -22,17 +22,17 @@ namespace Util {
         size_t size = input.size();
         uint64_t total_bits = size * 8;
 
-        //add the indicator that the data is 8-bit
+        // Add the indicator that the data is 8-bit
         input += (char)0x80;
         size++;
 
-        //pad with 0's the data till it is size % 64 == 64 - 8 so we can fit the total lenght (8 bytes) after the data
+        // Pad with 0's the data till it is size % 64 == 64 - 8 so we can fit the total lenght (8 bytes) after the data
         while (size % 64 != 64 - 8) {
             input += (char)0x00;
             size++;
         }
 
-        //add the total size to the input
+        // Add the total size to the input
         input += (char)((total_bits >> (32 + 24)) & 0xff);
         input += (char)((total_bits >> (32 + 16)) & 0xff);
         input += (char)((total_bits >> (32 + 8)) & 0xff);
@@ -45,7 +45,7 @@ namespace Util {
 
         for (size_t i = 0; i < size / 64; i++) {
             std::uint32_t block[80];
-            //take the current block and convert it to 16 * 32 bit
+            // Take the current block and convert it to 16 * 32 bit
             memcpy(buf, &input[i * 64], sizeof(buf));
             for (size_t j = 0; j < 16; j++) {
                 block[j] =
@@ -55,7 +55,7 @@ namespace Util {
                     ((uint32_t)(buf[4 * j + 0])) << 24;
             }
 
-            //transform the block into the hash
+            // Transform the block into the hash
             uint32_t a = digest[0];
             uint32_t b = digest[1];
             uint32_t c = digest[2];
@@ -103,14 +103,14 @@ namespace Util {
             digest[4] += e;
         }
 
-        std::array<uint8_t, 20>end;
-        for (size_t i = 0; i < 20 / 4; i++) {
-            end[i * 4 + 3] = digest[i] & 0xff;
-            end[i * 4 + 2] = (digest[i] >> 8) & 0xff;
-            end[i * 4 + 1] = (digest[i] >> 16) & 0xff;
-            end[i * 4 + 0] = (digest[i] >> 24) & 0xff;
+        std::array<uint8_t, 20> result;
+        for (size_t i = 0; i < 20/4; i++) {
+            result[i * 4 + 3] = digest[i] & 0xff;
+            result[i * 4 + 2] = (digest[i] >> 8) & 0xff;
+            result[i * 4 + 1] = (digest[i] >> 16) & 0xff;
+            result[i * 4 + 0] = (digest[i] >> 24) & 0xff;
         }
-        return end;
+        return result;
     } 
     
 }

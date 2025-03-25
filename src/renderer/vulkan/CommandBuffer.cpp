@@ -36,13 +36,13 @@ namespace Vulkan {
         vkAcquireNextImageKHR(context._device, swapchain._swapChain, UINT64_MAX, imageAvailable[_currentFrame], VK_NULL_HANDLE, &swapchain._nextFramebuffer);
     }
 
-    void CommandBuffer::StartRecording(const Context& context, const uint32_t specificFrameInFlight) {
+    void CommandBuffer::StartRecording(const Context& context, const uint32_t specificFrameInFlight, const bool oneTimeUse) {
         _currentFrame = specificFrameInFlight==UINT32_MAX || specificFrameInFlight>=_framesInFlight ? _currentFrame : specificFrameInFlight;
         vkResetCommandBuffer(_commandBuffers[_currentFrame], 0);
 
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = 0;
+        beginInfo.flags = oneTimeUse? VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT : 0;
         beginInfo.pInheritanceInfo = nullptr;
         
         const VkResult result = vkBeginCommandBuffer(_commandBuffers[_currentFrame], &beginInfo);
@@ -92,8 +92,21 @@ namespace Vulkan {
         vkCmdSetScissor(_commandBuffers[_currentFrame], 0, 1, &extent);
     }
 
-    void CommandBuffer::BindGraphicsPipeline(const Pipeline pipeline) {
+    void CommandBuffer::BindGraphicsPipeline(const Pipeline& pipeline) {
         vkCmdBindPipeline(_commandBuffers[_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline._pipeline);
+    }
+    void CommandBuffer::BindVertexBuffer(const VertexBuffer& buffer) {
+        VkBuffer vertexBuffers[] = {buffer._buffer};
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(_commandBuffers[_currentFrame], 0, 1, vertexBuffers, offsets);
+    }
+
+    void CommandBuffer::CopyBuffer(const VkBuffer& from, const VkBuffer& to, const uint32_t size) {
+        VkBufferCopy copyRegion{};
+        copyRegion.srcOffset = 0;
+        copyRegion.dstOffset = 0;
+        copyRegion.size = size;
+        vkCmdCopyBuffer(_commandBuffers[_currentFrame], from, to, 1, &copyRegion);
     }
 
     void CommandBuffer::Draw(const int vertexCount, const int instanceCount, const int vertexOffset, const int instanceOffset) {
@@ -157,7 +170,7 @@ namespace Vulkan {
         submitInfo.signalSemaphoreCount = (uint32_t)signalSemaphores.size();
         submitInfo.pSignalSemaphores = signalSemaphores.data();
 
-        const VkResult result = vkQueueSubmit(context.GetQueue(_queue), 1, &submitInfo, signalFence[_currentFrame]);
+        const VkResult result = vkQueueSubmit(context.GetQueue(_queue), 1, &submitInfo, (signalFence.size()>0 ? signalFence[_currentFrame] : VK_NULL_HANDLE));
         ASSERT(result!=VK_SUCCESS, "Failed to submit vulkan command buffer to an queue");
 
     }

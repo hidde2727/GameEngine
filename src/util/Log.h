@@ -16,5 +16,5 @@ namespace Util{
 #define LOG(message) Engine::Util::Log(message);
 #define INFO(message) Engine::Util::Info(message);
 #define ERROR(message) Engine::Util::Error(message);
-#define THROW(message) { Engine::Util::Throw(message); throw new std::exception(message); }
+#define THROW(message) { Engine::Util::Throw(message); throw new std::runtime_error(message); }
 #define ASSERT(check, message) if(check) THROW(message)

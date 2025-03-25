@@ -2,7 +2,7 @@
 #### Made by Hidde Meiburg 
 
 ### Setup
-All you need to run is the gen_extension_headers.py from the glslang library (/lib/glslang and run it)
+All you need to run is the update_glslang_sources.py from the glslang library (/lib/glslang and run it)
 Then you can compile this framework with CMake
 
 ### Features

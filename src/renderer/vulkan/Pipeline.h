@@ -24,6 +24,25 @@ namespace Vulkan {
         VkPipelineLayout _pipelineLayout;
     };
 
+    namespace Vertex {
+        typedef std::pair<VkFormat, uint32_t> Attribute;
+        constexpr Attribute Float = Attribute(VK_FORMAT_R32_SFLOAT, 4);
+        constexpr Attribute Vec2 = Attribute(VK_FORMAT_R32G32_SFLOAT, 8);
+        constexpr Attribute Vec3 = Attribute(VK_FORMAT_R32G32B32_SFLOAT, 12);
+        constexpr Attribute Vec4 = Attribute(VK_FORMAT_R32G32B32A32_SFLOAT, 16);
+        constexpr Attribute Int = Attribute(VK_FORMAT_R32_SINT, 4);
+        constexpr Attribute IVec2 = Attribute(VK_FORMAT_R32G32_SINT, 8);
+        constexpr Attribute IVec3 = Attribute(VK_FORMAT_R32G32B32_SINT, 12);
+        constexpr Attribute IVec4 = Attribute(VK_FORMAT_R32G32B32A32_SINT, 16);
+        constexpr Attribute UInt = Attribute(VK_FORMAT_R32_UINT, 4);
+        constexpr Attribute UVec2 = Attribute(VK_FORMAT_R32G32_UINT, 8);
+        constexpr Attribute UVec3 = Attribute(VK_FORMAT_R32G32B32_UINT, 12);
+        constexpr Attribute UVec4 = Attribute(VK_FORMAT_R32G32B32A32_UINT, 16);
+        constexpr Attribute Double = Attribute(VK_FORMAT_R64_SFLOAT, 8);
+        constexpr Attribute DVec2 = Attribute(VK_FORMAT_R64G64_SFLOAT, 26);
+        constexpr Attribute DVec3 = Attribute(VK_FORMAT_R64G64B64_SFLOAT, 24);
+        constexpr Attribute DVec4 = Attribute(VK_FORMAT_R64G64B64A64_SFLOAT, 32);
+    }
     class PipelineCreator {
     public:
 
@@ -31,7 +50,7 @@ namespace Vulkan {
 
         void SetShaders(const std::initializer_list<const char*> fileLocations);
         void SetDynamicState(const std::initializer_list<VkDynamicState> dynamicState);
-        void SetVertexInput();
+        void SetVertexInput(const std::initializer_list<Vertex::Attribute> attributes);
         void SetInputAssembly(const VkPrimitiveTopology topology, const VkBool32 primitiveRestart=VK_FALSE);
         void SetViewport(const VkViewport viewport, const VkRect2D scissorRect);
 
@@ -46,6 +65,9 @@ namespace Vulkan {
         std::vector<VkDynamicState> _dynamicState;
 
         VkPipelineVertexInputStateCreateInfo _vertexInputInfo{};
+
+        VkVertexInputBindingDescription _vertexBinding;
+        std::vector<VkVertexInputAttributeDescription> _vertexAttributes;
 
         VkPipelineInputAssemblyStateCreateInfo _inputAssembly{};
 

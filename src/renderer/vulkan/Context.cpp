@@ -104,6 +104,9 @@ namespace Vulkan{
     void Context::WaitIdle() {
         vkDeviceWaitIdle(_device);
     }
+    void Context::WaitQueueIdle(const QueueType type) {
+        vkQueueWaitIdle(_queues[type]);
+    }
 
     int Context::RateDevice(const VkPhysicalDevice device, const ContextCreationInfo info) {
         _physicalDevice = device;
@@ -193,6 +196,13 @@ namespace Vulkan{
         if(info._deviceFeatures.variableMultisampleRate                 && !features.variableMultisampleRate) return 0;
         if(info._deviceFeatures.inheritedQueries                        && !features.inheritedQueries) return 0;
 
+        VkPhysicalDeviceProperties deviceProperties;
+		vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+        if(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) return 100;
+        if(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) return 50;
+        if(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU) return 25;
+
 		return 1;
     }
 
@@ -239,7 +249,7 @@ namespace Vulkan{
         _appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         _appInfo.pEngineName = "No Engine";
         _appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        _appInfo.apiVersion = VK_API_VERSION_1_0;
+        _appInfo.apiVersion = VK_API_VERSION_1_3;
 
         _instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         _instanceInfo.pApplicationInfo = &_appInfo;

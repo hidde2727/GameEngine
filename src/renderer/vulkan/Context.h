@@ -35,16 +35,21 @@ namespace Vulkan {
         void CleanUp();
 
         void WaitIdle();
+        void WaitQueueIdle(const QueueType type);
 
         VkDevice GetDevice() const { return _device; }
         VkPhysicalDevice GetPhysicalDevice() const { return _physicalDevice; }
-        VkQueue GetQueue(const QueueType type) { return _queues[type]; }
+        VkQueue GetQueue(const QueueType type) {
+            if(!_queues.contains(type)) return VK_NULL_HANDLE;
+            return _queues[type]; 
+        }
 
     private:
         friend class RenderPass;
         friend class Swapchain;
         friend class Pipeline;
         friend class CommandBuffer;
+        friend class BaseBuffer;
 
         QueueFamilyIndices GetQueueFamily(const QueueType queueType, const size_t amountQueues);
         int RateDevice(const VkPhysicalDevice device, const ContextCreationInfo info);

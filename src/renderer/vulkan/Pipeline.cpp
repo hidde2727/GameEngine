@@ -128,7 +128,9 @@ namespace Vulkan {
         // Check if we can use the cache
         bool cannotUseCache = false;
         for(const char* fileLocation : fileLocations) {
-            std::string chacheName = "./resources/engine/chache/" + Util::Base64FileEncode(Util::SHA1(fileLocation)) + ".spiv";
+            ASSERT(!std::filesystem::exists(fileLocation), "Specified vulkan shader file does not exist");
+
+            std::string chacheName = "resources/engine/chache/" + Util::Base64FileEncode(Util::SHA1(fileLocation)) + ".spiv";
             if(!std::filesystem::exists(chacheName)) { cannotUseCache = true; break; }
             std::filesystem::file_time_type lastFileChange = std::filesystem::last_write_time(fileLocation);
             std::filesystem::file_time_type lastCacheChange = std::filesystem::last_write_time(chacheName);
@@ -139,7 +141,7 @@ namespace Vulkan {
         if(!cannotUseCache) {
             int i = 0;
             for(const char* fileLocation : fileLocations) {
-                std::string chacheName = "./resources/engine/chache/" + Util::Base64FileEncode(Util::SHA1(fileLocation)) + ".spiv";
+                std::string chacheName = "resources/engine/chache/" + Util::Base64FileEncode(Util::SHA1(fileLocation)) + ".spiv";
 
                 const std::string filetype = std::filesystem::path(fileLocation).extension().string();
                 VkShaderStageFlagBits stageType = VK_SHADER_STAGE_VERTEX_BIT;
@@ -173,8 +175,6 @@ namespace Vulkan {
 
         int i = 0;
         for(const char* fileLocation : fileLocations) {
-            ASSERT(!std::filesystem::exists(fileLocation), "Specified vulkan shader file does not exist");
-
             const std::string filetype = std::filesystem::path(fileLocation).extension().string();
             EShLanguage languageType = EShLangVertex;
             if(filetype == ".frag") languageType = EShLangFragment;
@@ -251,7 +251,7 @@ namespace Vulkan {
             _shaderStageInfos[i].pName = "main";
 
             // Write the generated program to the cache
-            std::string chacheName = "./resources/engine/chache/" + Util::Base64FileEncode(Util::SHA1(*(fileLocations.begin() + i))) + ".spiv";
+            std::string chacheName = "resources/engine/chache/" + Util::Base64FileEncode(Util::SHA1(*(fileLocations.begin() + i))) + ".spiv";
             {
                 std::ofstream outputStream(chacheName.c_str(), std::ios::app); // Create the file if not exists
                 ASSERT(outputStream.fail(), ("Failed to create file '" + chacheName + "' because : \n\t" + std::string(strerror(errno))).c_str());
@@ -272,8 +272,28 @@ namespace Vulkan {
         _dynamicStateInfo.pDynamicStates = _dynamicState.data();
     }
 
-    void PipelineCreator::SetVertexInput() {
+    void PipelineCreator::SetVertexInput(const std::initializer_list<Vertex::Attribute> attributes) {
+        _vertexAttributes.resize(attributes.size());
+        uint32_t i = 0;
+        uint32_t offset = 0;
+        for(Vertex::Attribute attribute : attributes) {
+            _vertexAttributes[i].binding = 0;
+            _vertexAttributes[i].location = i;
+            _vertexAttributes[i].format = attribute.first;
+            _vertexAttributes[i].offset = offset;
+            offset += attribute.second;
+            i++;
+            if(attribute.second > 32) i++;
+        }
 
+        _vertexBinding.binding = 0;
+        _vertexBinding.stride = offset;
+        _vertexBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // Per vertex, not per instance
+
+        _vertexInputInfo.vertexBindingDescriptionCount = 1;
+        _vertexInputInfo.pVertexBindingDescriptions = &_vertexBinding;
+        _vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)_vertexAttributes.size();
+        _vertexInputInfo.pVertexAttributeDescriptions = _vertexAttributes.data();
     }
 
     void PipelineCreator::SetInputAssembly(const VkPrimitiveTopology topology, const VkBool32 primitiveRestart) {

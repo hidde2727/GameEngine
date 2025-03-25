@@ -64,6 +64,7 @@ namespace Vulkan {
     }
 
     void Swapchain::Resize(Context& context, const RenderPass& renderPass, const uint32_t width, const uint32_t height) {
+        vkDeviceWaitIdle(context._device);
         if(_swapChain != VK_NULL_HANDLE) Cleanup(context);
 
         VkSurfaceCapabilitiesKHR capabilities;
@@ -77,8 +78,8 @@ namespace Vulkan {
         }
         _createInfo.imageExtent = extent;
 
-        VkSwapchainKHR oldSwapchain = _swapChain;
-        _createInfo.oldSwapchain = oldSwapchain;
+        //VkSwapchainKHR oldSwapchain = _swapChain;
+        //_createInfo.oldSwapchain = oldSwapchain;
 
         VkResult result = vkCreateSwapchainKHR(context._device, &_createInfo, nullptr, &_swapChain);
         ASSERT(result != VK_SUCCESS, "Failed to create vulkan swapchain");

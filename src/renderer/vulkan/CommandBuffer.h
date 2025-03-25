@@ -6,6 +6,7 @@
 #include "renderer/vulkan/Renderpass.h"
 #include "renderer/vulkan/Swapchain.h"
 #include "renderer/vulkan/Pipeline.h"
+#include "renderer/vulkan/Buffers.h"
 
 namespace Engine {
 namespace Renderer {
@@ -18,12 +19,12 @@ namespace Vulkan {
     class CommandBuffer {
     public:
 
-        void Init(Context& context, const QueueType queueType, const uint32_t framesInFlight=2);
+        void Init(Context& context, const QueueType queueType, const uint32_t framesInFlight=1);
         void Cleanup(const Context& context);
 
         void AcquireNextSwapchainFrame(const Context& context, Swapchain& swapchain, const Semaphore& imageAvailable);
 
-        void StartRecording(const Context& context, const uint32_t specificFrameInFlight=UINT32_MAX);
+        void StartRecording(const Context& context, const uint32_t specificFrameInFlight=UINT32_MAX, const bool oneTimeUse=false);
         void EndRecording();
 
         void BeginRenderPass(const RenderPass renderPass, const Swapchain swapChain, const VkClearValue clearColor, bool setViewportAndScissor=false);
@@ -33,7 +34,10 @@ namespace Vulkan {
         void SetViewport(const VkViewport viewport);
         void SetScissor(const VkRect2D extent);
 
-        void BindGraphicsPipeline(const Pipeline pipeline);
+        void BindGraphicsPipeline(const Pipeline& pipeline);
+        void BindVertexBuffer(const VertexBuffer& buffer);
+
+        void CopyBuffer(const VkBuffer& from, const VkBuffer& to, const uint32_t size);
 
         void Draw(const int vertexCount, const int instanceCount, const int vertexOffset=0, const int instanceOffset=0);
 
@@ -42,7 +46,7 @@ namespace Vulkan {
 
         void WaitFence(const Context& context, const Fence& fence);
 
-        void Submit(Context& context, const std::initializer_list<std::pair<Semaphore&, VkPipelineStageFlags>> waitFor, const std::initializer_list<Semaphore> signalSemaphore, const Fence& signalFence);
+        void Submit(Context& context, const std::initializer_list<std::pair<Semaphore&, VkPipelineStageFlags>> waitFor={}, const std::initializer_list<Semaphore> signalSemaphore={}, const Fence& signalFence={});
         void PresentResult(Context& context, const Swapchain& swapchain, const std::initializer_list<Semaphore> waitFor);
 
     private:

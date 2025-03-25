@@ -8,8 +8,17 @@
 #include "renderer/vulkan/Pipeline.h"
 #include "renderer/vulkan/CommandBuffer.h"
 
-namespace Engine{
-namespace Renderer{
+#include "util/Vec2D.h"
+#include "util/Vec3D.h"
+
+namespace Engine {
+namespace Renderer {
+
+    struct Vertex {
+        Vertex(const Utils::Vec2D pos, const Utils::Vec3D color) : pos(pos), color(color) {}
+        Utils::Vec2F pos;
+        Utils::Vec3F color;
+    };
 
     class Window {
     public:
@@ -22,6 +31,7 @@ namespace Renderer{
         void Draw();
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
+        static void FramebufferResize(GLFWwindow* window, int width, int height);
 
     private:
         GLFWwindow* _window = nullptr;
@@ -34,6 +44,11 @@ namespace Renderer{
         Vulkan::Fence _vkInFlightFence;
         Vulkan::Semaphore _vkImageAvailableSemaphore;
         Vulkan::Semaphore _vkRenderFinishedSemaphore;
+
+        Vulkan::VertexBuffer _vkVertexBuffer;
+        Vulkan::TransferBuffer _vkTransferBuffer;
+
+        bool _framebufferResized;
     };
 
 }

@@ -21,7 +21,7 @@ namespace Util {
 		if (S % 3 == 2) {
 			out += base64[( input[S - 2] & 0xfc) >> 2];
 			out += base64[((input[S - 2] & 0x03) << 4) + ((input[S - 1] & 0xf0) >> 4)];
-			out += base64[							 ((input[S - 1] & 0x0f) << 2)];
+			out += base64[							     ((input[S - 1] & 0x0f) << 2)];
 			out += '=';
 		}
 		else if (S % 3 == 1) {
@@ -47,7 +47,7 @@ namespace Util {
 		if (S % 3 == 2) {
 			out += base64[( input[S - 2] & 0xfc) >> 2];
 			out += base64[((input[S - 2] & 0x03) << 4) + ((input[S - 1] & 0xf0) >> 4)];
-			out += base64[							 ((input[S - 1] & 0x0f) << 2)];
+			out += base64[							     ((input[S - 1] & 0x0f) << 2)];
 			out += '=';
 		}
 		else if (S % 3 == 1) {

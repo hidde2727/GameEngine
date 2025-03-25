@@ -23,11 +23,16 @@ add_library (GameEngine STATIC
 "src/renderer/vulkan/Renderpass.cpp"
 "src/renderer/vulkan/CommandBuffer.h"
 "src/renderer/vulkan/CommandBuffer.cpp"
+"src/renderer/vulkan/Buffers.h"
+"src/renderer/vulkan/Buffers.cpp"
 
 "src/util/Log.h"
 "src/util/Log.cpp"
 "src/util/Hashing.h"
 "src/util/Hashing.cpp"
+"src/util/FundamentalType.h"
+"src/util/Vec2D.h"
+"src/util/Vec3D.h"
 
 "lib/glslang/glslang/ResourceLimits/ResourceLimits.cpp"
 )
