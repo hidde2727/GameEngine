@@ -45,8 +45,7 @@ namespace Renderer {
         Vulkan::Semaphore _vkImageAvailableSemaphore;
         Vulkan::Semaphore _vkRenderFinishedSemaphore;
 
-        Vulkan::VertexBuffer _vkVertexBuffer;
-        Vulkan::TransferBuffer _vkTransferBuffer;
+        Vulkan::EfficientVertexBuffer _vkVertexBuffer;
 
         bool _framebufferResized;
     };

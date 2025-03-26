@@ -41,21 +41,18 @@ namespace Renderer {
         _vkImageAvailableSemaphore = _vkCommandBuffer.CreateSemaphore(_vkContext);
         _vkRenderFinishedSemaphore = _vkCommandBuffer.CreateSemaphore(_vkContext);
 
-        _vkVertexBuffer.Init(_vkContext, 1, true);
-        _vkTransferBuffer.Init(_vkContext, sizeof(Vertex)*3);
+        _vkVertexBuffer.Init(_vkContext, sizeof(Vertex) * 3);
         const std::vector<Vertex> vertices = {
             {{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
             {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
             {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
         };
-        _vkTransferBuffer.SetData(_vkContext, vertices);
-        _vkTransferBuffer.CopyTo(_vkContext, &_vkVertexBuffer);
+        _vkVertexBuffer.SetData(_vkContext, vertices);
     }
     Window::~Window() {
         _vkContext.WaitIdle();
 
         _vkVertexBuffer.Cleanup(_vkContext);
-        _vkTransferBuffer.Cleanup(_vkContext);
 
         _vkCommandBuffer.Cleanup(_vkContext);
         _vkPipeline.Cleanup(_vkContext);

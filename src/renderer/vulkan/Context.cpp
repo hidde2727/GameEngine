@@ -99,6 +99,16 @@ namespace Vulkan{
             if(type != QueueType::KHRPresentQueue)
                 _queueTypeToCommandPools[type] = queueFamilyToCommandPool[_queueFamilies[type]];
         }
+
+        // VMA allocater
+        VmaAllocatorCreateInfo allocatorCreateInfo = {};
+        allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+        allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_2;
+        allocatorCreateInfo.physicalDevice = _physicalDevice;
+        allocatorCreateInfo.device = _device;
+        allocatorCreateInfo.instance = _instance;
+        
+        vmaCreateAllocator(&allocatorCreateInfo, &_allocator);
     }
 
     void Context::WaitIdle() {
@@ -228,6 +238,8 @@ namespace Vulkan{
     }
 
     void Context::CleanUp() {
+        vmaDestroyAllocator(_allocator);
+
         for(const VkCommandPool pool : _commandPools) {
             vkDestroyCommandPool(_device, pool, nullptr);
         }

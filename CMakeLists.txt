@@ -4,6 +4,7 @@ add_library (GameEngine STATIC
 "src/GameEngine.h"
 
 "src/core/PCH.h"
+"src/core/PCH.cpp"
 "src/core/Entry.h"
 "src/core/Entry.cpp"
 "src/core/Game.h"
@@ -71,3 +72,6 @@ add_library(stb-images INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/lib/stb/stb_image.
 target_include_directories(stb-images INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/lib/stb")
 target_link_libraries(GameEngine PRIVATE stb-images)
 target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lib/stb")
+
+# VMA
+target_link_libraries(GameEngine PUBLIC GPUOpen::VulkanMemoryAllocator)

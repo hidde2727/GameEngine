@@ -36,8 +36,10 @@ namespace Vulkan {
 
         void BindGraphicsPipeline(const Pipeline& pipeline);
         void BindVertexBuffer(const VertexBuffer& buffer);
+        void BindVertexBuffer(const EfficientVertexBuffer& buffer);
 
         void CopyBuffer(const VkBuffer& from, const VkBuffer& to, const uint32_t size);
+        void WaitForCopyVertex(const VkBuffer& buffer, const uint32_t size = (uint32_t)VK_WHOLE_SIZE);
 
         void Draw(const int vertexCount, const int instanceCount, const int vertexOffset=0, const int instanceOffset=0);
 

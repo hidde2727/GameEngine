@@ -100,6 +100,11 @@ namespace Vulkan {
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(_commandBuffers[_currentFrame], 0, 1, vertexBuffers, offsets);
     }
+    void CommandBuffer::BindVertexBuffer(const EfficientVertexBuffer& buffer) {
+        VkBuffer vertexBuffers[] = {buffer._buffer};
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(_commandBuffers[_currentFrame], 0, 1, vertexBuffers, offsets);
+    }
 
     void CommandBuffer::CopyBuffer(const VkBuffer& from, const VkBuffer& to, const uint32_t size) {
         VkBufferCopy copyRegion{};
@@ -107,6 +112,19 @@ namespace Vulkan {
         copyRegion.dstOffset = 0;
         copyRegion.size = size;
         vkCmdCopyBuffer(_commandBuffers[_currentFrame], from, to, 1, &copyRegion);
+    }
+    void CommandBuffer::WaitForCopyVertex(const VkBuffer& buffer, const uint32_t size) {
+        VkBufferMemoryBarrier bufMemBarrier = { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
+        bufMemBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+        bufMemBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+        bufMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        bufMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        bufMemBarrier.buffer = buffer;
+        bufMemBarrier.offset = 0;
+        bufMemBarrier.size = VK_WHOLE_SIZE;
+     
+        vkCmdPipelineBarrier(_commandBuffers[_currentFrame], VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+            0, 0, nullptr, 1, &bufMemBarrier, 0, nullptr);
     }
 
     void CommandBuffer::Draw(const int vertexCount, const int instanceCount, const int vertexOffset, const int instanceOffset) {

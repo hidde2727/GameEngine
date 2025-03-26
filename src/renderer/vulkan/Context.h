@@ -50,6 +50,7 @@ namespace Vulkan {
         friend class Pipeline;
         friend class CommandBuffer;
         friend class BaseBuffer;
+        friend class EfficientGPUBuffer;
 
         QueueFamilyIndices GetQueueFamily(const QueueType queueType, const size_t amountQueues);
         int RateDevice(const VkPhysicalDevice device, const ContextCreationInfo info);
@@ -65,6 +66,8 @@ namespace Vulkan {
         std::map<QueueType, uint32_t> _queueFamilies;
         std::vector<VkCommandPool> _commandPools;
         std::map<QueueType, VkCommandPool> _queueTypeToCommandPools;
+
+        VmaAllocator _allocator = VK_NULL_HANDLE;
     };
 
     class ContextCreationInfo {

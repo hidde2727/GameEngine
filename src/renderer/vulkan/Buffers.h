@@ -10,26 +10,26 @@ namespace Vulkan {
     class BaseBuffer {
     public:
 
-        void SetData(const Context& context, const void* data, const uint32_t length);
+        void SetData(Context& context, const void* data, const uint32_t length);
         template<class T>
-        void SetData(const Context& context, const T& data) {
+        void SetData(Context& context, const T& data) {
             SetData(context, &data, sizeof(T));
         }
         template<class T>
-        void SetData(const Context& context, const T* data) {
+        void SetData(Context& context, const T* data) {
             SetData(context, data, sizeof(T));
         }
         template<class T, uint32_t S>
-        void SetData(const Context& context, const T (&data)[S]) {
+        void SetData(Context& context, const T (&data)[S]) {
             SetData(context, &data, sizeof(T)*S);
         }
         template<class T>
-        void SetData(const Context& context, const std::vector<T>& data) {
+        void SetData(Context& context, const std::vector<T>& data) {
             SetData(context, data.data(), (uint32_t)(sizeof(T)*data.size()));
         }
 
-        void StartTransferingData(const Context& context, const bool resetOffset=true, const uint32_t overrideSize=UINT32_MAX);
-        void AddData(const void* data, const uint32_t length);
+        virtual void StartTransferingData(const Context& context, const bool resetOffset=true, const uint32_t overrideSize=UINT32_MAX);
+        virtual void AddData(const void* data, const uint32_t length);
         template<class T>
         void AddData(const T& data) {
             AddData(&data, sizeof(T));
@@ -46,10 +46,10 @@ namespace Vulkan {
         void AddData(const std::vector<T> &data) {
             AddData(data.data(), (uint32_t)(sizeof(T)*data.size()));
         }
-        void EndTransferingData(const Context& context);
+        virtual void EndTransferingData(Context& context);
 
     protected:
-        void Init(const Context& context, const VkBufferUsageFlagBits usage, const uint32_t size, const VkMemoryPropertyFlags memoryProperties);
+        void Init(const Context& context, const VkBufferUsageFlagBits usage, const uint32_t size, const VmaAllocationCreateFlags memoryFlags);
         void ResizeInternal(const Context& context, const uint32_t size);
         void Cleanup(const Context& context);
         
@@ -57,13 +57,11 @@ namespace Vulkan {
 
         VkBuffer _buffer = VK_NULL_HANDLE;
         uint32_t _size;
-    private:  
-
-        uint32_t FindMemoryType(const Context& context, const uint32_t typeFilter, const VkMemoryPropertyFlags properties);
+        VmaAllocation _allocation;
+    private:
 
         VkBufferUsageFlagBits _usage;
-        VkMemoryPropertyFlags _memoryProperties;
-        VkDeviceMemory _bufferMemory = VK_NULL_HANDLE;
+        VmaAllocationCreateFlags _memoryFlags;
         void* _mappedData = nullptr;
         uint32_t _writingOffset=0;
         uint32_t _mappedMemoryOffset=0;
@@ -77,7 +75,7 @@ namespace Vulkan {
                 context, 
                 (VkBufferUsageFlagBits)(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | (gpuLocal ? VK_BUFFER_USAGE_TRANSFER_DST_BIT : 0)), 
                 size, 
-                gpuLocal ? VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT : VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+                gpuLocal ? 0 : VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT
             );
         }
         inline void Cleanup(const Context& context) { BaseBuffer::Cleanup(context); }
@@ -95,7 +93,7 @@ namespace Vulkan {
                 context, 
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 size, 
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+                VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT
             );
         }
         inline void Cleanup(const Context& context) { BaseBuffer::Cleanup(context); }
@@ -105,6 +103,42 @@ namespace Vulkan {
     
     private:
         
+    };
+
+    class EfficientGPUBuffer : public BaseBuffer {
+    public:
+
+        void StartTransferingData(const Context& context, const bool resetOffset=true, const uint32_t overrideSize=UINT32_MAX) override;
+        void AddData(const void* data, const uint32_t length) override;
+        void EndTransferingData(Context& context) override;
+        void EndTransferingData(Context& context, CommandBuffer& commandBuffer);
+
+    protected:
+
+        void Init(const Context& context, const VkBufferUsageFlagBits usage, const uint32_t size);
+        inline void Cleanup(const Context& context) { BaseBuffer::Cleanup(context); }
+
+    private:
+        
+        bool _gpuLocal = false;
+        TransferBuffer _transferBuffer;
+
+    };
+
+    class EfficientVertexBuffer : public EfficientGPUBuffer {
+    public:
+
+        inline void Init(const Context& context, const uint32_t size) {  
+            EfficientGPUBuffer::Init(
+                context, 
+                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                size
+            );
+        }
+        inline void Cleanup(const Context& context) { EfficientGPUBuffer::Cleanup(context); }
+    
+    private:
+        friend class CommandBuffer;
     };
 
 }

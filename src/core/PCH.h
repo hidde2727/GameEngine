@@ -10,6 +10,8 @@
 #include <glslang/Include/ResourceLimits.h>
 #include <SPIRV/GlslangToSpv.h>
 
+#include <vk_mem_alloc.h>
+
 #include <string>
 #include <vector>
 #include <initializer_list>
