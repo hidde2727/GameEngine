@@ -11,8 +11,13 @@ namespace Vulkan {
             ASSERT(result != VK_SUCCESS, "Failed to create vulkan shader module");
             info._shaderStageInfos[i].module = shaderModules[i];
         }
+        
+        VkResult result = vkCreateDescriptorSetLayout(context._device, &info._descriptorLayoutInfo, nullptr, &_descriptorSetLayout);
+        ASSERT(result != VK_SUCCESS, "Failed to create vulkan descriptor set layout")
 
-        VkResult result = vkCreatePipelineLayout(context._device, &info._pipelineLayoutInfo, nullptr, &_pipelineLayout);
+        info._pipelineLayoutInfo.setLayoutCount = 1;
+        info._pipelineLayoutInfo.pSetLayouts = &_descriptorSetLayout;
+        result = vkCreatePipelineLayout(context._device, &info._pipelineLayoutInfo, nullptr, &_pipelineLayout);
         ASSERT(result != VK_SUCCESS, "Failed to create vulkan pipeline layout");
 
         info._pipelineInfo.stageCount = (uint32_t)info._shaderStageInfos.size();
@@ -27,11 +32,74 @@ namespace Vulkan {
         for(const VkShaderModule module : shaderModules) {
             vkDestroyShaderModule(context._device, module, nullptr);
         }
+
+        for(uint32_t i = 0; i < info._amountTextures; i++) { _availableTextureSlots.push(i); }
+
+        result = vkCreateDescriptorPool(context._device, &info._descriptorPoolInfo, nullptr, &_descriptorPool);
+        ASSERT(result != VK_SUCCESS, "Failed to create vulkan descriptor pool")
+
+        std::vector<VkDescriptorSetLayout> layouts(info._descriptorPoolInfo.maxSets, _descriptorSetLayout);
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = _descriptorPool;
+        allocInfo.descriptorSetCount = info._descriptorPoolInfo.maxSets;
+        allocInfo.pSetLayouts = layouts.data();
+        _descriptorSets.resize(info._descriptorPoolInfo.maxSets);
+        result = vkAllocateDescriptorSets(context._device, &allocInfo, _descriptorSets.data());
+    }
+
+    void Pipeline::BindSamplerDescriptor(const Context& context, const TextureSampler sampler, const uint32_t arrayElement) {
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.sampler = sampler._sampler;
+
+        std::vector<VkWriteDescriptorSet> descriptorWrites(_descriptorSets.size());
+        for(size_t i = 0; i < _descriptorSets.size(); i++) {
+            descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[i].dstSet = _descriptorSets[i];
+            descriptorWrites[i].dstBinding = ENGINE_RENDERER_VULKAN_IMAGESAMPLER_BINDING;
+            descriptorWrites[i].dstArrayElement = arrayElement;
+            descriptorWrites[i].descriptorCount = 1;
+            descriptorWrites[i].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+            descriptorWrites[i].pImageInfo = &imageInfo;
+        }
+        vkUpdateDescriptorSets(context._device, (uint32_t)descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+    }
+    uint32_t Pipeline::BindTextureDescriptor(const Context& context, Texture& texture) {
+        ASSERT(_availableTextureSlots.size()==0, "Cannot bind another texture to vulkan pipeline, no available descriptor slots")
+        uint32_t nextAvailableDescriptor = _availableTextureSlots.front();
+        _availableTextureSlots.pop();
+
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageView = texture._imageView;
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        std::vector<VkWriteDescriptorSet> descriptorWrites(_descriptorSets.size());
+        for(size_t i = 0; i < _descriptorSets.size(); i++) {
+            descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[i].dstSet = _descriptorSets[i];
+            descriptorWrites[i].dstBinding = ENGINE_RENDERER_VULKAN_IMAGE_BINDING;
+            descriptorWrites[i].dstArrayElement = nextAvailableDescriptor;
+            descriptorWrites[i].descriptorCount = 1;
+            descriptorWrites[i].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            descriptorWrites[i].pImageInfo = &imageInfo;
+        }
+        vkUpdateDescriptorSets(context._device, (uint32_t)descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+
+        texture._boundDescriptorSlot = nextAvailableDescriptor;
+        return nextAvailableDescriptor;
+    }
+    void Pipeline::UnbindTextureDescriptor(const Context& context, Texture& texture) {
+        ASSERT(texture._boundDescriptorSlot==UINT32_MAX, "Texture is not bound to a vulkan descriptor")
+
+        _availableTextureSlots.push(texture._boundDescriptorSlot);
+        texture._boundDescriptorSlot = UINT32_MAX;
     }
 
     void Pipeline::Cleanup(const Context& context) {
         vkDestroyPipeline(context._device, _pipeline, nullptr);
         vkDestroyPipelineLayout(context._device, _pipelineLayout, nullptr);
+        vkDestroyDescriptorPool(context._device, _descriptorPool, nullptr);
+        vkDestroyDescriptorSetLayout(context._device, _descriptorSetLayout, nullptr);
     }
 
 
@@ -212,14 +280,14 @@ namespace Vulkan {
             LOG("Preprocessing vulkan shader")
             std::string preprocessedStr;
             if ( !shaders[i]->preprocess(resources, defaultVersion, defaultProfile, false, forwardCompatible, messageFlags, &preprocessedStr, forbidInclude) )
-                THROW(("Failed to preprocess vulkan shader :" + std::string(shaders[i]->getInfoLog())).c_str())
+                THROW(("Failed to preprocess vulkan shader (" + std::string(fileLocation) + ") :\n" + std::string(shaders[i]->getInfoLog())).c_str())
             
             const char* preprocessedSources[1] = { preprocessedStr.c_str() };
             shaders[i]->setStrings(preprocessedSources, 1);
 
             LOG("Parsing vulkan shader")
             if ( !shaders[i]->parse(resources, defaultVersion, defaultProfile, false, forwardCompatible, messageFlags, forbidInclude) )
-                THROW(("Failed to parse vulkan shader :" + std::string(shaders[i]->getInfoLog())).c_str())
+                THROW(("Failed to parse vulkan shader (" + std::string(fileLocation) + ") :\n" + std::string(shaders[i]->getInfoLog())).c_str())
 
             program->addShader(shaders[i].get());
             i++;
@@ -227,7 +295,7 @@ namespace Vulkan {
 
         INFO("Linking vulkan shaders")
         if( !program->link(EShMsgDefault) )
-            THROW(("Failed to link vulkan shader :" + std::string(shaders[i]->getInfoLog())).c_str())
+            THROW(("Failed to link vulkan shaders :" + std::string(shaders[i]->getInfoLog())).c_str())
 
         for(i = 0; i < shaders.size(); i++) {
             VkShaderStageFlagBits stageType = VK_SHADER_STAGE_VERTEX_BIT;
@@ -272,11 +340,11 @@ namespace Vulkan {
         _dynamicStateInfo.pDynamicStates = _dynamicState.data();
     }
 
-    void PipelineCreator::SetVertexInput(const std::initializer_list<Vertex::Attribute> attributes) {
-        _vertexAttributes.resize(attributes.size());
+    void PipelineCreator::SetVertexInput(const std::initializer_list<Vertex::Attribute> perVertex) {
+        _vertexAttributes.resize(perVertex.size());
         uint32_t i = 0;
         uint32_t offset = 0;
-        for(Vertex::Attribute attribute : attributes) {
+        for(Vertex::Attribute attribute : perVertex) {
             _vertexAttributes[i].binding = 0;
             _vertexAttributes[i].location = i;
             _vertexAttributes[i].format = attribute.first;
@@ -309,6 +377,77 @@ namespace Vulkan {
         _viewportState.pViewports = &_viewport;
         _viewportState.scissorCount = 1;
         _viewportState.pScissors = &_scissorRect;
+    }
+    
+    void PipelineCreator::SetDescriptorInfo(const uint32_t duplicateSets, const uint32_t textures, const uint32_t imageSamplers, const uint32_t uniformBuffers) {
+        _amountTextures = textures;
+        if(textures > 0) {
+            VkDescriptorPoolSize poolSize{};
+            poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            poolSize.descriptorCount = textures;
+            _descriptorPoolSizes.push_back(poolSize);
+            VkDescriptorSetLayoutBinding layout{};
+
+            layout.binding = ENGINE_RENDERER_VULKAN_IMAGE_BINDING;
+            layout.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            layout.descriptorCount = textures;
+            layout.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+            layout.pImmutableSamplers = nullptr;
+            _descriptorLayoutBindings.push_back(layout);
+
+            _descriptorLayoutBindingFlags.push_back(VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
+        }
+        if(imageSamplers > 0) {
+            VkDescriptorPoolSize poolSize{};
+            poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLER;
+            poolSize.descriptorCount = imageSamplers;
+            _descriptorPoolSizes.push_back(poolSize);
+            VkDescriptorSetLayoutBinding layout{};
+
+            layout.binding = ENGINE_RENDERER_VULKAN_IMAGESAMPLER_BINDING;
+            layout.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+            layout.descriptorCount = imageSamplers;
+            layout.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+            layout.pImmutableSamplers = nullptr;
+            _descriptorLayoutBindings.push_back(layout);
+
+            _descriptorLayoutBindingFlags.push_back(0);
+        }
+        if(uniformBuffers > 0) {
+            VkDescriptorPoolSize poolSize{};
+            poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            poolSize.descriptorCount = uniformBuffers;
+            _descriptorPoolSizes.push_back(poolSize);
+
+            VkDescriptorSetLayoutBinding layout{};
+            layout.binding = ENGINE_RENDERER_VULKAN_UNIFORMBUFFER_BINDING;
+            layout.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            layout.descriptorCount = uniformBuffers;
+            layout.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+            layout.pImmutableSamplers = nullptr;
+            _descriptorLayoutBindings.push_back(layout);
+
+            _descriptorLayoutBindingFlags.push_back(0);
+        }
+        _descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        _descriptorPoolInfo.poolSizeCount = (uint32_t)_descriptorPoolSizes.size();
+        _descriptorPoolInfo.pPoolSizes = _descriptorPoolSizes.data();
+        _descriptorPoolInfo.maxSets = (uint32_t)duplicateSets;
+        _descriptorPoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+        
+        _descriptorLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        _descriptorLayoutInfo.bindingCount = (uint32_t)_descriptorLayoutBindings.size();
+        _descriptorLayoutInfo.pBindings = _descriptorLayoutBindings.data();
+
+        if(textures > 0) {
+            _descriptorLayoutBindingExtraInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
+            _descriptorLayoutBindingExtraInfo.pNext = nullptr;
+            _descriptorLayoutBindingExtraInfo.bindingCount = _descriptorLayoutBindingFlags.size();
+            _descriptorLayoutBindingExtraInfo.pBindingFlags = _descriptorLayoutBindingFlags.data();
+            _descriptorLayoutInfo.pNext = &_descriptorLayoutBindingExtraInfo;
+            _descriptorLayoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+        }
+
     }
     
 }

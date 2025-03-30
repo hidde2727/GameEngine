@@ -12,8 +12,11 @@
 
 #include <vk_mem_alloc.h>
 
+#include <stb_image.h>
+
 #include <string>
 #include <vector>
 #include <initializer_list>
 #include <filesystem>
 #include <fstream>
+#include <queue>

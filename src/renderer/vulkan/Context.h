@@ -51,6 +51,8 @@ namespace Vulkan {
         friend class CommandBuffer;
         friend class BaseBuffer;
         friend class EfficientGPUBuffer;
+        friend class Texture;
+        friend class TextureSampler;
 
         QueueFamilyIndices GetQueueFamily(const QueueType queueType, const size_t amountQueues);
         int RateDevice(const VkPhysicalDevice device, const ContextCreationInfo info);
@@ -95,6 +97,7 @@ namespace Vulkan {
         // Device
         std::vector<QueueType> _queues;
         VkPhysicalDeviceFeatures _deviceFeatures{};
+        VkPhysicalDeviceDescriptorIndexingFeaturesEXT _indexingFeatures{};
         std::vector<const char*> _deviceExtensions;
         bool _needsSwapchain = false;
         VkDeviceCreateInfo _deviceInfo{};

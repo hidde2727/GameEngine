@@ -105,30 +105,97 @@ namespace Vulkan {
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(_commandBuffers[_currentFrame], 0, 1, vertexBuffers, offsets);
     }
+    void CommandBuffer::BindIndexBuffer(const IndexBuffer& buffer) {
+        vkCmdBindIndexBuffer(_commandBuffers[_currentFrame], buffer._buffer, 0, VK_INDEX_TYPE_UINT16);
+    }
+    void CommandBuffer::BindIndexBuffer(const EfficientIndexBuffer& buffer) {
+        vkCmdBindIndexBuffer(_commandBuffers[_currentFrame], buffer._buffer, 0, VK_INDEX_TYPE_UINT16);
+    }
+    void CommandBuffer::BindDescriptorSet(const Pipeline& pipeline) {
+        vkCmdBindDescriptorSets(_commandBuffers[_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline._pipelineLayout, 0, 1, &pipeline._descriptorSets[_currentFrame], 0, nullptr);
+    }
 
-    void CommandBuffer::CopyBuffer(const VkBuffer& from, const VkBuffer& to, const uint32_t size) {
+    void CommandBuffer::CopyBuffer(const VkBuffer from, const VkBuffer to, const uint32_t size) {
         VkBufferCopy copyRegion{};
         copyRegion.srcOffset = 0;
         copyRegion.dstOffset = 0;
         copyRegion.size = size;
         vkCmdCopyBuffer(_commandBuffers[_currentFrame], from, to, 1, &copyRegion);
     }
-    void CommandBuffer::WaitForCopyVertex(const VkBuffer& buffer, const uint32_t size) {
-        VkBufferMemoryBarrier bufMemBarrier = { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
-        bufMemBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-        bufMemBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-        bufMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        bufMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        bufMemBarrier.buffer = buffer;
-        bufMemBarrier.offset = 0;
-        bufMemBarrier.size = VK_WHOLE_SIZE;
-     
-        vkCmdPipelineBarrier(_commandBuffers[_currentFrame], VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
-            0, 0, nullptr, 1, &bufMemBarrier, 0, nullptr);
-    }
+    void CommandBuffer::CopyBufferToImage(const VkBuffer from, const VkImage to, const uint32_t width, const uint32_t height) {
+        VkBufferImageCopy region{};
+        region.bufferOffset = 0;
+        region.bufferRowLength = 0;
+        region.bufferImageHeight = 0;
 
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+
+        region.imageOffset = {0, 0, 0};
+        region.imageExtent = {
+            width,
+            height,
+            1
+        };
+        vkCmdCopyBufferToImage(
+            _commandBuffers[_currentFrame],
+            from,
+            to,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &region
+        );
+    }
+    void CommandBuffer::TransferImageLayout(const VkImage image, const VkImageLayout oldLayout, const VkImageLayout newLayout, const uint32_t sourceQueueFamily, const uint32_t destinationQueueFamily) {
+        VkImageMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = oldLayout;
+        barrier.newLayout = newLayout;
+        barrier.srcQueueFamilyIndex = sourceQueueFamily;
+        barrier.dstQueueFamilyIndex = destinationQueueFamily;
+        barrier.image = image;
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+
+        VkPipelineStageFlags sourceStage;
+        VkPipelineStageFlags destinationStage;
+
+        if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+            sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        } else { THROW("Unsupported transition") }
+
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = 0;
+        vkCmdPipelineBarrier(
+            _commandBuffers[_currentFrame],
+            sourceStage, destinationStage,
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &barrier
+        );
+    }
+    
     void CommandBuffer::Draw(const int vertexCount, const int instanceCount, const int vertexOffset, const int instanceOffset) {
         vkCmdDraw(_commandBuffers[_currentFrame], vertexCount, instanceCount, vertexOffset, instanceOffset);
+    }
+    void CommandBuffer::DrawIndexed(const int indexCount, const int instanceCount, const int firstIndex, const int vertexOffset, const int instanceOffset) {
+        vkCmdDrawIndexed(_commandBuffers[_currentFrame], indexCount, instanceCount, firstIndex, vertexOffset, instanceOffset);
     }
     
     Semaphore CommandBuffer::CreateSemaphore(const Context& context) {

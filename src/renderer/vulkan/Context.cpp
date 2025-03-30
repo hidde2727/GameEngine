@@ -206,6 +206,14 @@ namespace Vulkan{
         if(info._deviceFeatures.variableMultisampleRate                 && !features.variableMultisampleRate) return 0;
         if(info._deviceFeatures.inheritedQueries                        && !features.inheritedQueries) return 0;
 
+        VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures{};
+		indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+        VkPhysicalDeviceFeatures2 features2{};
+        features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        features2.pNext = &indexingFeatures;
+        vkGetPhysicalDeviceFeatures2(device, &features2);
+        if(!indexingFeatures.descriptorBindingPartiallyBound) return 0;
+
         VkPhysicalDeviceProperties deviceProperties;
 		vkGetPhysicalDeviceProperties(device, &deviceProperties);
 
@@ -281,6 +289,10 @@ namespace Vulkan{
         _deviceInfo.pEnabledFeatures = &_deviceFeatures;
         _deviceInfo.ppEnabledExtensionNames = nullptr;
         _deviceInfo.enabledExtensionCount = 0;
+        
+		_indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+        _indexingFeatures.descriptorBindingPartiallyBound = true;
+        _deviceInfo.pNext = &_indexingFeatures;
     }
 
     void ContextCreationInfo::SetExtensions(const std::initializer_list<const char*> extensions, const bool glfw) {
@@ -334,6 +346,7 @@ namespace Vulkan{
 
     void ContextCreationInfo::SetDeviceExtensions(const std::initializer_list<const char*> extensions) {
         _deviceExtensions = extensions;
+
         _deviceInfo.ppEnabledExtensionNames = _deviceExtensions.data();
         _deviceInfo.enabledExtensionCount = (uint32_t)_deviceExtensions.size();
     }

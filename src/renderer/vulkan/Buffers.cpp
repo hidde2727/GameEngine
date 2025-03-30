@@ -9,7 +9,7 @@ namespace Vulkan {
         ASSERT(size<=0, "Size must be greater than zero for a vulkan buffer")
         _usage = usage;
         _memoryFlags = memoryFlags;
-        ResizeInternal(context, size);
+        BaseBuffer::ResizeInternal(context, size);
     }
 
     void BaseBuffer::ResizeInternal(const Context& context, const uint32_t size) {
@@ -50,6 +50,7 @@ namespace Vulkan {
     }
 
     void BaseBuffer::AddData(const void* data, const uint32_t length) {
+        ASSERT(_mappedData==nullptr, "Received data but StartTransferingData has not been called yet")
         ASSERT(_writingOffset+length>_size, "Received data too big to fit in the allocated vulkan buffer")
 
         memcpy(static_cast<char*>(_mappedData)+_writingOffset-_mappedMemoryOffset, data, length);
@@ -71,7 +72,9 @@ namespace Vulkan {
     void TransferBuffer::CopyTo(const Context& context, CommandBuffer commandBuffer, BaseBuffer* buffer) {
         if(buffer->_size < _size) buffer->ResizeInternal(context, _size);
         commandBuffer.CopyBuffer(_buffer, buffer->_buffer, _size);
-        commandBuffer.WaitForCopyVertex(_buffer);
+    }
+    void TransferBuffer::CopyTo(const Context& context, CommandBuffer commandBuffer, VkImage image, const uint32_t width, const uint32_t height) {
+        commandBuffer.CopyBufferToImage(_buffer, image, width, height);
     }
 
     void TransferBuffer::CopyTo(Context& context, BaseBuffer* buffer) {
@@ -103,6 +106,12 @@ namespace Vulkan {
         _gpuLocal=true;
         _transferBuffer.Init(context, size);
     }
+    
+    void EfficientGPUBuffer::ResizeInternal(const Context& context, const uint32_t size) {
+        if(size < _size) return;
+        if(_gpuLocal) { _transferBuffer.Cleanup(context); _transferBuffer.Init(context, size); }
+        BaseBuffer::ResizeInternal(context, size);
+    }
     void EfficientGPUBuffer::StartTransferingData(const Context& context, const bool resetOffset, const uint32_t overrideSize) {
         if(_gpuLocal) _transferBuffer.StartTransferingData(context, resetOffset, overrideSize);
         else BaseBuffer::StartTransferingData(context, resetOffset, overrideSize);
@@ -128,7 +137,6 @@ namespace Vulkan {
     void EfficientGPUBuffer::EndTransferingData(Context& context, CommandBuffer& commandBuffer) {
         if(!_gpuLocal) {
             BaseBuffer::EndTransferingData(context);
-            commandBuffer.WaitForCopyVertex(_buffer);
             return;
         }
         _transferBuffer.EndTransferingData(context);

@@ -3,7 +3,7 @@
 namespace Engine {
 namespace Renderer {
     
-    Window::Window() {
+    Window::Window(const uint32_t textureMapSlots) {
         glfwInit();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -32,8 +32,9 @@ namespace Renderer {
 
         Vulkan::PipelineCreator pipelineInfo;
         pipelineInfo.SetShaders({ "resources/engine/shaders/shader.vert", "resources/engine/shaders/shader.frag" });
-        pipelineInfo.SetVertexInput({ Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec3 });
+        pipelineInfo.SetVertexInput({ Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec3, Vulkan::Vertex::Vec2, Vulkan::Vertex::UInt });
         pipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
+        pipelineInfo.SetDescriptorInfo(2, 16, 2, 0);
         _vkPipeline.Init(pipelineInfo, _vkContext, _vkRenderPass, 0);
 
         _vkCommandBuffer.Init(_vkContext, Vulkan::QueueType::GraphicsQueue, 2);
@@ -41,17 +42,32 @@ namespace Renderer {
         _vkImageAvailableSemaphore = _vkCommandBuffer.CreateSemaphore(_vkContext);
         _vkRenderFinishedSemaphore = _vkCommandBuffer.CreateSemaphore(_vkContext);
 
-        _vkVertexBuffer.Init(_vkContext, sizeof(Vertex) * 3);
-        const std::vector<Vertex> vertices = {
-            {{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
-            {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-            {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
-        };
-        _vkVertexBuffer.SetData(_vkContext, vertices);
+        _vkVertexBuffer.Init(_vkContext, sizeof(Vertex) * 4);
+
+        Vulkan::TransferBuffer indexTransfer;
+        indexTransfer.Init(_vkContext, 6*sizeof(uint16_t));
+        _vkIndexBuffer.Init(_vkContext, 6*sizeof(uint16_t), true);
+        indexTransfer.SetData<uint16_t>(_vkContext, {0, 2, 1, 2, 0, 3});
+        indexTransfer.CopyTo(_vkContext, &_vkIndexBuffer);
+        indexTransfer.Cleanup(_vkContext);
+        
+        _textureMaps.resize(textureMapSlots);
+        
+        _pixelSampler.Init(_vkContext, VK_FILTER_NEAREST, VK_FILTER_NEAREST);
+        _vkPipeline.BindSamplerDescriptor(_vkContext, _pixelSampler, 0);
+        _linearSampler.Init(_vkContext, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
+        _vkPipeline.BindSamplerDescriptor(_vkContext, _linearSampler, 1);
     }
     Window::~Window() {
         _vkContext.WaitIdle();
 
+        _pixelSampler.Cleanup(_vkContext);
+        _linearSampler.Cleanup(_vkContext);
+
+        for(TextureMap& textureMap : _textureMaps) {
+            textureMap.Cleanup(_vkContext, _vkPipeline);
+        }
+        _vkIndexBuffer.Cleanup(_vkContext);
         _vkVertexBuffer.Cleanup(_vkContext);
 
         _vkCommandBuffer.Cleanup(_vkContext);
@@ -70,7 +86,7 @@ namespace Renderer {
     void Window::Update() {
         glfwPollEvents();
     }
-    void Window::Draw() {
+    void Window::Draw(entt::registry& registry, uint32_t amountRectangles) {
         if(_framebufferResized) {
             _framebufferResized = false; 
             int width = 0, height = 0;
@@ -78,6 +94,39 @@ namespace Renderer {
             if(width==0 && height==0) return;
             _vkSwapchain.Resize(_vkContext, _vkRenderPass, width, height);
         }
+        _vkVertexBuffer.Resize(_vkContext, amountRectangles*4*sizeof(Vertex));
+
+        {// Rectangle data
+			auto group = registry.group<TextureComponent>(entt::get<AreaComponent>);
+            _vkVertexBuffer.StartTransferingData(_vkContext);
+			for (const auto [entity, texture, area] : group.each()) {
+				_vkVertexBuffer.AddData(Vertex(
+                    Utils::Vec2F(area.x , area.y),
+                    Utils::Vec3F(1.f, 1.f, 1.f),
+                    Utils::Vec2F(texture._textureArea.x, texture._textureArea.y+texture._textureArea.h), 
+                    texture._descriptorID
+                ));
+				_vkVertexBuffer.AddData(Vertex(
+                    Utils::Vec2F(area.x+area.w, area.y),
+                    Utils::Vec3F(1.f, 1.f, 1.f),
+                    Utils::Vec2F(texture._textureArea.x+texture._textureArea.w, texture._textureArea.y+texture._textureArea.h), 
+                    texture._descriptorID
+                ));
+				_vkVertexBuffer.AddData(Vertex(
+                    Utils::Vec2F(area.x+area.w, area.y-area.h),
+                    Utils::Vec3F(1.f, 1.f, 1.f),
+                    Utils::Vec2F(texture._textureArea.x+texture._textureArea.w, texture._textureArea.y), 
+                    texture._descriptorID
+                ));
+				_vkVertexBuffer.AddData(Vertex(
+                    Utils::Vec2F(area.x , area.y-area.h),
+                    Utils::Vec3F(1.f, 1.f, 1.f),
+                    Utils::Vec2F(texture._textureArea.x, texture._textureArea.y), 
+                    texture._descriptorID
+                ));
+			}
+            _vkVertexBuffer.EndTransferingData(_vkContext, _vkCommandBuffer);
+		}
 
         _vkCommandBuffer.AcquireNextSwapchainFrame(_vkContext, _vkSwapchain, _vkImageAvailableSemaphore);
         _vkCommandBuffer.WaitFence(_vkContext, _vkInFlightFence);
@@ -85,8 +134,10 @@ namespace Renderer {
         _vkCommandBuffer.StartRecording(_vkContext);
         _vkCommandBuffer.BeginRenderPass(_vkRenderPass, _vkSwapchain, {{{0,0,0,1.f}}}, true);
         _vkCommandBuffer.BindGraphicsPipeline(_vkPipeline);
+        _vkCommandBuffer.BindDescriptorSet(_vkPipeline);
         _vkCommandBuffer.BindVertexBuffer(_vkVertexBuffer);
-        _vkCommandBuffer.Draw(3, 1);
+        _vkCommandBuffer.BindIndexBuffer(_vkIndexBuffer);
+        _vkCommandBuffer.DrawIndexed(6, 1);
         _vkCommandBuffer.EndRenderPass();
         _vkCommandBuffer.EndRecording();
 
@@ -99,6 +150,31 @@ namespace Renderer {
         _vkCommandBuffer.PresentResult(_vkContext, _vkSwapchain, { _vkRenderFinishedSemaphore });
         _vkContext.WaitIdle();
     }
+
+    
+    void Window::StartAssetLoading(const size_t textureMapID) {
+        _textureMaps[textureMapID].StartLoading();
+    }
+    void Window::SetAssetLoadingCacheName(const size_t textureMapID, const std::string cacheName) {
+        _textureMaps[textureMapID].SetCacheName(cacheName);
+    }
+    AssetID Window::AddAsset(const size_t textureMapID, std::unique_ptr<AssetLoader> assetLoader) {
+        return (AssetID)((textureMapID << ENGINE_RENDERER_ASSETID_TEXTUREMAPID_SHIFT_BITS) | _textureMaps[textureMapID].AddTextureLoader(std::move(assetLoader)));
+    }
+    void Window::EndAssetLoading(const size_t textureMapID) {
+        _textureMaps[textureMapID].EndLoading(_vkContext, _vkPipeline);
+    }
+    void Window::CleanupAssets(const size_t textureMapID) {
+        _textureMaps[textureMapID].Cleanup(_vkContext, _vkPipeline);
+    }
+
+    
+    std::pair<Utils::AreaF, uint32_t>* Window::GetTextureInfo(AssetID asset) {
+        return reinterpret_cast<std::pair<Utils::AreaF, uint32_t>*>(
+            _textureMaps[asset >> ENGINE_RENDERER_ASSETID_TEXTUREMAPID_SHIFT_BITS].GetRenderInfo(asset & (0xFFFFFFFF >> ENGINE_RENDERER_ASSETID_TEXTUREMAPID_SHIFT_BITS))
+        );
+    }
+
 
     VKAPI_ATTR VkBool32 VKAPI_CALL Window::DebugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

@@ -15,6 +15,8 @@ namespace Utils {
 		Vec3(const T x, const T y, const T z) : x(x), y(y), z(z) {}
 		Vec3(const Vec3<T>& v) : x(v.x), y(v.y), z(v.z) {}
 		Vec3(Vec3<T>&& v) : x(v.x), y(v.y), z(v.z) {}
+		template<FundamentalType OT>
+		Vec3(const OT x, const OT y, const OT z) : x(x), y(y), z(z) {}
 
 		T x = 0;
 		T y = 0;
@@ -132,8 +134,12 @@ namespace Utils {
 
 	typedef Vec3<double> Vec3D;
 	typedef Vec3<int> Vec3I;
+	typedef Vec3<int8_t> Vec3I8;
 	typedef Vec3<int16_t> Vec3I16;
 	typedef Vec3<int32_t> Vec3I32;
+	typedef Vec3<uint8_t> Vec3U8;
+	typedef Vec3<uint16_t> Vec3U16;
+	typedef Vec3<uint32_t> Vec3U32;
 	typedef Vec3<float> Vec3F;
 	typedef Vec3<long> Vec3L;
 

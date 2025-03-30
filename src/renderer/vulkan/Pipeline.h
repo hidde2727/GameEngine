@@ -2,13 +2,20 @@
 #define ENGINE_RENDERER_VULKAN_PIPELINE_H
 
 #include "core/PCH.h"
+
 #include "renderer/vulkan/Context.h"
 #include "renderer/vulkan/Renderpass.h"
+#include "renderer/vulkan/Texture.h"
+
 #include "util/Hashing.h"
 
 namespace Engine {
 namespace Renderer {
 namespace Vulkan {
+
+    #define ENGINE_RENDERER_VULKAN_IMAGE_BINDING 0
+    #define ENGINE_RENDERER_VULKAN_IMAGESAMPLER_BINDING 1
+    #define ENGINE_RENDERER_VULKAN_UNIFORMBUFFER_BINDING 2
 
     class PipelineCreator;
     class Pipeline {
@@ -17,11 +24,22 @@ namespace Vulkan {
         void Init(PipelineCreator& info, const Context& context, const RenderPass& renderPass, const uint32_t subpass=0);
         void Cleanup(const Context& context);
 
+        void BindSamplerDescriptor(const Context& context, const TextureSampler sampler, const uint32_t arrayElement);
+        // Bind a texture and return the array id (also sets the id on the texture)
+        uint32_t BindTextureDescriptor(const Context& context, Texture& texture);
+        void UnbindTextureDescriptor(const Context& context, Texture& texture);
+
     private:
         friend class CommandBuffer;
 
         VkPipeline _pipeline;
         VkPipelineLayout _pipelineLayout;
+
+        VkDescriptorSetLayout _descriptorSetLayout;
+        VkDescriptorPool _descriptorPool;
+        std::vector<VkDescriptorSet> _descriptorSets;
+
+        std::queue<uint32_t> _availableTextureSlots;
     };
 
     namespace Vertex {
@@ -50,9 +68,12 @@ namespace Vulkan {
 
         void SetShaders(const std::initializer_list<const char*> fileLocations);
         void SetDynamicState(const std::initializer_list<VkDynamicState> dynamicState);
-        void SetVertexInput(const std::initializer_list<Vertex::Attribute> attributes);
+        void SetVertexInput(const std::initializer_list<Vertex::Attribute> perVertex);
         void SetInputAssembly(const VkPrimitiveTopology topology, const VkBool32 primitiveRestart=VK_FALSE);
         void SetViewport(const VkViewport viewport, const VkRect2D scissorRect);
+
+        // duplicateSets is here to allow for frames in flight (set it equal to the amount of frames in flight you will be using)
+        void SetDescriptorInfo(const uint32_t duplicateSets, const uint32_t textures, const uint32_t imageSamplers, const uint32_t uniformBuffers);
 
     private:
         friend class Pipeline;
@@ -85,6 +106,15 @@ namespace Vulkan {
         VkPipelineLayoutCreateInfo _pipelineLayoutInfo{};
         
         VkGraphicsPipelineCreateInfo _pipelineInfo{};
+
+        std::vector<VkDescriptorSetLayoutBinding> _descriptorLayoutBindings;
+        std::vector<VkDescriptorBindingFlagsEXT> _descriptorLayoutBindingFlags;
+        VkDescriptorSetLayoutBindingFlagsCreateInfoEXT _descriptorLayoutBindingExtraInfo{};
+
+        VkDescriptorSetLayoutCreateInfo _descriptorLayoutInfo{};
+        std::vector<VkDescriptorPoolSize> _descriptorPoolSizes;
+        VkDescriptorPoolCreateInfo _descriptorPoolInfo{};
+        uint32_t _amountTextures;
 
     };
 

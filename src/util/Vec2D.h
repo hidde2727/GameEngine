@@ -131,8 +131,12 @@ namespace Utils {
 
 	typedef Vec2<double> Vec2D;
 	typedef Vec2<int> Vec2I;
+	typedef Vec2<int8_t> Vec2I8;
 	typedef Vec2<int16_t> Vec2I16;
 	typedef Vec2<int32_t> Vec2I32;
+	typedef Vec2<uint8_t> Vec2U8;
+	typedef Vec2<uint16_t> Vec2U16;
+	typedef Vec2<uint32_t> Vec2U32;
 	typedef Vec2<float> Vec2F;
 	typedef Vec2<long> Vec2L;
 

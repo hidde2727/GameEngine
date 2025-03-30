@@ -11,9 +11,18 @@ add_library (GameEngine STATIC
 "src/core/Game.cpp"
 "src/core/Scene.h"
 "src/core/Scene.cpp"
+"src/core/Components.h"
+"src/core/Components.cpp"
 
 "src/renderer/Window.h"
 "src/renderer/Window.cpp"
+"src/renderer/TextureMap.h"
+"src/renderer/TextureMap.cpp"
+"src/renderer/RectanglePacker.h"
+"src/renderer/RectanglePacker.cpp"
+"src/renderer/ImageLoader.h"
+"src/renderer/ImageLoader.cpp"
+
 "src/renderer/vulkan/Context.h"
 "src/renderer/vulkan/Context.cpp"
 "src/renderer/vulkan/Swapchain.h"
@@ -26,6 +35,8 @@ add_library (GameEngine STATIC
 "src/renderer/vulkan/CommandBuffer.cpp"
 "src/renderer/vulkan/Buffers.h"
 "src/renderer/vulkan/Buffers.cpp"
+"src/renderer/vulkan/Texture.h"
+"src/renderer/vulkan/Texture.cpp"
 
 "src/util/Log.h"
 "src/util/Log.cpp"
@@ -34,6 +45,7 @@ add_library (GameEngine STATIC
 "src/util/FundamentalType.h"
 "src/util/Vec2D.h"
 "src/util/Vec3D.h"
+"src/util/Area.h"
 
 "lib/glslang/glslang/ResourceLimits/ResourceLimits.cpp"
 )
