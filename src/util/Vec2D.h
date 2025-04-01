@@ -19,23 +19,26 @@ namespace Utils {
 		T x = 0;
 		T y = 0;
 
+		inline T length() {
+			return std::sqrt(x * x + y* y);
+		}
 		inline Vec2<T> normalized() {
-			T length = std::sqrt(x * x + y * y);
-			if (length == 0) {
+			T len = length();
+			if (len == 0) {
 				return Vec2<T>((T)x, (T)y);
 			}
-			return Vec2<T>((T)x / length, (T)y / length);
+			return Vec2<T>((T)x / len, (T)y / len);
 		}
-
-		inline T crossProduct(Vec2<T>& v) {
+		
+		inline T crossProduct(const Vec2<T> v) const {
 			return this->x * v.y - this->y * v.x;
 		}
 
-		inline Vec2<T> rotated90Degree() {
+		inline Vec2<T> rotated90Degree() const {
 			return Vec2<T>(y, -x);
 		}
 
-		inline Vec2<T> rotatedNegative90Degree() {
+		inline Vec2<T> rotatedNegative90Degree() const {
 			return Vec2<T>(-y, x);
 		}
 
@@ -101,7 +104,7 @@ namespace Utils {
 
 		template<FundamentalType OT>
 		inline Vec2<T> operator*(const OT v) const {
-			return Vec2<T>(this->x * v, this->y * v);
+			return Vec2<T>(this->x * (T)v, this->y * (T)v);
 		}
 
 		inline T operator*(const Vec2<T>& v) const {

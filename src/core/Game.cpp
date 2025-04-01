@@ -14,7 +14,7 @@ namespace Engine {
         while(!_window.ShouldClose()) {
             ASSERT(_scene==nullptr, "No scene bound, there should always be a scene bound")
             _window.Update();
-            _window.Draw(_scene->_entt, _scene->_drawableObjects);
+            _window.Draw(_scene->_entt, _scene->_textureComponents, _scene->_textComponents);
         }
 
         return 0;
@@ -35,13 +35,13 @@ namespace Engine {
         _window.SetAssetLoadingCacheName(ENGINE_GAME_TEXTUREMAP_ID, name);
     }
     Renderer::AssetID Game::LoadTextureFile(const std::string file) {
-        return _window.AddAsset(ENGINE_GAME_TEXTUREMAP_ID, std::make_unique<Renderer::ImageLoader>(file));
+        return _window.AddAsset(ENGINE_GAME_TEXTUREMAP_ID, std::make_unique<Renderer::ImageLoader>(file), ENGINE_RENDERER_ASSETTYPE_TEXTURE);
     }
     Renderer::AssetID Game::LoadQrCode(const std::string file) {
         return 0;
     }
-    Renderer::AssetID Game::LoadTextFile(const std::string file) {
-        return 0;
+    Renderer::AssetID Game::LoadTextFile(const std::string file, const Renderer::Characters characters, const std::initializer_list<uint32_t> sizes) {
+        return _window.AddAsset(ENGINE_GAME_TEXTUREMAP_ID, std::make_unique<Renderer::TextLoader>(file, characters, sizes), ENGINE_RENDERER_ASSETTYPE_TEXT);
     }
 
 }

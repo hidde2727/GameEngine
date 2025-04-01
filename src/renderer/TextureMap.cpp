@@ -6,9 +6,12 @@ namespace Renderer {
     void TextureMap::Init() {
 
     }
-    void TextureMap::Cleanup(Vulkan::Context& context, Vulkan::Pipeline& boundToPipeline) {
+    void TextureMap::Cleanup(Vulkan::Context& context, std::initializer_list<Vulkan::Pipeline*> boundToPipelines) {
         for(Vulkan::Texture& texture : _textures) {
-            boundToPipeline.UnbindTextureDescriptor(context, texture);
+            uint32_t slot = texture.GetBoundDescriptorSlot();
+            for(Vulkan::Pipeline* pipeline : boundToPipelines) {
+                pipeline->UnbindTextureDescriptor(context, slot, texture);
+            }
             texture.Cleanup(context);
         }
     }
@@ -24,7 +27,7 @@ namespace Renderer {
     void TextureMap::SetCacheName(const std::string name) {
         _cacheName = name;
     }
-    void TextureMap::EndLoading(Vulkan::Context& context, Vulkan::Pipeline& bindToPipeline) {
+    void TextureMap::EndLoading(Vulkan::Context& context, std::initializer_list<Vulkan::Pipeline*> bindToPipelines) {
         if(_amountTextures == 0) return;
         // Check if the cache is usable
         
@@ -54,7 +57,12 @@ namespace Renderer {
         commandBuffer.Init(context, queueType, 1);
         for(size_t i = 0; i < _textures.size(); i++) {
             _textures[i].Init(context, *binSizePtr, VK_FORMAT_R8G8B8A8_SRGB);
-            uint32_t descriptorBinding = bindToPipeline.BindTextureDescriptor(context, _textures[i]);
+            uint32_t descriptorBinding = (*bindToPipelines.begin())->BindTextureDescriptor(context, _textures[i]);
+            // It is ugly but it works
+            for(Vulkan::Pipeline* const* p = bindToPipelines.begin()+1; p<bindToPipelines.end(); p++) {
+                if(descriptorBinding!=(*p)->BindTextureDescriptor(context, _textures[i])) THROW("TextureMap::EndLoading should receive pipelines with equal amount of textures and with exclusive acces to the bindings (nothing else should bind textures)")
+            }
+
             _textures[i].StartTransferingData(context);
             // Go through all the textures and render the once with this bin
             // Going through them one-by-one to not overload the amount of transfer memory needed
@@ -63,14 +71,14 @@ namespace Renderer {
             Utils::AreaU8* texturePtr = reinterpret_cast<Utils::AreaU8*>(_textures[i].GetTransferLocation());
             for(size_t j = 0; j < _amountTextures; j++) {
                 if(resultPtr->first != i) continue;
-                _assetLoaders[j]->RenderTexture(texturePtr, resultPtr->second, j);
-                _assetLoaders[j]->SetTextureRenderInfo(
+                _assetLoaders[currentAssetLoader]->RenderTexture(texturePtr, *binSizePtr, resultPtr->second, j-_assetLoaders[currentAssetLoader]->_firstTexture);
+                _assetLoaders[currentAssetLoader]->SetTextureRenderInfo(
                     Utils::AreaF((float)resultPtr->second.x/binSizePtr->x, (float)resultPtr->second.y/binSizePtr->y, (float)resultPtr->second.w/binSizePtr->x, (float)resultPtr->second.h/binSizePtr->y), 
                     descriptorBinding, 
-                    j
+                    j-_assetLoaders[currentAssetLoader]->_firstTexture
                 );
 
-                if(_assetLoaders[j]->_lastTexture == j) currentAssetLoader++;
+                if(_assetLoaders[currentAssetLoader]->_lastTexture == j) currentAssetLoader++;
                 resultPtr++;
             }
             binSizePtr++;
@@ -95,10 +103,11 @@ namespace Renderer {
         // Create the cache
 
         // Remove the loaders
+        _assetLoaders.clear();
     }
     
-    uint8_t* TextureMap::GetRenderInfo(const uint32_t id) {
-        return _renderInfos[id].data();
+    std::shared_ptr<uint8_t> TextureMap::GetRenderInfo(const uint32_t id) {
+        return _renderInfos[id];
     }
 
 

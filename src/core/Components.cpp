@@ -5,9 +5,34 @@
 namespace Engine {
 
     TextureComponent::TextureComponent(Scene* scene, Renderer::AssetID assetID) {
-        std::pair<Utils::AreaF, uint32_t>* info = scene->_window->GetTextureInfo(assetID);
+        std::shared_ptr<Renderer::ImageRenderInfo> info = scene->_window->GetTextureInfo(assetID);
         _textureArea = info->first;
         _descriptorID = info->second;
+    }
+
+    TextComponent::TextComponent(Scene* scene, uint32_t assetID, const uint32_t size, std::u32string text) {
+        std::shared_ptr<Renderer::TextRenderInfo> info = scene->_window->GetTextInfo(assetID);
+        _renderInfo.reserve(text.size());
+        float currentX = 0;
+        float currentY = 0;
+        for(uint32_t i = 0; i < text.size(); i++) {
+            Renderer::CharInfo charInfo = info->at(size)[text[i]];
+            if(charInfo._boundTexture!=UINT32_MAX) {
+                float x = currentX + (i>0?charInfo._horizontalKerning[text[i-1]]+charInfo._leftSideBearing : 0);
+                _renderInfo.push_back({
+                    Utils::AreaF(
+                        std::floor(x + charInfo._min.x),
+                        std::ceil(currentY + charInfo._min.y - charInfo._max.y),
+                        charInfo._max.x - charInfo._min.x,
+                        charInfo._max.y - charInfo._min.y
+                    ),
+                    charInfo._textureArea,
+                    charInfo._boundTexture,
+                    0.25f*sqrt((charInfo._max.x-charInfo._min.x)*(charInfo._max.x-charInfo._min.x)+(charInfo._max.y-charInfo._min.y)*(charInfo._max.y-charInfo._min.y))
+                });
+            }
+            currentX += charInfo._advance;
+        }
     }
 
 }

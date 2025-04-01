@@ -22,7 +22,7 @@ namespace Utils {
 		T y = 0;
         T z = 0;
 
-		inline Vec3<T> Normalized() {
+		inline Vec3<T> Normalized() const {
 			T length = std::sqrt(x * x + y * y + z * z);
 			if (length == 0) {
 				return Vec3<T>((T)x, (T)y, (T)z);
@@ -30,7 +30,7 @@ namespace Utils {
 			return Vec3<T>((T)x / length, (T)y / length, (T)z / length);
 		}
 
-		inline Vec3<T> CrossProduct(Vec3<T>& v) {
+		inline Vec3<T> CrossProduct(Vec3<T>& v) const {
 			return Vec3<T>(
                 this->y * v.z - this->z * v.y,
                 this->z * v.x - this->x * v.z,

@@ -27,7 +27,7 @@ namespace Vulkan {
         void BindSamplerDescriptor(const Context& context, const TextureSampler sampler, const uint32_t arrayElement);
         // Bind a texture and return the array id (also sets the id on the texture)
         uint32_t BindTextureDescriptor(const Context& context, Texture& texture);
-        void UnbindTextureDescriptor(const Context& context, Texture& texture);
+        void UnbindTextureDescriptor(const Context& context, const uint32_t slot, Texture& texture);
 
     private:
         friend class CommandBuffer;
@@ -68,9 +68,11 @@ namespace Vulkan {
 
         void SetShaders(const std::initializer_list<const char*> fileLocations);
         void SetDynamicState(const std::initializer_list<VkDynamicState> dynamicState);
-        void SetVertexInput(const std::initializer_list<Vertex::Attribute> perVertex);
+        // Will create a vertex binding on 0 for the perVertex data and on 1 for the perInstance data
+        void SetVertexInput(const std::initializer_list<Vertex::Attribute> perVertex, const std::initializer_list<Vertex::Attribute> perInstance={});
         void SetInputAssembly(const VkPrimitiveTopology topology, const VkBool32 primitiveRestart=VK_FALSE);
         void SetViewport(const VkViewport viewport, const VkRect2D scissorRect);
+        void SetPushConstantInput(const std::initializer_list<Vertex::Attribute> attributes, const VkShaderStageFlags shader);
 
         // duplicateSets is here to allow for frames in flight (set it equal to the amount of frames in flight you will be using)
         void SetDescriptorInfo(const uint32_t duplicateSets, const uint32_t textures, const uint32_t imageSamplers, const uint32_t uniformBuffers);
@@ -87,7 +89,7 @@ namespace Vulkan {
 
         VkPipelineVertexInputStateCreateInfo _vertexInputInfo{};
 
-        VkVertexInputBindingDescription _vertexBinding;
+        std::vector<VkVertexInputBindingDescription> _vertexBinding;
         std::vector<VkVertexInputAttributeDescription> _vertexAttributes;
 
         VkPipelineInputAssemblyStateCreateInfo _inputAssembly{};
@@ -115,6 +117,8 @@ namespace Vulkan {
         std::vector<VkDescriptorPoolSize> _descriptorPoolSizes;
         VkDescriptorPoolCreateInfo _descriptorPoolInfo{};
         uint32_t _amountTextures;
+
+        std::vector<VkPushConstantRange> _pushConstantRanges;
 
     };
 

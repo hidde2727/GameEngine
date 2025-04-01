@@ -18,6 +18,18 @@ namespace Engine {
     };
     typedef TextureComponent QRCodeComponent;
 
+    struct TextComponent {
+        TextComponent(Scene* scene, uint32_t assetID, const uint32_t size, const std::u32string text);
+        
+        struct CharRenderInfo {
+            Utils::AreaF _position;
+            Utils::AreaF _textureArea;
+            uint32_t _descriptorID;
+            float _pxRange;
+        };
+        std::vector<CharRenderInfo> _renderInfo;
+    };
+
 
 }
 

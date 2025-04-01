@@ -88,10 +88,9 @@ namespace Vulkan {
         texture._boundDescriptorSlot = nextAvailableDescriptor;
         return nextAvailableDescriptor;
     }
-    void Pipeline::UnbindTextureDescriptor(const Context& context, Texture& texture) {
-        ASSERT(texture._boundDescriptorSlot==UINT32_MAX, "Texture is not bound to a vulkan descriptor")
-
-        _availableTextureSlots.push(texture._boundDescriptorSlot);
+    void Pipeline::UnbindTextureDescriptor(const Context& context, const uint32_t slot, Texture& texture) {
+        // TODO: Check if the given slot isn't already in the availableTextureSlots
+        _availableTextureSlots.push(slot);
         texture._boundDescriptorSlot = UINT32_MAX;
     }
 
@@ -340,29 +339,51 @@ namespace Vulkan {
         _dynamicStateInfo.pDynamicStates = _dynamicState.data();
     }
 
-    void PipelineCreator::SetVertexInput(const std::initializer_list<Vertex::Attribute> perVertex) {
-        _vertexAttributes.resize(perVertex.size());
+    void PipelineCreator::SetVertexInput(const std::initializer_list<Vertex::Attribute> perVertex, const std::initializer_list<Vertex::Attribute> perInstance) {
+        _vertexAttributes.resize(perVertex.size()+perInstance.size());
         uint32_t i = 0;
-        uint32_t offset = 0;
-        for(Vertex::Attribute attribute : perVertex) {
-            _vertexAttributes[i].binding = 0;
-            _vertexAttributes[i].location = i;
-            _vertexAttributes[i].format = attribute.first;
-            _vertexAttributes[i].offset = offset;
-            offset += attribute.second;
-            i++;
-            if(attribute.second > 32) i++;
+
+        if(perVertex.size() > 0) {
+            uint32_t offset = 0;
+            for(Vertex::Attribute attribute : perVertex) {
+                _vertexAttributes[i].binding = 0;
+                _vertexAttributes[i].location = i;
+                _vertexAttributes[i].format = attribute.first;
+                _vertexAttributes[i].offset = offset;
+                offset += attribute.second;
+                i++;
+                if(attribute.second > 32) i++;
+            }
+    
+            _vertexBinding.push_back(VkVertexInputBindingDescription{});
+            _vertexBinding[0].binding = 0;
+            _vertexBinding[0].stride = offset;
+            _vertexBinding[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
         }
 
-        _vertexBinding.binding = 0;
-        _vertexBinding.stride = offset;
-        _vertexBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // Per vertex, not per instance
+        if(perInstance.size() > 0) {
+            uint32_t offset = 0;
+            for(Vertex::Attribute attribute : perInstance) {
+                _vertexAttributes[i].binding = 1;
+                _vertexAttributes[i].location = i;
+                _vertexAttributes[i].format = attribute.first;
+                _vertexAttributes[i].offset = offset;
+                offset += attribute.second;
+                i++;
+                if(attribute.second > 32) i++;
+            }
+    
+            _vertexBinding.push_back(VkVertexInputBindingDescription{
+                1, offset, VK_VERTEX_INPUT_RATE_INSTANCE
+            });
+        }
 
-        _vertexInputInfo.vertexBindingDescriptionCount = 1;
-        _vertexInputInfo.pVertexBindingDescriptions = &_vertexBinding;
+        _vertexInputInfo.vertexBindingDescriptionCount = _vertexBinding.size();
+        _vertexInputInfo.pVertexBindingDescriptions = _vertexBinding.data();
         _vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)_vertexAttributes.size();
         _vertexInputInfo.pVertexAttributeDescriptions = _vertexAttributes.data();
     }
+    
 
     void PipelineCreator::SetInputAssembly(const VkPrimitiveTopology topology, const VkBool32 primitiveRestart) {
         _inputAssembly.topology = topology;
@@ -377,6 +398,19 @@ namespace Vulkan {
         _viewportState.pViewports = &_viewport;
         _viewportState.scissorCount = 1;
         _viewportState.pScissors = &_scissorRect;
+    }
+
+    void PipelineCreator::SetPushConstantInput(const std::initializer_list<Vertex::Attribute> attributes, const VkShaderStageFlags shader) {
+        uint32_t totalSize = 0;
+        for(Vertex::Attribute attribute : attributes) { totalSize += attribute.second; }
+        VkPushConstantRange range = {};
+        range.stageFlags = shader;
+        range.offset = 0;
+        range.size = totalSize;
+        _pushConstantRanges.push_back(range);
+
+        _pipelineLayoutInfo.pushConstantRangeCount = (uint32_t)_pushConstantRanges.size();
+        _pipelineLayoutInfo.pPushConstantRanges = _pushConstantRanges.data();
     }
     
     void PipelineCreator::SetDescriptorInfo(const uint32_t duplicateSets, const uint32_t textures, const uint32_t imageSamplers, const uint32_t uniformBuffers) {
@@ -442,7 +476,7 @@ namespace Vulkan {
         if(textures > 0) {
             _descriptorLayoutBindingExtraInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
             _descriptorLayoutBindingExtraInfo.pNext = nullptr;
-            _descriptorLayoutBindingExtraInfo.bindingCount = _descriptorLayoutBindingFlags.size();
+            _descriptorLayoutBindingExtraInfo.bindingCount = (uint32_t)_descriptorLayoutBindingFlags.size();
             _descriptorLayoutBindingExtraInfo.pBindingFlags = _descriptorLayoutBindingFlags.data();
             _descriptorLayoutInfo.pNext = &_descriptorLayoutBindingExtraInfo;
             _descriptorLayoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;

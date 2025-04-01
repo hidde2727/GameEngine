@@ -1,0 +1,82 @@
+#ifndef ENGINE_RENDERER_TEXTLOADER_H
+#define ENGINE_RENDERER_TEXTLOADER_H
+
+// MSDF generation base on https://github.com/Chlumsky/msdfgen/files/3050967/thesis.pdf
+
+#include "core/PCH.h"
+#include "renderer/TextureMap.h"
+#include "renderer/ttf/FontParser.h"
+
+#include "util/EquationSolvers.h"
+
+namespace Engine {
+namespace Renderer {
+
+        #define ENGINE_RENDERER_FONTPROGRAM_MAXSIZE 64
+        #define ENGINE_RENDERER_GENERAL_RENDERSIZE 32
+
+        struct CharInfo {
+            Utils::AreaF _textureArea;
+            uint32_t _boundTexture = UINT32_MAX;
+
+            Utils::Vec2F _min;
+            Utils::Vec2F _max;
+
+            float _leftSideBearing;
+            float _advance;
+            std::map<char32_t, int16_t> _horizontalKerning;
+        };
+        typedef std::map<uint32_t, std::map<char32_t, CharInfo>> TextRenderInfo;
+
+        class TextLoader : public AssetLoader {
+        public:
+
+            TextLoader(const std::string file, const Characters characters, const std::initializer_list<uint32_t> sizes);
+
+            bool CanUseCache(const std::filesystem::file_time_type lastCacheChange) override;
+            size_t GetAmountTextures() override;
+            void SetTextureSizes(Utils::Vec3U32* start) override;
+            void RenderTexture(Utils::AreaU8* texture, const Utils::Vec2U32 textureSize, const Utils::AreaU32 area, const size_t id) override;
+
+            void SetTextureRenderInfo(const Utils::AreaF area, const uint32_t boundTexture, const size_t id) override;
+            std::shared_ptr<uint8_t> GetRenderInfo() override;
+            std::shared_ptr<uint8_t> GetRenderInfo(uint8_t* cache, const size_t size) override;
+            std::shared_ptr<uint8_t> GetCacheData() override;
+
+        private:
+            struct Curve {
+                Curve(const Utils::Vec2D p3, const Utils::Vec2D p2, const Utils::Vec2D p1, const Utils::Vec2D P0) : p3(p3), p2(p2), p1(p1), P0(P0) {}
+                Curve() {}
+                Utils::Vec2D p3;
+                Utils::Vec2D p2;
+                Utils::Vec2D p1;
+                Utils::Vec2D P0;
+            };
+            struct TriCurve {
+                TriCurve(const Curve prev, const Curve curve, const Curve next) : prev(prev), curve(curve), next(next) {}
+                TriCurve() {}
+                Curve prev;
+                Curve curve;
+                Curve next;
+            };
+            
+            inline float Orthogonality(const Curve& curve, const Utils::Vec2D p, const bool start);
+            inline float Distance(const Curve prev, const Curve curve, const Curve next, const Utils::Vec2D p, const bool pseudo);
+            Utils::AreaU8 CalculateSignedField(const float x, const float y);
+
+            std::string _file;
+            Characters _characters;
+            std::vector<uint32_t> _sizes;
+            
+            std::vector<std::unique_ptr<TTFFontParser::FontData>> _fontData;
+            std::vector<std::pair<Utils::AreaF, uint32_t>> _textureAreas;
+            
+            std::vector<TriCurve> _renderingCurves;
+            float _renderingMaxDistance;
+
+        };
+
+}
+}
+
+#endif

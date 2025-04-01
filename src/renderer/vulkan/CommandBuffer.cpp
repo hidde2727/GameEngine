@@ -81,6 +81,9 @@ namespace Vulkan {
         renderPassInfo.pClearValues = &clearColor;
         vkCmdBeginRenderPass(_commandBuffers[_currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     }
+    void CommandBuffer::NextSubPass() {
+        vkCmdNextSubpass(_commandBuffers[_currentFrame], VK_SUBPASS_CONTENTS_INLINE);
+    }
     void CommandBuffer::EndRenderPass() {
         vkCmdEndRenderPass(_commandBuffers[_currentFrame]);
     }
@@ -91,19 +94,22 @@ namespace Vulkan {
     void CommandBuffer::SetScissor(const VkRect2D extent) {
         vkCmdSetScissor(_commandBuffers[_currentFrame], 0, 1, &extent);
     }
+    void CommandBuffer::SetPushConstantData(const Pipeline& pipeline, const void* data, const size_t size, const VkShaderStageFlags shader) {
+        vkCmdPushConstants(_commandBuffers[_currentFrame], pipeline._pipelineLayout, shader, 0, (uint32_t)size, data);
+    }
 
     void CommandBuffer::BindGraphicsPipeline(const Pipeline& pipeline) {
         vkCmdBindPipeline(_commandBuffers[_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline._pipeline);
     }
-    void CommandBuffer::BindVertexBuffer(const VertexBuffer& buffer) {
+    void CommandBuffer::BindVertexBuffer(const VertexBuffer& buffer, const uint32_t binding, const uint32_t offset) {
         VkBuffer vertexBuffers[] = {buffer._buffer};
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(_commandBuffers[_currentFrame], 0, 1, vertexBuffers, offsets);
+        VkDeviceSize offsets[] = {offset};
+        vkCmdBindVertexBuffers(_commandBuffers[_currentFrame], binding, 1, vertexBuffers, offsets);
     }
-    void CommandBuffer::BindVertexBuffer(const EfficientVertexBuffer& buffer) {
+    void CommandBuffer::BindVertexBuffer(const EfficientVertexBuffer& buffer, const uint32_t binding, const uint32_t offset) {
         VkBuffer vertexBuffers[] = {buffer._buffer};
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(_commandBuffers[_currentFrame], 0, 1, vertexBuffers, offsets);
+        VkDeviceSize offsets[] = {offset};
+        vkCmdBindVertexBuffers(_commandBuffers[_currentFrame], binding, 1, vertexBuffers, offsets);
     }
     void CommandBuffer::BindIndexBuffer(const IndexBuffer& buffer) {
         vkCmdBindIndexBuffer(_commandBuffers[_currentFrame], buffer._buffer, 0, VK_INDEX_TYPE_UINT16);

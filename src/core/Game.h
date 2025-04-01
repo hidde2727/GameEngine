@@ -6,6 +6,7 @@
 
 #include "renderer/Window.h"
 #include "renderer/ImageLoader.h"
+#include "renderer/TextLoader.h"
 
 #define ENGINE_GAME_TEXTUREMAP_ID 0
 #define ENGINE_SCENE_TEXTUREMAP_ID 1
@@ -45,7 +46,7 @@ namespace Engine {
         // Should only be called inside the LoadAssets function
         AssetID LoadQrCode(const std::string file);
         // Should only be called inside the LoadAssets function
-        AssetID LoadTextFile(const std::string file);
+        AssetID LoadTextFile(const std::string file, const Renderer::Characters characters, const std::initializer_list<uint32_t> sizes);
 
     private:
         Scene* _scene;

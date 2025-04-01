@@ -22,14 +22,14 @@ namespace Renderer {
 
         *start = Utils::Vec3U32(x, y, 0);
     }
-    void ImageLoader::RenderTexture(Utils::AreaU8* texture, const Utils::AreaU32 area, const size_t id) {
+    void ImageLoader::RenderTexture(Utils::AreaU8* texture, const Utils::Vec2U32 textureSize, const Utils::AreaU32 area, const size_t id) {
         _area = area;
         int width, height, channels;
         uint8_t* imageData = stbi_load(_file.c_str(), &width, &height, &channels, 4);
         for(int y = 0; y < height; y++) {
-            Utils::AreaU8* row = texture + (area.y+y)*area.w + area.x;
+            Utils::AreaU8* row = texture + (area.y+y)*textureSize.x + area.x;
             for(int x = 0; x < width; x++) {
-                uint8_t* pixelLocation = imageData + (y*height + x) * 4;
+                uint8_t* pixelLocation = imageData + (y*width + x) * 4;
                 *(row + x) = Utils::AreaU8(*pixelLocation, *(pixelLocation+1), *(pixelLocation+2), *(pixelLocation+3));
             }
         }
@@ -39,17 +39,18 @@ namespace Renderer {
         _area = area;
         _descriptorArrayID = boundTexture;
     }
-    std::vector<uint8_t> ImageLoader::GetRenderInfo() {
-        std::pair<Utils::AreaF, uint32_t> info = std::pair(_area, _descriptorArrayID);
-        return std::vector<uint8_t>(reinterpret_cast<uint8_t*>(&info), reinterpret_cast<uint8_t*>(&info)+sizeof(info));
+    std::shared_ptr<uint8_t> ImageLoader::GetRenderInfo() {
+        return std::reinterpret_pointer_cast<uint8_t>(std::make_shared<ImageRenderInfo>(_area, _descriptorArrayID));
     }
-    std::vector<uint8_t> ImageLoader::GetRenderInfo(uint8_t* cache, const size_t size) {
-        ASSERT(size != sizeof(std::pair<Utils::AreaF, uint32_t>), "Received faulty cache for ImageLoader");
-        return std::vector<uint8_t>(cache, cache+sizeof(std::pair<Utils::AreaF, uint32_t>));
+    std::shared_ptr<uint8_t> ImageLoader::GetRenderInfo(uint8_t* cache, const size_t size) {
+        ASSERT(size != sizeof(ImageRenderInfo), "Received faulty cache for ImageLoader");
+        return std::reinterpret_pointer_cast<uint8_t>(std::make_shared<ImageRenderInfo>(
+            *reinterpret_cast<Utils::AreaF*>(cache),
+            *reinterpret_cast<uint32_t*>(cache+sizeof(Utils::AreaF))
+        ));
     }
-    std::vector<uint8_t> ImageLoader::GetCacheData() {
-        std::pair<Utils::AreaF, uint32_t> info = std::pair(_area, _descriptorArrayID);
-        return std::vector<uint8_t>(reinterpret_cast<uint8_t*>(&info), reinterpret_cast<uint8_t*>(&info)+sizeof(info));
+    std::shared_ptr<uint8_t> ImageLoader::GetCacheData() {
+        return std::reinterpret_pointer_cast<uint8_t>(std::make_shared<ImageRenderInfo>(_area, _descriptorArrayID));
     }
 
 }

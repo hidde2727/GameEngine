@@ -29,14 +29,20 @@ namespace Vulkan {
 
         void BeginRenderPass(const RenderPass renderPass, const Swapchain swapChain, const VkClearValue clearColor, bool setViewportAndScissor=false);
         void BeginRenderPass(const RenderPass renderPass, const VkFramebuffer framebuffer, const VkExtent2D extent, const VkClearValue clearColor={{{0.0f, 0.0f, 0.0f, 1.0f}}});
+        void NextSubPass();
         void EndRenderPass();
 
         void SetViewport(const VkViewport viewport);
         void SetScissor(const VkRect2D extent);
+        void SetPushConstantData(const Pipeline& pipeline, const void* data, const size_t size, const VkShaderStageFlags shader);
+        template<class T>
+        inline void SetPushConstantData(const Pipeline& pipeline, const T data, const VkShaderStageFlags shader) {
+            SetPushConstantData(pipeline, &data, sizeof(data), shader);
+        }
 
         void BindGraphicsPipeline(const Pipeline& pipeline);
-        void BindVertexBuffer(const VertexBuffer& buffer);
-        void BindVertexBuffer(const EfficientVertexBuffer& buffer);
+        void BindVertexBuffer(const VertexBuffer& buffer, const uint32_t binding=0, const uint32_t offset=0);
+        void BindVertexBuffer(const EfficientVertexBuffer& buffer, const uint32_t binding=0, const uint32_t offset=0);
         void BindIndexBuffer(const IndexBuffer& buffer);
         void BindIndexBuffer(const EfficientIndexBuffer& buffer);
         void BindDescriptorSet(const Pipeline& pipeline);

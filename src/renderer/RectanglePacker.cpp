@@ -6,7 +6,7 @@ namespace Renderer {
     void RectanglePacker::Pack() {
         ASSERT(_sizes.size() == 0, "Cannot pack rectangles without an input")
         // Give every rectangle his index
-        for(size_t i = 0; i < _sizes.size(); i++) {
+        for(uint32_t i = 0; i < _sizes.size(); i++) {
             _sizes[i].z = i;
             ASSERT(_sizes[i].x > _maxBinSize.x || _sizes[i].y > _maxBinSize.y, "Cannot pack rectangles that are bigger then the maximum bin size");
         }
@@ -50,6 +50,7 @@ namespace Renderer {
                     x = 0;
                 }
             }
+            if(rect.y > rowHeight) rowHeight = rect.y;
             _result[rect.z] = std::pair(bin, Utils::AreaU32(x, y, rect.x, rect.y));
             x += rect.x;
             if(x > binWidth) binWidth = x;

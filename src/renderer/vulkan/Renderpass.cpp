@@ -6,11 +6,11 @@ namespace Engine {
 namespace Renderer {
 namespace Vulkan {
 
-    void RenderPass::Init(const Context& context, const Swapchain& swapchain) {
-        Init(context, swapchain._createInfo.imageFormat);
+    void RenderPass::Init(const Context& context, const Swapchain& swapchain, const uint32_t amountSubpasses) {
+        Init(context, swapchain._createInfo.imageFormat, amountSubpasses);
     }
 
-    void RenderPass::Init(const Context& context, const VkFormat format) {
+    void RenderPass::Init(const Context& context, const VkFormat format, const uint32_t amountSubpasses) {
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = format;
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -25,27 +25,34 @@ namespace Vulkan {
         colorAttachmentRef.attachment = 0;
         colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-        VkSubpassDescription subpass{};
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &colorAttachmentRef;
 
-        VkSubpassDependency dependency{};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        std::vector<VkSubpassDescription> subpasses(amountSubpasses);
+        std::vector<VkSubpassDependency> dependencies(amountSubpasses);
+        for(uint32_t i = 0; i < amountSubpasses; i++) {
+            VkSubpassDescription subpass{};
+            subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+            subpass.colorAttachmentCount = 1;
+            subpass.pColorAttachments = &colorAttachmentRef;
+            subpasses[i] = subpass;
+
+            VkSubpassDependency dependency{};
+            dependency.srcSubpass = i==0? VK_SUBPASS_EXTERNAL : i-1;
+            dependency.dstSubpass = i;
+            dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            dependency.srcAccessMask = 0;
+            dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            dependencies[i] = dependency;
+        }
 
         VkRenderPassCreateInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
         renderPassInfo.attachmentCount = 1;
         renderPassInfo.pAttachments = &colorAttachment;
-        renderPassInfo.subpassCount = 1;
-        renderPassInfo.pSubpasses = &subpass;
-        renderPassInfo.dependencyCount = 1;
-        renderPassInfo.pDependencies = &dependency;
+        renderPassInfo.subpassCount = amountSubpasses;
+        renderPassInfo.pSubpasses = subpasses.data();
+        renderPassInfo.dependencyCount = amountSubpasses;
+        renderPassInfo.pDependencies = dependencies.data();
 
         VkResult result = vkCreateRenderPass(context._device, &renderPassInfo, nullptr, &_renderPass);
         ASSERT(result!=VK_SUCCESS, "Failed to create vulkan render pass");

@@ -11,9 +11,10 @@ namespace Vulkan {
     class Swapchain;
     class RenderPass {
     public:
-
-        void Init(const Context& context, const Swapchain& swapchain);
-        void Init(const Context& context, const VkFormat format);
+        // Subpasses are defined as a pass on the output framebuffer, no special depthPasses etc supported
+        void Init(const Context& context, const Swapchain& swapchain, const uint32_t amountSubpasses);
+        // Subpasses are defined as a pass on the output framebuffer, no special depthPasses etc supported
+        void Init(const Context& context, const VkFormat format, const uint32_t amountSubpasses);
 
         void Cleanup(const Context& context);
 

@@ -60,6 +60,8 @@ namespace Vulkan {
         void EndTransferingData(Context& context, CommandBuffer& copyCommandBuffer);
         void TransferCompleteOnCommandBuffer(Context& context);
 
+        uint32_t GetBoundDescriptorSlot() { return _boundDescriptorSlot; }
+
     private:
         friend class Pipeline;
 

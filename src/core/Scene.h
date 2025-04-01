@@ -6,6 +6,7 @@
 
 #include "renderer/Window.h"
 #include "renderer/ImageLoader.h"
+#include "renderer/TextLoader.h"
 
 namespace Engine{
 
@@ -29,13 +30,17 @@ namespace Engine{
         // Should only be called inside the LoadAssets function
         Renderer::AssetID LoadQrCode(const std::string file);
         // Should only be called inside the LoadAssets function
-        Renderer::AssetID LoadTextFile(const std::string file);
+        Renderer::AssetID LoadTextFile(const std::string file, const Renderer::Characters characters, const std::initializer_list<uint32_t> sizes);
 
         inline entt::entity CreateEntity() { return _entt.create(); }
 		template<class ComponentType, class ... Ts>
 		inline void AddComponent(entt::entity entity, Ts && ... inputs) {
-            if(IsDrawableObject<ComponentType>()) _drawableObjects++;
+            if(IsTextureComponent<ComponentType>()) _textureComponents++;
 			_entt.emplace<ComponentType>(entity, inputs...);
+            
+            if(IsTextComponent<ComponentType>()) {
+                _textComponents += (uint32_t)_entt.get<TextComponent>(entity)._renderInfo.size();
+            }
 		}
 		template<class ComponentType>
 		inline ComponentType& GetComponent(entt::entity entity) {
@@ -44,15 +49,19 @@ namespace Engine{
 
     private:
         friend struct TextureComponent;
+        friend struct TextComponent;
         friend class Game;
 
         template <typename T>
-		constexpr bool IsDrawableObject() { return std::is_same<T, TextureComponent>::value; }
+		constexpr bool IsTextureComponent() { return std::is_same<T, TextureComponent>::value; }
+        template <typename T>
+		constexpr bool IsTextComponent() { return std::is_same<T, TextComponent>::value; }
 
         entt::registry _entt;
         Game* _game;
         Renderer::Window* _window;
-        uint32_t _drawableObjects = 0;
+        uint32_t _textureComponents = 0;
+        uint32_t _textComponents = 0;
     };
 
 }

@@ -10,10 +10,10 @@ namespace Util {
         std::cout << GetTime()  << "\033[34m" << message << "\033[0m\n";
     }
     void Error(std::string message) {
-        std::cout << GetTime()  << "\033[91m" << message << "\033[0m\n";
+        std::cout << GetTime()  << "\033[31m" << message << "\033[0m\n";
     }
     void Throw(std::string message) {
-        std::cout << GetTime()  << "\033[31m" << message << "\033[0m\n";
+        std::cout << GetTime()  << "\033[91m" << message << "\033[0m\n";
     }
 
     std::string GetTime() {

@@ -38,14 +38,14 @@ namespace Vulkan {
     }
     
     void BaseBuffer::SetData(Context& context, const void* data, const uint32_t length) {
-        StartTransferingData(context, true, length);
+        StartTransferingData(context, UINT32_MAX, length);
         AddData(data, length);
         EndTransferingData(context);
     }
 
-    void BaseBuffer::StartTransferingData(const Context& context, const bool resetOffset, const uint32_t overrideSize) {
-        if(resetOffset) _writingOffset=0;
-        _mappedMemoryOffset = _writingOffset;
+    void BaseBuffer::StartTransferingData(const Context& context, const uint32_t overrideOffset, const uint32_t overrideSize) {
+        if(overrideOffset==UINT32_MAX) _writingOffset=0;
+        else _writingOffset=overrideOffset;
         vmaMapMemory(context._allocator, _allocation, &_mappedData);
     }
 
@@ -53,7 +53,7 @@ namespace Vulkan {
         ASSERT(_mappedData==nullptr, "Received data but StartTransferingData has not been called yet")
         ASSERT(_writingOffset+length>_size, "Received data too big to fit in the allocated vulkan buffer")
 
-        memcpy(static_cast<char*>(_mappedData)+_writingOffset-_mappedMemoryOffset, data, length);
+        memcpy(static_cast<char*>(_mappedData)+_writingOffset, data, length);
         _writingOffset+=length;
     }
 
@@ -112,9 +112,9 @@ namespace Vulkan {
         if(_gpuLocal) { _transferBuffer.Cleanup(context); _transferBuffer.Init(context, size); }
         BaseBuffer::ResizeInternal(context, size);
     }
-    void EfficientGPUBuffer::StartTransferingData(const Context& context, const bool resetOffset, const uint32_t overrideSize) {
-        if(_gpuLocal) _transferBuffer.StartTransferingData(context, resetOffset, overrideSize);
-        else BaseBuffer::StartTransferingData(context, resetOffset, overrideSize);
+    void EfficientGPUBuffer::StartTransferingData(const Context& context, const uint32_t overrideOffset, const uint32_t overrideSize) {
+        if(_gpuLocal) _transferBuffer.StartTransferingData(context, overrideOffset, overrideSize);
+        else BaseBuffer::StartTransferingData(context, overrideOffset, overrideSize);
     }
     void EfficientGPUBuffer::AddData(const void* data, const uint32_t length) {
         if(_gpuLocal) _transferBuffer.AddData(data, length);

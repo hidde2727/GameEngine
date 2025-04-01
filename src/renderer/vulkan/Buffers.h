@@ -28,7 +28,7 @@ namespace Vulkan {
             SetData(context, data.data(), (uint32_t)(sizeof(T)*data.size()));
         }
 
-        virtual void StartTransferingData(const Context& context, const bool resetOffset=true, const uint32_t overrideSize=UINT32_MAX);
+        virtual void StartTransferingData(const Context& context, const uint32_t overrideOffset=UINT32_MAX, const uint32_t overrideSize=UINT32_MAX);
         virtual void AddData(const void* data, const uint32_t length);
         template<class T>
         void AddData(const T& data) {
@@ -65,7 +65,6 @@ namespace Vulkan {
         VmaAllocationCreateFlags _memoryFlags;
         void* _mappedData = nullptr;
         uint32_t _writingOffset=0;
-        uint32_t _mappedMemoryOffset=0;
     };
 
     class VertexBuffer : public BaseBuffer {
@@ -127,7 +126,7 @@ namespace Vulkan {
     class EfficientGPUBuffer : public BaseBuffer {
     public:
 
-        void StartTransferingData(const Context& context, const bool resetOffset=true, const uint32_t overrideSize=UINT32_MAX) override;
+        void StartTransferingData(const Context& context, const uint32_t overrideOffset=UINT32_MAX, const uint32_t overrideSize=UINT32_MAX) override;
         void AddData(const void* data, const uint32_t length) override;
         template<class T>
         void AddData(const T& data) {

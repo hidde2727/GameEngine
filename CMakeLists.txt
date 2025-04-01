@@ -22,6 +22,13 @@ add_library (GameEngine STATIC
 "src/renderer/RectanglePacker.cpp"
 "src/renderer/ImageLoader.h"
 "src/renderer/ImageLoader.cpp"
+"src/renderer/TextLoader.h"
+"src/renderer/TextLoader.cpp"
+
+"src/renderer/ttf/FontParser.h"
+"src/renderer/ttf/FontParser.cpp"
+"src/renderer/ttf/InstructionExecutor.h"
+"src/renderer/ttf/InstructionExecutor.cpp"
 
 "src/renderer/vulkan/Context.h"
 "src/renderer/vulkan/Context.cpp"
@@ -46,6 +53,8 @@ add_library (GameEngine STATIC
 "src/util/Vec2D.h"
 "src/util/Vec3D.h"
 "src/util/Area.h"
+"src/util/EquationSolvers.h"
+"src/util/BitMask.h"
 
 "lib/glslang/glslang/ResourceLimits/ResourceLimits.cpp"
 )
