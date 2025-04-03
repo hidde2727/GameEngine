@@ -14,6 +14,7 @@ namespace Renderer {
 
         #define ENGINE_RENDERER_FONTPROGRAM_MAXSIZE 64
         #define ENGINE_RENDERER_GENERAL_RENDERSIZE 32
+        #define ENGINE_RENDERER_SDF_PADDING 2
 
         struct CharInfo {
             Utils::AreaF _textureArea;

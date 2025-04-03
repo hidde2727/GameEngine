@@ -73,6 +73,7 @@ namespace Vulkan {
         void SetInputAssembly(const VkPrimitiveTopology topology, const VkBool32 primitiveRestart=VK_FALSE);
         void SetViewport(const VkViewport viewport, const VkRect2D scissorRect);
         void SetPushConstantInput(const std::initializer_list<Vertex::Attribute> attributes, const VkShaderStageFlags shader);
+        void EnableAlphaBlending();
 
         // duplicateSets is here to allow for frames in flight (set it equal to the amount of frames in flight you will be using)
         void SetDescriptorInfo(const uint32_t duplicateSets, const uint32_t textures, const uint32_t imageSamplers, const uint32_t uniformBuffers);

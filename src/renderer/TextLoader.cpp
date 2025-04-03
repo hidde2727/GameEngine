@@ -32,7 +32,7 @@ namespace Renderer {
             float scalingFactor = fontSize<ENGINE_RENDERER_FONTPROGRAM_MAXSIZE ? 1.f : (float)fontParser.GetScale(ENGINE_RENDERER_GENERAL_RENDERSIZE);
             for(const char32_t c : _characters) {
                 Utils::Vec2F size = (_fontData[i]->_glyphs[c]._max - _fontData[i]->_glyphs[c]._min) * scalingFactor;
-                *start = Utils::Vec3U32((uint32_t)std::ceil(size.x), (uint32_t)std::ceil(size.y), 0);
+                *start = Utils::Vec3U32((uint32_t)std::ceil(size.x+2*ENGINE_RENDERER_SDF_PADDING), (uint32_t)std::ceil(size.y+2*ENGINE_RENDERER_SDF_PADDING), 0);
                 start++;
             }
         }
@@ -50,9 +50,9 @@ namespace Renderer {
         size_t renderCurve = 0;
         for(const auto& contour : fontData->_glyphs[c]._contours) {
             for(size_t i = contour._contourStart; i < contour._contourStart + contour._contourLength; i++) {
-                const TTFFontParser::BezierCurve prev = fontData->_curves[i==contour._contourStart? contour._contourStart+contour._contourLength : i-1];
+                const TTFFontParser::BezierCurve prev = fontData->_curves[i==contour._contourStart? contour._contourStart+contour._contourLength-1 : i-1];
                 const TTFFontParser::BezierCurve curve = fontData->_curves[i];
-                const TTFFontParser::BezierCurve next = fontData->_curves[i==contour._contourStart+contour._contourLength? contour._contourStart : i+1];
+                const TTFFontParser::BezierCurve next = fontData->_curves[i==contour._contourStart+contour._contourLength-1? contour._contourStart : i+1];
                 // TODO: Contour offset and scaling
                 _renderingCurves[renderCurve] = TriCurve(
                     Curve(
@@ -77,7 +77,7 @@ namespace Renderer {
                 renderCurve++;
             }
         }
-        if(id == 0) {
+        if(id == 'x'-'a') {
             int i = 0;
             for(TriCurve& c : _renderingCurves) {
                 Curve& curve = c.curve;
@@ -99,7 +99,9 @@ namespace Renderer {
         for(uint32_t y = 0; y < area.h; y++) {
             Utils::AreaU8* row = texture + (area.y+y)*textureSize.x + area.x;
             for(uint32_t x = 0; x < area.w; x++) {
-                *(row+x) = CalculateSignedField(x+0.5f+min.x, max.y-(y+0.5f));
+                if(id=='x'-'a' && x==17 && y==2) 
+                    LOG("t")
+                *(row+x) = CalculateSignedField(x+0.5f+min.x-ENGINE_RENDERER_SDF_PADDING, max.y-(y+0.5f-ENGINE_RENDERER_SDF_PADDING));
             }
         }
         return;
@@ -148,23 +150,23 @@ namespace Renderer {
             Utils::Vec2D derivitive = curve.p1;
             Utils::Vec2D onCurve = curve.P0;
             if(!start) onCurve = curve.p1 + curve.P0;
-            return (float)abs(derivitive.normalized().crossProduct(onCurve.normalized()));
+            return (float)abs(derivitive.normalized().crossProduct((p-onCurve).normalized()));
         }
         else if(curve.p3.x == FLOAT_MAX && curve.p3.y == FLOAT_MAX) {
             // Second degree
             Utils::Vec2D derivitive = curve.p1;
-            if(!start) derivitive = curve.p2*2 + curve.p1;
+            if(!start) derivitive = curve.p2*2 + curve.p1*2;
             Utils::Vec2D onCurve = curve.P0;
-            if(!start) onCurve = curve.p2 + curve.p1 + curve.P0;
-            return (float)abs(derivitive.normalized().crossProduct(onCurve.normalized()));
+            if(!start) onCurve = curve.p2 + curve.p1*2 + curve.P0;
+            return (float)abs(derivitive.normalized().crossProduct((p-onCurve).normalized()));
         }
         else {
             // Third degree
             Utils::Vec2D derivitive = curve.p1;
-            if(!start) derivitive = curve.p3*3+curve.p2*2+curve.p1;
+            if(!start) derivitive = curve.p3*3+curve.p2*6+curve.p1*3;
             Utils::Vec2D onCurve = curve.P0;
-            if(!start) onCurve = curve.p3 + curve.p2 + curve.p1 + curve.P0;
-            return (float)abs(derivitive.normalized().crossProduct(onCurve.normalized()));
+            if(!start) onCurve = curve.p3 + curve.p2*3 + curve.p1*3 + curve.P0;
+            return (float)abs(derivitive.normalized().crossProduct((p-onCurve).normalized()));
         }
     }
 
@@ -232,7 +234,7 @@ namespace Renderer {
         }
 
         if(t >= 0.999) {
-            if(Orthogonality(curve, p, false) < Orthogonality(next, p, true)) return FLOAT_MAX;
+            if(Orthogonality(curve, p, true) < Orthogonality(next, p, false)) return FLOAT_MAX;
         } else if(t <= 0.001) {
             if(Orthogonality(curve, p, false) < Orthogonality(prev, p, true)) return FLOAT_MAX;
         }

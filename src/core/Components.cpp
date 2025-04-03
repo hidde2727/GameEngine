@@ -21,10 +21,10 @@ namespace Engine {
                 float x = currentX + (i>0?charInfo._horizontalKerning[text[i-1]]+charInfo._leftSideBearing : 0);
                 _renderInfo.push_back({
                     Utils::AreaF(
-                        std::floor(x + charInfo._min.x),
-                        std::ceil(currentY + charInfo._min.y - charInfo._max.y),
-                        charInfo._max.x - charInfo._min.x,
-                        charInfo._max.y - charInfo._min.y
+                        std::floor(x + charInfo._min.x - ENGINE_RENDERER_SDF_PADDING),
+                        currentY - charInfo._max.y - ENGINE_RENDERER_SDF_PADDING,
+                        charInfo._max.x - charInfo._min.x + 2*ENGINE_RENDERER_SDF_PADDING,
+                        charInfo._max.y - charInfo._min.y + 2*ENGINE_RENDERER_SDF_PADDING
                     ),
                     charInfo._textureArea,
                     charInfo._boundTexture,

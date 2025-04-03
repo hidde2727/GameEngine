@@ -40,6 +40,7 @@ namespace Renderer {
         rectPipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
         rectPipelineInfo.SetDescriptorInfo(2, 16, 2, 0);
         rectPipelineInfo.SetPushConstantInput({ Vulkan::Vertex::Vec2 }, VK_SHADER_STAGE_VERTEX_BIT);
+        rectPipelineInfo.EnableAlphaBlending();
         _vkRectPipeline.Init(rectPipelineInfo, _vkContext, _vkRenderPass, 0);
 
         // Text pipeline
@@ -49,6 +50,7 @@ namespace Renderer {
         textPipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
         textPipelineInfo.SetDescriptorInfo(2, 16, 2, 0);
         textPipelineInfo.SetPushConstantInput({ Vulkan::Vertex::Vec2 }, VK_SHADER_STAGE_VERTEX_BIT);
+        textPipelineInfo.EnableAlphaBlending();
         _vkTextPipeline.Init(textPipelineInfo, _vkContext, _vkRenderPass, 1);
 
         _vkCommandBuffer.Init(_vkContext, Vulkan::QueueType::GraphicsQueue, 2);

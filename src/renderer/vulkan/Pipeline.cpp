@@ -412,6 +412,16 @@ namespace Vulkan {
         _pipelineLayoutInfo.pushConstantRangeCount = (uint32_t)_pushConstantRanges.size();
         _pipelineLayoutInfo.pPushConstantRanges = _pushConstantRanges.data();
     }
+
+    void PipelineCreator::EnableAlphaBlending() {
+        _colorBlendAttachments[0].blendEnable = VK_TRUE;
+        _colorBlendAttachments[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        _colorBlendAttachments[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        _colorBlendAttachments[0].colorBlendOp = VK_BLEND_OP_ADD;
+        _colorBlendAttachments[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        _colorBlendAttachments[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        _colorBlendAttachments[0].alphaBlendOp = VK_BLEND_OP_ADD;
+    }
     
     void PipelineCreator::SetDescriptorInfo(const uint32_t duplicateSets, const uint32_t textures, const uint32_t imageSamplers, const uint32_t uniformBuffers) {
         _amountTextures = textures;
