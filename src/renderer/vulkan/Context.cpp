@@ -117,6 +117,12 @@ namespace Vulkan{
     void Context::WaitQueueIdle(const QueueType type) {
         vkQueueWaitIdle(_queues[type]);
     }
+    
+    VkPhysicalDeviceProperties Context::GetPhysicalDeviceProperties() {
+        VkPhysicalDeviceProperties properties{};
+        vkGetPhysicalDeviceProperties(_physicalDevice, &properties);
+        return properties;
+    }
 
     int Context::RateDevice(const VkPhysicalDevice device, const ContextCreationInfo info) {
         _physicalDevice = device;

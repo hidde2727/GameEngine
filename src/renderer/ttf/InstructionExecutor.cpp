@@ -27,7 +27,7 @@ namespace Renderer {
 		}
 		_controlValuesScaled = true;
 	}
-	void TTFInstructionExecutor::SetOriginalGlyphInfo(const std::vector<uint8_t> flags, const std::vector<Utils::Vec2F> points, const std::vector<uint16_t> endpoints) {
+	void TTFInstructionExecutor::SetOriginalGlyphInfo(const std::vector<uint8_t> flags, const std::vector<Util::Vec2F> points, const std::vector<uint16_t> endpoints) {
 		_flags = flags;
 		_originalFlags.reserve(_flags.size());
 		for (uint8_t flag : _flags) {
@@ -37,7 +37,7 @@ namespace Renderer {
 		_points.reserve(points.size() + 4);
 		_points.resize(points.size());
 		size_t i = 0;
-		for (Utils::Vec2I16 point : points) {
+		for (Util::Vec2I16 point : points) {
 			_points[i].x = ToF26Dot6(point.x * _state._pointScale);
 			_points[i].y = ToF26Dot6(point.y * _state._pointScale);
 
@@ -48,13 +48,13 @@ namespace Renderer {
 
 		_endpoints = endpoints;
 	}
-	void TTFInstructionExecutor::AddPhantomPoints(const Utils::Vec2F min, const Utils::Vec2F max, const int32_t leftSideBearing, const int32_t advance, const int32_t topOrigin, const int32_t advanceHeight) {
+	void TTFInstructionExecutor::AddPhantomPoints(const Util::Vec2F min, const Util::Vec2F max, const int32_t leftSideBearing, const int32_t advance, const int32_t topOrigin, const int32_t advanceHeight) {
 		// !UNDOCUMENTED! taken from the FreeType project
 		// Fantom points aren't what they say in the documentation
 		// TODO, if subpixel then also set the x of point 3 and 4 =advanceScaled/2
 		// ----------------------------------------------
-		Utils::Vec2<F26Dot6> minScaled = ToF26Dot6(min * _state._pointScale);
-		Utils::Vec2<F26Dot6> maxScaled = ToF26Dot6(max * _state._pointScale);
+		Util::Vec2<F26Dot6> minScaled = ToF26Dot6(min * _state._pointScale);
+		Util::Vec2<F26Dot6> maxScaled = ToF26Dot6(max * _state._pointScale);
 		F26Dot6 leftSideBearingScaled = ToF26Dot6(leftSideBearing * _state._pointScale);
 		F26Dot6 advanceScaled = ToF26Dot6(advance * _state._pointScale);
 		F26Dot6 topOriginScaled = ToF26Dot6(topOrigin * _state._pointScale);
@@ -79,18 +79,18 @@ namespace Renderer {
 	}
 
 	// Getters
-	std::unique_ptr<std::vector<Utils::Vec2F>> TTFInstructionExecutor::GetNewPoints() {
+	std::unique_ptr<std::vector<Util::Vec2F>> TTFInstructionExecutor::GetNewPoints() {
 		bool hasIUPDeltas = !_state._IUPDeltas.empty();
 
-		std::unique_ptr<std::vector<Utils::Vec2F>> points = std::make_unique<std::vector<Utils::Vec2F>>();
+		std::unique_ptr<std::vector<Util::Vec2F>> points = std::make_unique<std::vector<Util::Vec2F>>();
 		points->reserve(_points.size());
 		for (size_t i = 0; i < _points.size() - 4; i++) {
 			if (hasIUPDeltas && (_flags[i] & GLYF_TOUCHED_X) && (_flags[i] & GLYF_TOUCHED_Y))
 				points->push_back(FromF26Dot6<float>(_points[i]));
 			else if (hasIUPDeltas && (_flags[i] & GLYF_TOUCHED_X))
-				points->push_back(FromF26Dot6<float>(_points[i] + Utils::Vec2<F26Dot6>(0, _state._IUPDeltas[i].y)));
+				points->push_back(FromF26Dot6<float>(_points[i] + Util::Vec2<F26Dot6>(0, _state._IUPDeltas[i].y)));
 			else if (hasIUPDeltas && (_flags[i] & GLYF_TOUCHED_Y))
-				points->push_back(FromF26Dot6<float>(_points[i] + Utils::Vec2<F26Dot6>(_state._IUPDeltas[i].x, 0)));
+				points->push_back(FromF26Dot6<float>(_points[i] + Util::Vec2<F26Dot6>(_state._IUPDeltas[i].x, 0)));
 			else if (hasIUPDeltas)
 				points->push_back(FromF26Dot6<float>(_points[i] + _state._IUPDeltas[i]));
 			else
@@ -103,9 +103,9 @@ namespace Renderer {
 		// !UNDOCUMENTED! taken from the FreeType project
 		// These variables shouldn't be stored after the FPGM and CVT program
 
-		_state._dualProjectionVector = Utils::Vec2F(1, 0);
-		_state._projectionVector = Utils::Vec2F(1, 0);
-		_state._freedomVector = Utils::Vec2F(1, 0);
+		_state._dualProjectionVector = Util::Vec2F(1, 0);
+		_state._projectionVector = Util::Vec2F(1, 0);
+		_state._freedomVector = Util::Vec2F(1, 0);
 
 		_state._refrencePoint0 = 0;
 		_state._refrencePoint1 = 0;
@@ -188,17 +188,17 @@ namespace Renderer {
 	}
 
 	// Point getters and setters
-	inline Utils::Vec2<F26Dot6> TTFInstructionExecutor::GetPoint(const uint32_t p, const uint32_t zone) {
+	inline Util::Vec2<F26Dot6> TTFInstructionExecutor::GetPoint(const uint32_t p, const uint32_t zone) {
 		if (zone == 1) { if (p >= 0 && p < _points.size()) return _points[p]; else THROW("Invalid point, outside of range of valid points"); }
 		else if (zone == 0) { if (p >= 0 && p < _state._twilightPoints.size()) return _state._twilightPoints[p]; else THROW("Invalid point, outside of range of valid twilight points"); }
 		else THROW("Invalid zone");
 	}
-	inline Utils::Vec2<F26Dot6> TTFInstructionExecutor::GetOriginalPoint(const uint32_t p, const uint32_t zone) {
+	inline Util::Vec2<F26Dot6> TTFInstructionExecutor::GetOriginalPoint(const uint32_t p, const uint32_t zone) {
 		if (zone == 1) { if (p >= 0 && p < _points.size()) return _originalPoints[p]; else THROW("Invalid point, outside of range of valid points"); }
 		else if (zone == 0) { return _state._originalTwilightPoints[p]; }
 		else THROW("Invalid zone");
 	}
-	inline void TTFInstructionExecutor::SetPoint(const uint32_t p, const uint32_t zone, Utils::Vec2<F26Dot6> value) {
+	inline void TTFInstructionExecutor::SetPoint(const uint32_t p, const uint32_t zone, Util::Vec2<F26Dot6> value) {
 		if (zone == 1) {
 			if (p >= 0 && p < _points.size()) {
 				_points[p] = value;
@@ -213,11 +213,11 @@ namespace Renderer {
 		}
 		else THROW("Invalid zone");
 	}
-	inline void TTFInstructionExecutor::AddToPoint(const uint32_t p, const uint32_t zone, Utils::Vec2<F26Dot6> additive) {
+	inline void TTFInstructionExecutor::AddToPoint(const uint32_t p, const uint32_t zone, Util::Vec2<F26Dot6> additive) {
 		AddToPointWithoutTouching(p, zone, additive);
 		SetPointTouched(p, zone);
 	}
-	inline void TTFInstructionExecutor::AddToPointWithoutTouching(const uint32_t p, const uint32_t zone, Utils::Vec2<F26Dot6> additive) {
+	inline void TTFInstructionExecutor::AddToPointWithoutTouching(const uint32_t p, const uint32_t zone, Util::Vec2<F26Dot6> additive) {
 		if (zone == 1) {
 			if (p >= 0 && p < _points.size()) { _points[p] += additive; }
 			else THROW("Invalid point, outside of range of valid points");
@@ -250,14 +250,14 @@ namespace Renderer {
 		if (_state._freedomVector * _state._projectionVector == 0)
 			THROW("Freedom and projection vector can't be orthoganol when moving");
 
-		Utils::Vec2<F26Dot6> point = GetPoint(p, zone);
+		Util::Vec2<F26Dot6> point = GetPoint(p, zone);
 		float multiplicationFactor = (value - ProjectPoint(point)) / (_state._freedomVector * _state._projectionVector);
 		AddToPoint(p, zone, _state._freedomVector * multiplicationFactor);
 	}
-	inline F26Dot6 TTFInstructionExecutor::ProjectPoint(const Utils::Vec2<F26Dot6> point) {
+	inline F26Dot6 TTFInstructionExecutor::ProjectPoint(const Util::Vec2<F26Dot6> point) {
 		return (F26Dot6)(_state._projectionVector * point);
 	}
-	inline F26Dot6 TTFInstructionExecutor::DualProjectPoint(const Utils::Vec2<F26Dot6> point) {
+	inline F26Dot6 TTFInstructionExecutor::DualProjectPoint(const Util::Vec2<F26Dot6> point) {
 		return (F26Dot6)(_state._dualProjectionVector * point);
 	}
 	// CVT
@@ -270,8 +270,8 @@ namespace Renderer {
 		_controlValues[n] = value;
 	}
 	// Utils
-	inline Utils::Vec2<F26Dot6> TTFInstructionExecutor::RoundToGrid(const Utils::Vec2<F26Dot6> p) {
-		return Utils::Vec2<F26Dot6>((p.x + 32) & (0xFFFFFFFF ^ 0x3F), (p.y + 32) & (0xFFFFFFFF ^ 0x3F));
+	inline Util::Vec2<F26Dot6> TTFInstructionExecutor::RoundToGrid(const Util::Vec2<F26Dot6> p) {
+		return Util::Vec2<F26Dot6>((p.x + 32) & (0xFFFFFFFF ^ 0x3F), (p.y + 32) & (0xFFFFFFFF ^ 0x3F));
 	}
 
 	// ---------------------------------------------------
@@ -284,11 +284,12 @@ namespace Renderer {
 			ExecuteCommand(GetNextInstructionByte());
 		}
 		_instructionStream.clear();
-		if (!_interpreterStack.empty()) ERROR("TTF interpreter stack isn't empty");
+		if (!_interpreterStack.empty()) WARNING("TTF interpreter stack isn't empty");
 		_interpreterStack.clear();
 	}
 
 	void TTFInstructionExecutor::ExecuteCommand(const uint8_t command) {
+		_usedInstructions.insert(command);
 		switch (command) {
 		// Push commands
 		case 0x40: PushNBytes(); break;
@@ -642,23 +643,22 @@ namespace Renderer {
 			_state._freedomVector.x = 0;
 			_state._freedomVector.y = 1;
 		}
-		_state._dualProjectionVector = _state._projectionVector;
 	}
 	void TTFInstructionExecutor::SetProjectionVectorToLine(const bool perpendicular) {
 		uint32_t p1 = GetNextStackUInt32();
 		uint32_t p2 = GetNextStackUInt32();
 
-		Utils::Vec2<F26Dot6> point1 = GetPoint(p1, _state._zonePointer2);
-		Utils::Vec2<F26Dot6> point2 = GetPoint(p2, _state._zonePointer1);
+		Util::Vec2<F26Dot6> point1 = GetPoint(p1, _state._zonePointer2);
+		Util::Vec2<F26Dot6> point2 = GetPoint(p2, _state._zonePointer1);
 
-		_state._projectionVector = Utils::Vec2<F26Dot6>(point2 - point1);
+		_state._projectionVector = Util::Vec2<F26Dot6>(point2 - point1);
 		_state._projectionVector = _state._projectionVector.normalized();
 
 		if (perpendicular)
 			_state._projectionVector = _state._projectionVector.rotatedNegative90Degree();
 
 		if(_state._projectionVector.x == 0 && _state._projectionVector.y == 0)
-			ERROR("Received points that are the same")
+			WARNING("Received points that are the same")
 
 		_state._dualProjectionVector = _state._projectionVector;
 	}
@@ -666,19 +666,17 @@ namespace Renderer {
 		uint32_t p1 = GetNextStackUInt32();
 		uint32_t p2 = GetNextStackUInt32();
 
-		Utils::Vec2<F26Dot6> point1 = GetPoint(p1, _state._zonePointer2);
-		Utils::Vec2<F26Dot6> point2 = GetPoint(p2, _state._zonePointer1);
+		Util::Vec2<F26Dot6> point1 = GetPoint(p1, _state._zonePointer2);
+		Util::Vec2<F26Dot6> point2 = GetPoint(p2, _state._zonePointer1);
 
-		_state._freedomVector = Utils::Vec2<F26Dot6>(point2 - point1);
+		_state._freedomVector = Util::Vec2<F26Dot6>(point2 - point1);
 		_state._freedomVector = _state._freedomVector.normalized();
 
 		if (perpendicular)
 			_state._freedomVector = _state._freedomVector.rotatedNegative90Degree();
 
 		if (_state._freedomVector.x == 0 && _state._freedomVector.y == 0)
-			ERROR("Received points that are the same")
-
-		_state._dualProjectionVector = _state._projectionVector;
+			WARNING("Received points that are the same")
 	}
 	void TTFInstructionExecutor::SetFreedomVectorToProjectionVector() {
 		_state._freedomVector = _state._projectionVector;
@@ -687,29 +685,29 @@ namespace Renderer {
 		uint32_t p1 = GetNextStackUInt32();
 		uint32_t p2 = GetNextStackUInt32();
 
-		Utils::Vec2<F26Dot6> originalPoint1 = GetOriginalPoint(p1, _state._zonePointer2);
-		Utils::Vec2<F26Dot6> originalPoint2 = GetOriginalPoint(p2, _state._zonePointer1);
+		Util::Vec2<F26Dot6> originalPoint1 = GetOriginalPoint(p1, _state._zonePointer2);
+		Util::Vec2<F26Dot6> originalPoint2 = GetOriginalPoint(p2, _state._zonePointer1);
 
-		_state._dualProjectionVector = Utils::Vec2<F26Dot6>(originalPoint2 - originalPoint1);
+		_state._dualProjectionVector = Util::Vec2<F26Dot6>(originalPoint2 - originalPoint1);
 		_state._dualProjectionVector = _state._dualProjectionVector.normalized();
 
 		if (perpendicular)
 			_state._dualProjectionVector = _state._dualProjectionVector.rotatedNegative90Degree();
 
 		if (_state._dualProjectionVector.x == 0 && _state._dualProjectionVector.y == 0)
-			ERROR("Received points that are the same")
+			WARNING("Received points that are the same")
 
-		Utils::Vec2<F26Dot6> point1 = GetPoint(p1, _state._zonePointer2);
-		Utils::Vec2<F26Dot6> point2 = GetPoint(p2, _state._zonePointer1);
+		Util::Vec2<F26Dot6> point1 = GetPoint(p1, _state._zonePointer2);
+		Util::Vec2<F26Dot6> point2 = GetPoint(p2, _state._zonePointer1);
 
-		_state._projectionVector = Utils::Vec2<F26Dot6>(point2 - point1);
+		_state._projectionVector = Util::Vec2<F26Dot6>(point2 - point1);
 		_state._projectionVector = _state._projectionVector.normalized();
 
 		if (perpendicular)
 			_state._projectionVector = _state._projectionVector.rotatedNegative90Degree();
 
 		if (_state._projectionVector.x == 0 && _state._projectionVector.y == 0)
-			ERROR("Received points that are the same")
+			WARNING("Received points that are the same")
 	}
 	void TTFInstructionExecutor::SetProjectionVectorFromStack() {
 		uint32_t y = GetNextStackUInt32();
@@ -844,11 +842,11 @@ namespace Renderer {
 	}
 	void TTFInstructionExecutor::SetScanConversionControl() {
 		int32_t flags = GetNextStackInt32();
-		ERROR("SetScanConversionControl not implemented yet");
+		WARNING("SetScanConversionControl not implemented yet (" + std::to_string(flags) + ")");
 	}
 	void TTFInstructionExecutor::SetScanType() {
 		int32_t n = GetNextStackInt32();
-		ERROR("SetScanType not implemented yet");
+		WARNING("SetScanType not implemented yet (" + std::to_string(n) + ")");
 	}
 	void TTFInstructionExecutor::SetCVTCutIn() {
 		_state._CVTCutIn = GetNextStackF26Dot6();
@@ -902,7 +900,7 @@ namespace Renderer {
 		// !UNDOCUMENTED! taken from the FreeType project
 		// originalOutline may be inverted, still the case????
 		// ----------------------------------------------
-		if (originalOutline) {
+		if (!originalOutline) {
 			F26Dot6 d1 = DualProjectPoint(GetOriginalPoint(p1, _state._zonePointer1));
 			F26Dot6 d2 = DualProjectPoint(GetOriginalPoint(p2, _state._zonePointer0));
 			PushStack(d2 - d1);
@@ -914,7 +912,7 @@ namespace Renderer {
 		}
 	}
 	void TTFInstructionExecutor::MeasurePixelsPerEM() {
-		//WARNING("NEEDS CHECKING, PROJECTION VECTOR SHOULD BE TAKEN INTO ACCOUNT"); // ppem = pointSize * dpi / 72
+		// TODO: WARNING("NEEDS CHECKING, PROJECTION VECTOR SHOULD BE TAKEN INTO ACCOUNT"); // ppem = pointSize * dpi / 72
 		PushStack(_state._pointSize);
 	}
 	void TTFInstructionExecutor::MeasurePointSize() {
@@ -1053,7 +1051,7 @@ namespace Renderer {
 		F26Dot6 d = GetNextStackF26Dot6();
 		uint32_t p = GetNextStackUInt32();
 
-		Utils::Vec2<F26Dot6> rPoint = GetPoint(_state._refrencePoint0, _state._zonePointer0);
+		Util::Vec2<F26Dot6> rPoint = GetPoint(_state._refrencePoint0, _state._zonePointer0);
 		// !UNDOCUMENTED! taken from the FreeType project
 		if (_state._zonePointer1 == 0) {
 			_state._originalTwilightPoints[p] = rPoint;
@@ -1073,7 +1071,7 @@ namespace Renderer {
 		SetPointTouched(p, _state._zonePointer0);
 
 		if (applyRounding) {
-			Utils::Vec2<F26Dot6> point = GetPoint(p, _state._zonePointer0);
+			Util::Vec2<F26Dot6> point = GetPoint(p, _state._zonePointer0);
 			F26Dot6 rounded = Round(ProjectPoint(point));
 			MovePointToProjectedValue(p, _state._zonePointer0, rounded);
 		}
@@ -1099,7 +1097,7 @@ namespace Renderer {
 		// ----------------------------------------------
 
 		if (applyRounding) {
-			Utils::Vec2<F26Dot6> point = GetPoint(p, 1);
+			Util::Vec2<F26Dot6> point = GetPoint(p, 1);
 			if (std::abs(ProjectPoint(point) - position) > _state._CVTCutIn)
 				position = Round(ProjectPoint(point));
 			else
@@ -1111,23 +1109,21 @@ namespace Renderer {
 	void TTFInstructionExecutor::MoveDirectRelativePoint(const bool setRP0, const bool minimumDistance, const bool applyRounding, const uint8_t distanceType) {
 		uint32_t p = GetNextStackUInt32();
 
-		Utils::Vec2<F26Dot6> originalPoint = GetOriginalPoint(p, _state._zonePointer1);
-		Utils::Vec2<F26Dot6> originalRefrencePoint = GetOriginalPoint(_state._refrencePoint0, _state._zonePointer0);
+		Util::Vec2<F26Dot6> originalPoint = GetOriginalPoint(p, _state._zonePointer1);
+		Util::Vec2<F26Dot6> originalRefrencePoint = GetOriginalPoint(_state._refrencePoint0, _state._zonePointer0);
 
 		F26Dot6 originalDistance = DualProjectPoint(originalPoint) - DualProjectPoint(originalRefrencePoint);
 
 		if (std::abs(_state._singleWidth - originalDistance) < _state._singleWidthCutIn)
-			originalDistance = _state._singleWidth;
+			originalDistance = originalDistance>0? _state._singleWidth : -_state._singleWidth;
 
-		if (applyRounding) {
+		if (applyRounding) 
 			originalDistance = Round(originalDistance);
-			if (minimumDistance && abs(originalDistance) < _state._minimumDistance)
-				originalDistance = originalDistance > 0 ? _state._minimumDistance : _state._minimumDistance * -1;
-		}
+		
+		if (minimumDistance && abs(originalDistance) < _state._minimumDistance)
+			originalDistance = originalDistance > 0 ? _state._minimumDistance : _state._minimumDistance * -1;
 
-		Utils::Vec2<F26Dot6> refrencePoint = GetPoint(_state._refrencePoint0, _state._zonePointer0);
-		F26Dot6 projected = ProjectPoint(refrencePoint);
-		F26Dot6 hehe = ProjectPoint(GetPoint(p, _state._zonePointer1));
+		Util::Vec2<F26Dot6> refrencePoint = GetPoint(_state._refrencePoint0, _state._zonePointer0);
 		MovePointToProjectedValue(p, _state._zonePointer1, ProjectPoint(refrencePoint) + originalDistance);
 
 		_state._refrencePoint1 = _state._refrencePoint0;
@@ -1139,9 +1135,6 @@ namespace Renderer {
 		uint32_t n = GetNextStackUInt32();
 		uint32_t p = GetNextStackUInt32();
 
-		if (p == 11)
-			p = 11;
-
 		F26Dot6 distance = 0;
 		// !UNDOCUMENTED! taken from the FreeType project
 		if (n == -1)
@@ -1152,19 +1145,19 @@ namespace Renderer {
 		F26Dot6 cvtValue = distance;
 
 		if (std::abs(_state._singleWidth - distance) < _state._singleWidthCutIn)
-			distance = _state._singleWidth;
+			distance = distance>0? _state._singleWidth : -_state._singleWidth;
 
 		// !UNDOCUMENTED! taken from the FreeType project
 		if (_state._zonePointer1 == 0) {
 			if (p >= _state._twilightPoints.size())
 				THROW("Illegal index of a twilight point");
-			_state._originalTwilightPoints[p] += _state._freedomVector * distance;
+			_state._originalTwilightPoints[p] = GetPoint(_state._refrencePoint0, _state._zonePointer0) + _state._freedomVector * distance;
 			_state._twilightPoints[p] = _state._originalTwilightPoints[p];
 		}
 		// ----------------------------------------------
 
-		Utils::Vec2<F26Dot6> originalPoint = GetOriginalPoint(p, _state._zonePointer1);
-		Utils::Vec2<F26Dot6> originalRefrencePoint = GetOriginalPoint(_state._refrencePoint0, _state._zonePointer0);
+		Util::Vec2<F26Dot6> originalPoint = GetOriginalPoint(p, _state._zonePointer1);
+		Util::Vec2<F26Dot6> originalRefrencePoint = GetOriginalPoint(_state._refrencePoint0, _state._zonePointer0);
 		F26Dot6 originalDistance = DualProjectPoint(originalPoint) - DualProjectPoint(originalRefrencePoint);
 
 		if (_state._autoFlip) {
@@ -1173,22 +1166,20 @@ namespace Renderer {
 		}
 
 		if (applyRounding) {
-			Utils::Vec2<F26Dot6> point = GetPoint(p, _state._zonePointer1);
+			Util::Vec2<F26Dot6> point = GetPoint(p, _state._zonePointer1);
 
 			// !UNDOCUMENTED! taken from the FreeType project
 			// Only perform cut in test if both point are from the same zone
 			// ----------------------------------------------
-
 			if (_state._zonePointer0 == _state._zonePointer1 && std::abs(originalDistance - distance) > _state._CVTCutIn)
 				distance = Round(originalDistance);
 			else
 				distance = Round(distance);
-
-			if (minimumDistance && abs(distance) < _state._minimumDistance)
-				distance = distance > 0 ? _state._minimumDistance : _state._minimumDistance * -1;
 		}
+		if (minimumDistance && abs(distance) < _state._minimumDistance)
+			distance = distance > 0 ? _state._minimumDistance : _state._minimumDistance * -1;
 
-		Utils::Vec2<F26Dot6> refrencePoint = GetPoint(_state._refrencePoint0, _state._zonePointer0);
+		Util::Vec2<F26Dot6> refrencePoint = GetPoint(_state._refrencePoint0, _state._zonePointer0);
 		MovePointToProjectedValue(p, _state._zonePointer1, ProjectPoint(refrencePoint) + distance);
 
 		_state._refrencePoint1 = _state._refrencePoint0;
@@ -1197,7 +1188,7 @@ namespace Renderer {
 			_state._refrencePoint0 = p;
 	}
 	void TTFInstructionExecutor::AlignRelativePoint() {
-		Utils::Vec2<F26Dot6> refrencePos = GetPoint(_state._refrencePoint0, _state._zonePointer0);
+		Util::Vec2<F26Dot6> refrencePos = GetPoint(_state._refrencePoint0, _state._zonePointer0);
 
 		for (uint32_t i = 0; i < _state._loopVariable; i++) {
 			uint32_t p = GetNextStackUInt32();
@@ -1212,10 +1203,10 @@ namespace Renderer {
 		uint32_t a0 = GetNextStackUInt32();
 		uint32_t p = GetNextStackUInt32();
 
-		Utils::Vec2<F26Dot6> BEnd = GetPoint(b1, _state._zonePointer0);
-		Utils::Vec2<F26Dot6> BStart = GetPoint(b0, _state._zonePointer0);
-		Utils::Vec2<F26Dot6> AEnd = GetPoint(a1, _state._zonePointer1);
-		Utils::Vec2<F26Dot6> AStart = GetPoint(a0, _state._zonePointer1);
+		Util::Vec2<F26Dot6> BEnd = GetPoint(b1, _state._zonePointer0);
+		Util::Vec2<F26Dot6> BStart = GetPoint(b0, _state._zonePointer0);
+		Util::Vec2<F26Dot6> AEnd = GetPoint(a1, _state._zonePointer1);
+		Util::Vec2<F26Dot6> AStart = GetPoint(a0, _state._zonePointer1);
 
 		float denominator = (float)((AStart.x - AEnd.x)*(BStart.y - BEnd.y) - (AStart.y - AEnd.y)*(BStart.x - BEnd.x));
 
@@ -1223,14 +1214,14 @@ namespace Renderer {
 			// They are parralel, set them to the middle
 			F26Dot6 x = (AStart.x + AEnd.x + BStart.x + BEnd.x) / 4;
 			F26Dot6 y = (AStart.y + AEnd.y + BStart.y + BEnd.y) / 4;
-			SetPoint(p, _state._zonePointer2, Utils::Vec2<F26Dot6>(x, y));
+			SetPoint(p, _state._zonePointer2, Util::Vec2<F26Dot6>(x, y));
 			return;
 		}
 
 		float t =  ((AStart.x - BStart.x)*(BStart.y - BEnd.y) - (AStart.y - BStart.y)*(BStart.x - BEnd.x)) / denominator;
 		float u = -((AStart.x - AEnd.x)*(AStart.y - BStart.y) - (AStart.y - AEnd.y)*(AStart.x - BStart.x)) / denominator;
 
-		Utils::Vec2<F26Dot6> newPos = AStart + (AEnd - AStart) * t;
+		Util::Vec2<F26Dot6> newPos = AStart + ((Util::Vec2F)(AEnd - AStart)) * t;
 
 		SetPoint(p, _state._zonePointer2, newPos);
 	}
@@ -1238,8 +1229,8 @@ namespace Renderer {
 		uint32_t p1 = GetNextStackUInt32();
 		uint32_t p2 = GetNextStackUInt32();
 
-		Utils::Vec2<F26Dot6> P1 = GetPoint(p1, _state._zonePointer1);
-		Utils::Vec2<F26Dot6> P2 = GetPoint(p2, _state._zonePointer0);
+		Util::Vec2<F26Dot6> P1 = GetPoint(p1, _state._zonePointer1);
+		Util::Vec2<F26Dot6> P2 = GetPoint(p2, _state._zonePointer0);
 
 		F26Dot6 middle = (ProjectPoint(P1) + ProjectPoint(P2)) / 2;
 
@@ -1260,9 +1251,6 @@ namespace Renderer {
 
 			F26Dot6 distancePToRef1 = originalPoint - originalRefrencePoint1;
 			F26Dot6 distanceRef2ToP = originalRefrencePoint2 - originalPoint;
-
-			if (p == 0)
-				p = 0;
 
 			MovePointToProjectedValue(p, _state._zonePointer2, refrencePoint1 + (F26Dot6)(ref1ToRef2 * (distancePToRef1 / ((double)distancePToRef1 + (double)distanceRef2ToP))));
 		}
@@ -1722,11 +1710,11 @@ namespace Renderer {
 
 		if (n > 0 && value < 0) {
 			value = phase;
-			ERROR("Plase check rounding result")
+			WARNING("Plase check rounding result")
 		}
 		else if (n < 0 && value > 0) {
 			value = -phase;
-			ERROR("Plase check rounding result")
+			WARNING("Plase check rounding result")
 		}
 
 		return value;
@@ -1740,11 +1728,11 @@ namespace Renderer {
 
 		if (n > 0 && value < 0) {
 			value = phase;
-			ERROR("Plase check rounding result")
+			WARNING("Plase check rounding result")
 		}
 		else if (n < 0 && value > 0) {
 			value = -phase;
-			ERROR("Plase check rounding result")
+			WARNING("Plase check rounding result")
 		}
 
 		return (F26Dot6)(value * 0x40);

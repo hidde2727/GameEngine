@@ -45,16 +45,29 @@ add_library (GameEngine STATIC
 "src/renderer/vulkan/Texture.h"
 "src/renderer/vulkan/Texture.cpp"
 
+"src/network/WebHandler.h"
+"src/network/WebHandler.cpp"
+"src/network/HTTPConnection.cpp"
+"src/network/WebsocketConnection.cpp"
+"src/network/HTTP/RequestHeader.h"
+"src/network/HTTP/RequestHeader.cpp"
+"src/network/HTTP/Response.h"
+"src/network/HTTP/Response.cpp"
+"src/network/websocket/Frame.h"
+"src/network/websocket/Frame.cpp"
+
 "src/util/Log.h"
 "src/util/Log.cpp"
 "src/util/Hashing.h"
 "src/util/Hashing.cpp"
-"src/util/FundamentalType.h"
+"src/util/TemplateConcepts.h"
 "src/util/Vec2D.h"
 "src/util/Vec3D.h"
 "src/util/Area.h"
 "src/util/EquationSolvers.h"
 "src/util/BitMask.h"
+"src/util/Endianess.h"
+"src/util/Endianess.cpp"
 
 "lib/glslang/glslang/ResourceLimits/ResourceLimits.cpp"
 )
@@ -74,15 +87,17 @@ target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lib/gl
 
 # GLSL compiler
 target_link_libraries(GameEngine PRIVATE glslang)
-target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lib/glslang/")
+target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lib/glslang")
 
 
 # Asio
 add_library(asio INTERFACE)
 target_compile_definitions(asio INTERFACE ASIO_STANDALONE)
-target_include_directories(asio INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/lib/asio/asio/include/asio")
+target_include_directories(asio INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/lib/asio/asio/include")
 find_package(Threads)
 target_link_libraries(asio INTERFACE Threads::Threads)
+target_link_libraries(GameEngine PRIVATE asio)
+target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lib/asio/asio/include")
 
 # EnTT
 target_link_libraries(GameEngine PRIVATE EnTT)

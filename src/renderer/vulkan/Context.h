@@ -44,6 +44,8 @@ namespace Vulkan {
             return _queues[type]; 
         }
 
+        VkPhysicalDeviceProperties GetPhysicalDeviceProperties();
+
     private:
         friend class RenderPass;
         friend class Swapchain;

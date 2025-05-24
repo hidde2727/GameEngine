@@ -122,7 +122,7 @@ namespace Renderer {
 			char32_t i = 0;
 			for(CharacterRange range : _characters) {
 				if(i + (range.end - range.start) >= n) return range.start + (n-i);
-				i += range.end - range.start;
+				i += range.end - range.start + 1;
 			}
 			THROW("Cannot call operator[] on Characters with a n>size")
 		}
@@ -310,26 +310,26 @@ namespace Renderer {
 		public:
 			struct BezierCurve {
 				uint32_t degree;// 2, 3 or 4
-				Utils::Vec2F p1 = Utils::Vec2F(0, 0);
-				Utils::Vec2F p2 = Utils::Vec2F(0, 0);
-				Utils::Vec2F p3 = Utils::Vec2F(0, 0);
-				Utils::Vec2F p4 = Utils::Vec2F(0, 0);
+				Util::Vec2F p1 = Util::Vec2F(0, 0);
+				Util::Vec2F p2 = Util::Vec2F(0, 0);
+				Util::Vec2F p3 = Util::Vec2F(0, 0);
+				Util::Vec2F p4 = Util::Vec2F(0, 0);
 			};
 		private:
 
 		// GLYF data
 		struct GLYFTable {
 			/*struct GlyphInfo {
-				Utils::Vec2I16 _min;
-				Utils::Vec2I16 _max;
+				Util::Vec2I16 _min;
+				Util::Vec2I16 _max;
 
 				struct Contour {
 					Contour(uint16_t contourStart, uint16_t contourLength) : _contourStart(contourStart), _contourLength(contourLength) {}
 
 					uint16_t _contourStart;
 					uint16_t _contourLength;
-					Utils::Vec2I16 _offset = Utils::Vec2I16(0,0);
-					Utils::Vec2D _scale = Utils::Vec2D(1,1);
+					Util::Vec2I16 _offset = Util::Vec2I16(0,0);
+					Util::Vec2D _scale = Util::Vec2D(1,1);
 				};
 				std::vector<Contour> _contours;
 				std::vector<uint8_t> _instructions;
@@ -338,13 +338,13 @@ namespace Renderer {
 			std::vector<BezierCurve> _curves;*/
 
 			struct GlyphInfo {
-				Utils::Vec2F _min;
-				Utils::Vec2F _max;
+				Util::Vec2F _min;
+				Util::Vec2F _max;
 
 				std::vector<uint16_t> _endPoints;
 				std::vector<uint8_t> _flags;
 				std::vector<uint8_t> _instructions;
-				std::vector<Utils::Vec2F> _points;
+				std::vector<Util::Vec2F> _points;
 			};
 			std::map<char32_t, GlyphInfo> _glyphs;
 		} _glyf;
@@ -400,8 +400,8 @@ namespace Renderer {
 			struct FontData {
 				std::vector<BezierCurve> _curves;
 				struct GlyphInfo {
-					Utils::Vec2F _min;
-					Utils::Vec2F _max;
+					Util::Vec2F _min;
+					Util::Vec2F _max;
 
 					float _leftSideBearing;
 					float _advance;
@@ -412,8 +412,8 @@ namespace Renderer {
 
 						uint16_t _contourStart;
 						uint16_t _contourLength;
-						Utils::Vec2F _offset = Utils::Vec2F(0, 0);
-						Utils::Vec2D _scale = Utils::Vec2D(1, 1);
+						Util::Vec2F _offset = Util::Vec2F(0, 0);
+						Util::Vec2D _scale = Util::Vec2D(1, 1);
 					};
 					std::vector<Contour> _contours;
 				};

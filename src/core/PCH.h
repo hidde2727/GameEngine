@@ -14,9 +14,12 @@
 
 #include <stb_image.h>
 
+#include <asio.hpp>
+
 #include <string>
 #include <vector>
 #include <initializer_list>
 #include <filesystem>
 #include <fstream>
 #include <queue>
+#include <functional>

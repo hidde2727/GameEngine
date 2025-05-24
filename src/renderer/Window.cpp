@@ -4,7 +4,7 @@
 namespace Engine {
 namespace Renderer {
     
-    Window::Window(const uint32_t textureMapSlots) {
+    void Window::Init(const uint32_t textureMapSlots) {
         glfwInit();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -81,7 +81,7 @@ namespace Renderer {
         _vkRectPipeline.BindSamplerDescriptor(_vkContext, _linearSampler, 1);
         _vkTextPipeline.BindSamplerDescriptor(_vkContext, _linearSampler, 1);
     }
-    Window::~Window() {
+    void Window::Cleanup() {
         _vkContext.WaitIdle();
 
         _pixelSampler.Cleanup(_vkContext);
@@ -130,11 +130,11 @@ namespace Renderer {
             _vkRectVertexBuffer.StartTransferingData(_vkContext);
 			for (const auto [entity, texture, area] : group.each()) {
 				_vkRectVertexBuffer.AddData(InstanceDataRect(
-                    Utils::Vec2F(area.x , area.y),
-                    Utils::Vec2F(area.w , area.h),
-                    Utils::Vec3F(1.f, 1.f, 1.f),
-                    Utils::Vec2F(texture._textureArea.x, texture._textureArea.y),
-                    Utils::Vec2F(texture._textureArea.w, texture._textureArea.h),
+                    Util::Vec2F(area.x , area.y),
+                    Util::Vec2F(area.w , area.h),
+                    Util::Vec3F(1.f, 1.f, 1.f),
+                    Util::Vec2F(texture._textureArea.x, texture._textureArea.y),
+                    Util::Vec2F(texture._textureArea.w, texture._textureArea.h),
                     texture._descriptorID
                 ));
 			}
@@ -150,11 +150,11 @@ namespace Renderer {
                 x = area.x + renderInfo._position.x;
                 y = area.y + renderInfo._position.y;
                 _vkTextVertexBuffer.AddData(InstanceDataText(
-                    Utils::Vec2F(x , y),
-                    Utils::Vec2F(renderInfo._position.w , renderInfo._position.h),
-                    Utils::Vec3F(1.f, 1.f, 1.f),
-                    Utils::Vec2F(renderInfo._textureArea.x, renderInfo._textureArea.y), 
-                    Utils::Vec2F(renderInfo._textureArea.w, renderInfo._textureArea.h),
+                    Util::Vec2F(x , y),
+                    Util::Vec2F(renderInfo._position.w , renderInfo._position.h),
+                    Util::Vec3F(1.f, 1.f, 1.f),
+                    Util::Vec2F(renderInfo._textureArea.x, renderInfo._textureArea.y), 
+                    Util::Vec2F(renderInfo._textureArea.w, renderInfo._textureArea.h),
                     renderInfo._descriptorID,
                     renderInfo._pxRange
                 ));
@@ -222,18 +222,129 @@ namespace Renderer {
     }
 
     std::shared_ptr<ImageRenderInfo> Window::GetTextureInfo(AssetID asset) {
-        if(Utils::GetBits<uint32_t>(asset, ENGINE_RENDERER_ASSETID_TEXTUREMAPID_SHIFT_BITS, ENGINE_RENDERER_ASSETTYPE_TEXTUREMAPID_SHIFT_BITS) != ENGINE_RENDERER_ASSETTYPE_TEXTURE) 
+        if(Util::GetBits<uint32_t>(asset, ENGINE_RENDERER_ASSETID_TEXTUREMAPID_SHIFT_BITS, ENGINE_RENDERER_ASSETTYPE_TEXTUREMAPID_SHIFT_BITS) != ENGINE_RENDERER_ASSETTYPE_TEXTURE) 
             THROW("Cannot acces an asset that is not a texture with the GetTextureInfo function")
         return reinterpret_pointer_cast<ImageRenderInfo>(
             _textureMaps[asset >> ENGINE_RENDERER_ASSETID_TEXTUREMAPID_SHIFT_BITS].GetRenderInfo(asset & (0xFFFFFFFF >> ENGINE_RENDERER_ASSETTYPE_TEXTUREMAPID_SHIFT_BITS))
         );
     }
     std::shared_ptr<TextRenderInfo> Window::GetTextInfo(AssetID asset) {
-        if(Utils::GetBits<uint32_t>(asset, ENGINE_RENDERER_ASSETID_TEXTUREMAPID_SHIFT_BITS, ENGINE_RENDERER_ASSETTYPE_TEXTUREMAPID_SHIFT_BITS) != ENGINE_RENDERER_ASSETTYPE_TEXT) 
+        if(Util::GetBits<uint32_t>(asset, ENGINE_RENDERER_ASSETID_TEXTUREMAPID_SHIFT_BITS, ENGINE_RENDERER_ASSETTYPE_TEXTUREMAPID_SHIFT_BITS) != ENGINE_RENDERER_ASSETTYPE_TEXT) 
             THROW("Cannot acces an asset that is not text with the GetTextInfo function")
         return reinterpret_pointer_cast<TextRenderInfo>(
             _textureMaps[asset >> ENGINE_RENDERER_ASSETID_TEXTUREMAPID_SHIFT_BITS].GetRenderInfo(asset & (0xFFFFFFFF >> ENGINE_RENDERER_ASSETTYPE_TEXTUREMAPID_SHIFT_BITS))
         );
+    }
+
+    std::string Window::GetVulkanDeviceLimits() {
+        VkPhysicalDeviceProperties properties = _vkContext.GetPhysicalDeviceProperties();
+        return
+        "maxImageDimension1D: " + std::to_string(properties.limits.maxImageDimension1D) +
+        "\nmaxImageDimension2D: " + std::to_string(properties.limits.maxImageDimension2D) +
+        "\nmaxImageDimension3D: " + std::to_string(properties.limits.maxImageDimension3D) +
+        "\nmaxImageDimensionCube: " + std::to_string(properties.limits.maxImageDimensionCube) +
+        "\nmaxImageArrayLayers: " + std::to_string(properties.limits.maxImageArrayLayers) +
+        "\nmaxTexelBufferElements: " + std::to_string(properties.limits.maxTexelBufferElements) +
+        "\nmaxUniformBufferRange: " + std::to_string(properties.limits.maxUniformBufferRange) +
+        "\nmaxStorageBufferRange: " + std::to_string(properties.limits.maxStorageBufferRange) +
+        "\nmaxPushConstantsSize: " + std::to_string(properties.limits.maxPushConstantsSize) +
+        "\nmaxMemoryAllocationCount: " + std::to_string(properties.limits.maxMemoryAllocationCount) +
+        "\nmaxSamplerAllocationCount: " + std::to_string(properties.limits.maxSamplerAllocationCount) +
+        "\nbufferImageGranularity: " + std::to_string(properties.limits.bufferImageGranularity) +
+        "\nsparseAddressSpaceSize: " + std::to_string(properties.limits.sparseAddressSpaceSize) +
+        "\nmaxBoundDescriptorSets: " + std::to_string(properties.limits.maxBoundDescriptorSets) +
+        "\nmaxPerStageDescriptorSamplers: " + std::to_string(properties.limits.maxPerStageDescriptorSamplers) +
+        "\nmaxPerStageDescriptorUniformBuffers: " + std::to_string(properties.limits.maxPerStageDescriptorUniformBuffers) +
+        "\nmaxPerStageDescriptorStorageBuffers: " + std::to_string(properties.limits.maxPerStageDescriptorStorageBuffers) +
+        "\nmaxPerStageDescriptorSampledImages: " + std::to_string(properties.limits.maxPerStageDescriptorSampledImages) +
+        "\nmaxPerStageDescriptorStorageImages: " + std::to_string(properties.limits.maxPerStageDescriptorStorageImages) +
+        "\nmaxPerStageDescriptorInputAttachments: " + std::to_string(properties.limits.maxPerStageDescriptorInputAttachments) +
+        "\nmaxPerStageResources: " + std::to_string(properties.limits.maxPerStageResources) +
+        "\nmaxDescriptorSetSamplers: " + std::to_string(properties.limits.maxDescriptorSetSamplers) +
+        "\nmaxDescriptorSetUniformBuffers: " + std::to_string(properties.limits.maxDescriptorSetUniformBuffers) +
+        "\nmaxDescriptorSetUniformBuffersDynamic: " + std::to_string(properties.limits.maxDescriptorSetUniformBuffersDynamic) +
+        "\nmaxDescriptorSetStorageBuffers: " + std::to_string(properties.limits.maxDescriptorSetStorageBuffers) +
+        "\nmaxDescriptorSetStorageBuffersDynamic: " + std::to_string(properties.limits.maxDescriptorSetStorageBuffersDynamic) +
+        "\nmaxDescriptorSetSampledImages: " + std::to_string(properties.limits.maxDescriptorSetSampledImages) +
+        "\nmaxDescriptorSetStorageImages: " + std::to_string(properties.limits.maxDescriptorSetStorageImages) +
+        "\nmaxDescriptorSetInputAttachments: " + std::to_string(properties.limits.maxDescriptorSetInputAttachments) +
+        "\nmaxVertexInputAttributes: " + std::to_string(properties.limits.maxVertexInputAttributes) +
+        "\nmaxVertexInputBindings: " + std::to_string(properties.limits.maxVertexInputBindings) +
+        "\nmaxVertexInputAttributeOffset: " + std::to_string(properties.limits.maxVertexInputAttributeOffset) +
+        "\nmaxVertexInputBindingStride: " + std::to_string(properties.limits.maxVertexInputBindingStride) +
+        "\nmaxVertexOutputComponents: " + std::to_string(properties.limits.maxVertexOutputComponents) +
+        "\nmaxTessellationGenerationLevel: " + std::to_string(properties.limits.maxTessellationGenerationLevel) +
+        "\nmaxTessellationPatchSize: " + std::to_string(properties.limits.maxTessellationPatchSize) +
+        "\nmaxTessellationControlPerVertexInputComponents: " + std::to_string(properties.limits.maxTessellationControlPerVertexInputComponents) +
+        "\nmaxTessellationControlPerVertexOutputComponents: " + std::to_string(properties.limits.maxTessellationControlPerVertexOutputComponents) +
+        "\nmaxTessellationControlPerPatchOutputComponents: " + std::to_string(properties.limits.maxTessellationControlPerPatchOutputComponents) +
+        "\nmaxTessellationControlTotalOutputComponents: " + std::to_string(properties.limits.maxTessellationControlTotalOutputComponents) +
+        "\nmaxTessellationEvaluationInputComponents: " + std::to_string(properties.limits.maxTessellationEvaluationInputComponents) +
+        "\nmaxTessellationEvaluationOutputComponents: " + std::to_string(properties.limits.maxTessellationEvaluationOutputComponents) +
+        "\nmaxGeometryShaderInvocations: " + std::to_string(properties.limits.maxGeometryShaderInvocations) +
+        "\nmaxGeometryInputComponents: " + std::to_string(properties.limits.maxGeometryInputComponents) +
+        "\nmaxGeometryOutputComponents: " + std::to_string(properties.limits.maxGeometryOutputComponents) +
+        "\nmaxGeometryOutputVertices: " + std::to_string(properties.limits.maxGeometryOutputVertices) +
+        "\nmaxGeometryTotalOutputComponents: " + std::to_string(properties.limits.maxGeometryTotalOutputComponents) +
+        "\nmaxFragmentInputComponents: " + std::to_string(properties.limits.maxFragmentInputComponents) +
+        "\nmaxFragmentOutputAttachments: " + std::to_string(properties.limits.maxFragmentOutputAttachments) +
+        "\nmaxFragmentDualSrcAttachments: " + std::to_string(properties.limits.maxFragmentDualSrcAttachments) +
+        "\nmaxFragmentCombinedOutputResources: " + std::to_string(properties.limits.maxFragmentCombinedOutputResources) +
+        "\nmaxComputeSharedMemorySize: " + std::to_string(properties.limits.maxComputeSharedMemorySize) +
+        "\nmaxComputeWorkGroupCount[3]: " + std::to_string(properties.limits.maxComputeWorkGroupCount[3]) +
+        "\nmaxComputeWorkGroupInvocations: " + std::to_string(properties.limits.maxComputeWorkGroupInvocations) +
+        "\nmaxComputeWorkGroupSize[3]: " + std::to_string(properties.limits.maxComputeWorkGroupSize[3]) +
+        "\nsubPixelPrecisionBits: " + std::to_string(properties.limits.subPixelPrecisionBits) +
+        "\nsubTexelPrecisionBits: " + std::to_string(properties.limits.subTexelPrecisionBits) +
+        "\nmipmapPrecisionBits: " + std::to_string(properties.limits.mipmapPrecisionBits) +
+        "\nmaxDrawIndexedIndexValue: " + std::to_string(properties.limits.maxDrawIndexedIndexValue) +
+        "\nmaxDrawIndirectCount: " + std::to_string(properties.limits.maxDrawIndirectCount) +
+        "\nmaxSamplerLodBias: " + std::to_string(properties.limits.maxSamplerLodBias) +
+        "\nmaxSamplerAnisotropy: " + std::to_string(properties.limits.maxSamplerAnisotropy) +
+        "\nmaxViewports: " + std::to_string(properties.limits.maxViewports) +
+        "\nmaxViewportDimensions[2]: " + std::to_string(properties.limits.maxViewportDimensions[2]) +
+        "\nviewportBoundsRange[2]: " + std::to_string(properties.limits.viewportBoundsRange[2]) +
+        "\nviewportSubPixelBits: " + std::to_string(properties.limits.viewportSubPixelBits) +
+        "\nminMemoryMapAlignment: " + std::to_string(properties.limits.minMemoryMapAlignment) +
+        "\nminTexelBufferOffsetAlignment: " + std::to_string(properties.limits.minTexelBufferOffsetAlignment) +
+        "\nminUniformBufferOffsetAlignment: " + std::to_string(properties.limits.minUniformBufferOffsetAlignment) +
+        "\nminStorageBufferOffsetAlignment: " + std::to_string(properties.limits.minStorageBufferOffsetAlignment) +
+        "\nminTexelOffset: " + std::to_string(properties.limits.minTexelOffset) +
+        "\nmaxTexelOffset: " + std::to_string(properties.limits.maxTexelOffset) +
+        "\nminTexelGatherOffset: " + std::to_string(properties.limits.minTexelGatherOffset) +
+        "\nmaxTexelGatherOffset: " + std::to_string(properties.limits.maxTexelGatherOffset) +
+        "\nminInterpolationOffset: " + std::to_string(properties.limits.minInterpolationOffset) +
+        "\nmaxInterpolationOffset: " + std::to_string(properties.limits.maxInterpolationOffset) +
+        "\nsubPixelInterpolationOffsetBits: " + std::to_string(properties.limits.subPixelInterpolationOffsetBits) +
+        "\nmaxFramebufferWidth: " + std::to_string(properties.limits.maxFramebufferWidth) +
+        "\nmaxFramebufferHeight: " + std::to_string(properties.limits.maxFramebufferHeight) +
+        "\nmaxFramebufferLayers: " + std::to_string(properties.limits.maxFramebufferLayers) +
+        "\nframebufferColorSampleCounts: " + std::to_string(properties.limits.framebufferColorSampleCounts) +
+        "\nframebufferDepthSampleCounts: " + std::to_string(properties.limits.framebufferDepthSampleCounts) +
+        "\nframebufferStencilSampleCounts: " + std::to_string(properties.limits.framebufferStencilSampleCounts) +
+        "\nframebufferNoAttachmentsSampleCounts: " + std::to_string(properties.limits.framebufferNoAttachmentsSampleCounts) +
+        "\nmaxColorAttachments: " + std::to_string(properties.limits.maxColorAttachments) +
+        "\nsampledImageColorSampleCounts: " + std::to_string(properties.limits.sampledImageColorSampleCounts) +
+        "\nsampledImageIntegerSampleCounts: " + std::to_string(properties.limits.sampledImageIntegerSampleCounts) +
+        "\nsampledImageDepthSampleCounts: " + std::to_string(properties.limits.sampledImageDepthSampleCounts) +
+        "\nsampledImageStencilSampleCounts: " + std::to_string(properties.limits.sampledImageStencilSampleCounts) +
+        "\nstorageImageSampleCounts: " + std::to_string(properties.limits.storageImageSampleCounts) +
+        "\nmaxSampleMaskWords: " + std::to_string(properties.limits.maxSampleMaskWords) +
+        "\ntimestampComputeAndGraphics: " + std::to_string(properties.limits.timestampComputeAndGraphics) +
+        "\ntimestampPeriod: " + std::to_string(properties.limits.timestampPeriod) +
+        "\nmaxClipDistances: " + std::to_string(properties.limits.maxClipDistances) +
+        "\nmaxCullDistances: " + std::to_string(properties.limits.maxCullDistances) +
+        "\nmaxCombinedClipAndCullDistances: " + std::to_string(properties.limits.maxCombinedClipAndCullDistances) +
+        "\ndiscreteQueuePriorities: " + std::to_string(properties.limits.discreteQueuePriorities) +
+        "\npointSizeRange[2]: " + std::to_string(properties.limits.pointSizeRange[2]) +
+        "\nlineWidthRange[2]: " + std::to_string(properties.limits.lineWidthRange[2]) +
+        "\npointSizeGranularity: " + std::to_string(properties.limits.pointSizeGranularity) +
+        "\nlineWidthGranularity: " + std::to_string(properties.limits.lineWidthGranularity) +
+        "\nstrictLines: " + std::to_string(properties.limits.strictLines) +
+        "\nstandardSampleLocations: " + std::to_string(properties.limits.standardSampleLocations) +
+        "\noptimalBufferCopyOffsetAlignment: " + std::to_string(properties.limits.optimalBufferCopyOffsetAlignment) +
+        "\noptimalBufferCopyRowPitchAlignment: " + std::to_string(properties.limits.optimalBufferCopyRowPitchAlignment) +
+        "\nnonCoherentAtomSize: " + std::to_string(properties.limits.nonCoherentAtomSize);
     }
 
 
@@ -248,9 +359,9 @@ namespace Renderer {
         } else if(messageSeverity==VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
             INFO(pCallbackData->pMessage);
         } else if(messageSeverity==VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-            ERROR(pCallbackData->pMessage);
+            WARNING(pCallbackData->pMessage);
         } else if(messageSeverity==VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-            ERROR(pCallbackData->pMessage);
+            WARNING(pCallbackData->pMessage);
         }
     
         return VK_FALSE;

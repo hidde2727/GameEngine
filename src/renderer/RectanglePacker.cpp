@@ -37,7 +37,7 @@ namespace Renderer {
         for(const auto rect : _sizes) {
             if(x + rect.x > _maxBinSize.x) {
                 if(y + rowHeight + rect.y > _maxBinSize.y) {
-                    _binSizes.push_back(Utils::Vec2U32(binWidth, y+rowHeight));
+                    _binSizes.push_back(Util::Vec2U32(binWidth, y+rowHeight));
                     // Start a new bin
                     y = 0;
                     x = 0;
@@ -51,11 +51,11 @@ namespace Renderer {
                 }
             }
             if(rect.y > rowHeight) rowHeight = rect.y;
-            _result[rect.z] = std::pair(bin, Utils::AreaU32(x, y, rect.x, rect.y));
+            _result[rect.z] = std::pair(bin, Util::AreaU32(x, y, rect.x, rect.y));
             x += rect.x;
             if(x > binWidth) binWidth = x;
         }
-        _binSizes.push_back(Utils::Vec2U32(binWidth, y+rowHeight));
+        _binSizes.push_back(Util::Vec2U32(binWidth, y+rowHeight));
     }
     void RectanglePacker::PackSkyline() {
         THROW("Sorry, skyline packing is not implemented yet");

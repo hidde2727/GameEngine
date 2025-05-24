@@ -8,6 +8,8 @@
 #include "renderer/ImageLoader.h"
 #include "renderer/TextLoader.h"
 
+#include "network/WebHandler.h"
+
 namespace Engine{
 
     typedef entt::entity Entity;
@@ -21,6 +23,11 @@ namespace Engine{
         virtual void OnSceneStart() {}
         virtual void OnSceneStop() {}
         virtual void LoadAssets() {}
+        virtual void OnHTTPRequest(Network::HTTP::RequestHeader& requestHeader, std::vector<uint8_t>& requestBody, Network::HTTP::Response& response) {}
+        virtual bool AllowWebsocketConnection(Network::HTTP::RequestHeader& requestHeader) { return true; }
+        virtual void OnWebsocketRequest(Network::Websocket::Frame& frame, Network::WebHandler::WebsocketConnection& connection) {}
+        virtual void OnWebsocketStart(Network::WebHandler::WebsocketConnection& connection, const size_t uuid, Network::HTTP::RequestHeader& requestHeader) {}
+        virtual void OnWebsocketStop(Network::WebHandler::WebsocketConnection& connection, const size_t uuid) {}
 
         // Should only be called inside the LoadAssets function
         // Set a unique name to be used all the times the exact same assets are loaded

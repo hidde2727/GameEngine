@@ -33,12 +33,12 @@ namespace Renderer {
 		void SetScale(const uint32_t unitsPerEM, const uint32_t pointSize);
 		// The flags should have already been expanded so every repeat is in the array
 		// The inputted points are still in FDU
-		void SetOriginalGlyphInfo(const std::vector<uint8_t> flags, const std::vector<Utils::Vec2F> points, const std::vector<uint16_t> endpoints);
-		void AddPhantomPoints(const Utils::Vec2F min, const Utils::Vec2F max, const int32_t leftSideBearing, const int32_t advance, const int32_t topOrigin, const int32_t advanceHeight);
+		void SetOriginalGlyphInfo(const std::vector<uint8_t> flags, const std::vector<Util::Vec2F> points, const std::vector<uint16_t> endpoints);
+		void AddPhantomPoints(const Util::Vec2F min, const Util::Vec2F max, const int32_t leftSideBearing, const int32_t advance, const int32_t topOrigin, const int32_t advanceHeight);
 
 		// Getters
 		inline std::vector<uint8_t>* GetNewFlags() { return &_flags; }
-		std::unique_ptr<std::vector<Utils::Vec2F>> GetNewPoints();
+		std::unique_ptr<std::vector<Util::Vec2F>> GetNewPoints();
 		inline float GetLeftSideBearing() {
 			return FromF26Dot6<float>(_points[_points.size() - 4].x);
 		}
@@ -86,6 +86,8 @@ namespace Renderer {
 		void StoreGraphicsState();
 		void BindStoredGraphicsState();
 
+		std::set<uint8_t> _usedInstructions;
+
 	private:
 
 		inline bool IsNextInstructionLeft();
@@ -109,36 +111,36 @@ namespace Renderer {
 			return (F26Dot6)(value * 0x40);
 		}
 		template<class T>
-		inline Utils::Vec2<F26Dot6> ToF26Dot6(const Utils::Vec2<T> value) {
-			return Utils::Vec2<F26Dot6>(ToF26Dot6(value.x), ToF26Dot6(value.y));
+		inline Util::Vec2<F26Dot6> ToF26Dot6(const Util::Vec2<T> value) {
+			return Util::Vec2<F26Dot6>(ToF26Dot6(value.x), ToF26Dot6(value.y));
 		}
 		template<class T>
 		inline T FromF26Dot6(const F26Dot6 value) {
 			return value / ((T)0x40);
 		}
 		template<class T>
-		inline Utils::Vec2<T> FromF26Dot6(const Utils::Vec2<F26Dot6> value) {
-			return Utils::Vec2<T>(value.x / ((T)0x40), value.y / ((T)0x40));
+		inline Util::Vec2<T> FromF26Dot6(const Util::Vec2<F26Dot6> value) {
+			return Util::Vec2<T>(value.x / ((T)0x40), value.y / ((T)0x40));
 		}
 
 		// Point getters and setters
-		inline Utils::Vec2<F26Dot6> GetPoint(const uint32_t p, const uint32_t zone);
-		inline Utils::Vec2<F26Dot6> GetOriginalPoint(const uint32_t p, const uint32_t zone);
-		inline void SetPoint(const uint32_t p, const uint32_t zone, Utils::Vec2<F26Dot6> value);
-		inline void AddToPoint(const uint32_t p, const uint32_t zone, Utils::Vec2<F26Dot6> additive);
-		inline void AddToPointWithoutTouching(const uint32_t p, const uint32_t zone, Utils::Vec2<F26Dot6> additive);
+		inline Util::Vec2<F26Dot6> GetPoint(const uint32_t p, const uint32_t zone);
+		inline Util::Vec2<F26Dot6> GetOriginalPoint(const uint32_t p, const uint32_t zone);
+		inline void SetPoint(const uint32_t p, const uint32_t zone, Util::Vec2<F26Dot6> value);
+		inline void AddToPoint(const uint32_t p, const uint32_t zone, Util::Vec2<F26Dot6> additive);
+		inline void AddToPointWithoutTouching(const uint32_t p, const uint32_t zone, Util::Vec2<F26Dot6> additive);
 		inline void SetPointTouched(const uint32_t p, const uint32_t zone);
 		inline void SetPointTouched(const uint32_t p, const uint32_t zone, const bool x, const bool y);
 		inline void SetPointUntouched(const uint32_t p, const uint32_t zone);
 		inline void SetPointUntouched(const uint32_t p, const uint32_t zone, const bool x, const bool y);
 		inline void MovePointToProjectedValue(const uint32_t p, const uint32_t zone, const F26Dot6 value);
-		inline F26Dot6 ProjectPoint(const Utils::Vec2<F26Dot6> point);
-		inline F26Dot6 DualProjectPoint(const Utils::Vec2<F26Dot6> point);
+		inline F26Dot6 ProjectPoint(const Util::Vec2<F26Dot6> point);
+		inline F26Dot6 DualProjectPoint(const Util::Vec2<F26Dot6> point);
 		// CVT
 		inline F26Dot6 GetCVTValue(const uint32_t n);
 		inline void SetCVTValue(const uint32_t n, const F26Dot6 value);
 		// Utils
-		inline Utils::Vec2<F26Dot6> RoundToGrid(const Utils::Vec2<F26Dot6> p);
+		inline Util::Vec2<F26Dot6> RoundToGrid(const Util::Vec2<F26Dot6> p);
 
 		size_t _currentInstruction = 0;
 		std::vector<uint8_t> _instructionStream;
@@ -155,9 +157,9 @@ namespace Renderer {
 		std::vector<std::vector<uint8_t>> _functions;
 
 		std::vector<uint8_t> _originalFlags;
-		std::vector<Utils::Vec2<F26Dot6>> _originalPoints;
+		std::vector<Util::Vec2<F26Dot6>> _originalPoints;
 		std::vector<uint8_t> _flags;
-		std::vector<Utils::Vec2<F26Dot6>> _points;
+		std::vector<Util::Vec2<F26Dot6>> _points;
 		std::vector<uint16_t> _endpoints;
 
 		// Graphics State
@@ -166,13 +168,13 @@ namespace Renderer {
 			uint32_t _pointSize = 0;
 			uint32_t _pixelsPerEM = 0;
 
-			std::vector<Utils::Vec2<F26Dot6>> _twilightPoints;
-			std::vector<Utils::Vec2<F26Dot6>> _originalTwilightPoints;
-			std::vector<Utils::Vec2<F26Dot6>> _IUPDeltas;
+			std::vector<Util::Vec2<F26Dot6>> _twilightPoints;
+			std::vector<Util::Vec2<F26Dot6>> _originalTwilightPoints;
+			std::vector<Util::Vec2<F26Dot6>> _IUPDeltas;
 
-			Utils::Vec2F _projectionVector = Utils::Vec2F(1, 0);
-			Utils::Vec2F _freedomVector = Utils::Vec2F(1, 0);
-			Utils::Vec2F _dualProjectionVector;
+			Util::Vec2F _projectionVector = Util::Vec2F(1, 0);
+			Util::Vec2F _freedomVector = Util::Vec2F(1, 0);
+			Util::Vec2F _dualProjectionVector;
 
 			uint32_t _refrencePoint0 = 0;
 			uint32_t _refrencePoint1 = 0;

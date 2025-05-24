@@ -4,7 +4,7 @@ namespace Engine {
 namespace Renderer {
 namespace Vulkan {
 
-    void Texture::Init(Context& context, const Utils::Vec2U32 size, const VkFormat format) {
+    void Texture::Init(Context& context, const Util::Vec2U32 size, const VkFormat format) {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.imageType = VK_IMAGE_TYPE_2D;

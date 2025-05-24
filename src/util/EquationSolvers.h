@@ -4,7 +4,7 @@
 #include "core/PCH.h"
 
 namespace Engine {
-namespace Utils {
+namespace Util {
 
 	template <typename T>
 	concept FloatingPoint = std::floating_point<T>;

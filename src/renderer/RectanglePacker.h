@@ -13,7 +13,7 @@ namespace Renderer {
     public:
 
         void SetAmountRectangles(const size_t size) { _sizes.resize(size); }
-        Utils::Vec3U32* GetRectangleInputPtr() { return _sizes.data(); }
+        Util::Vec3U32* GetRectangleInputPtr() { return _sizes.data(); }
         size_t GetAmountInputRectangles() { return _sizes.size(); }
 
         enum class SortingAlgorithm {
@@ -30,14 +30,14 @@ namespace Renderer {
             MaxRects
         };
         void SetPackingAlgorithm(const PackingAlgorithm packingAlgorithm) { _packingAlgorithm = packingAlgorithm; }
-        void SetMaximumBinSize(const Utils::Vec3U32 size);
+        void SetMaximumBinSize(const Util::Vec3U32 size);
 
         // Garantuees that the rectangles in the result are in the same order as in the input
         void Pack();
 
-        std::pair<uint32_t, Utils::AreaU32>* GetResults() { return _result.data(); }
+        std::pair<uint32_t, Util::AreaU32>* GetResults() { return _result.data(); }
         size_t GetAmountResults() { return _result.size(); }
-        Utils::Vec2U32* GetBinSizes() { return _binSizes.data(); }
+        Util::Vec2U32* GetBinSizes() { return _binSizes.data(); }
         size_t GetAmountBins() { return _binSizes.size(); }
 
     private:
@@ -46,15 +46,15 @@ namespace Renderer {
         void PackSkyline();
         void PackMaxRects();
         
-        std::vector<Utils::Vec3U32> _sizes; // width, height, index at time of insertion by user
+        std::vector<Util::Vec3U32> _sizes; // width, height, index at time of insertion by user
         SortingAlgorithm _sortingAlgorithm = SortingAlgorithm::None;
         PackingAlgorithm _packingAlgorithm = PackingAlgorithm::Skyline;
-        Utils::Vec2U32 _maxBinSize = Utils::Vec2U32(1024, 1024);
+        Util::Vec2U32 _maxBinSize = Util::Vec2U32(1024, 1024);
 
         // _first=binID, _second=area in that bin
         // x and y of the top-left corner
-        std::vector<std::pair<uint32_t, Utils::AreaU32>> _result;
-        std::vector<Utils::Vec2U32> _binSizes;
+        std::vector<std::pair<uint32_t, Util::AreaU32>> _result;
+        std::vector<Util::Vec2U32> _binSizes;
 
     };
 

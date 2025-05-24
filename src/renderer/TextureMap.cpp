@@ -34,7 +34,7 @@ namespace Renderer {
         // Retrieve needed texture sizes
         RectanglePacker packer;
         packer.SetAmountRectangles(_amountTextures);
-        Utils::Vec3U32* inputPtr = packer.GetRectangleInputPtr();
+        Util::Vec3U32* inputPtr = packer.GetRectangleInputPtr();
         size_t currentTexture = 0;
         for(const auto& assetLoader : _assetLoaders) {
             assetLoader->_firstTexture = currentTexture;
@@ -51,7 +51,7 @@ namespace Renderer {
         // Create and render the textures
         _textures.resize(packer.GetAmountBins());
         _renderInfos.resize(_amountTextures);
-        Utils::Vec2U32* binSizePtr = packer.GetBinSizes();
+        Util::Vec2U32* binSizePtr = packer.GetBinSizes();
         Vulkan::CommandBuffer commandBuffer;
         Vulkan::QueueType queueType = context.GetQueue(Vulkan::QueueType::TransferQueue)==VK_NULL_HANDLE? Vulkan::QueueType::GraphicsQueue : Vulkan::QueueType::TransferQueue;
         commandBuffer.Init(context, queueType, 1);
@@ -66,14 +66,14 @@ namespace Renderer {
             _textures[i].StartTransferingData(context);
             // Go through all the textures and render the once with this bin
             // Going through them one-by-one to not overload the amount of transfer memory needed
-            std::pair<uint32_t, Utils::AreaU32>* resultPtr = packer.GetResults();
+            std::pair<uint32_t, Util::AreaU32>* resultPtr = packer.GetResults();
             size_t currentAssetLoader = 0;
-            Utils::AreaU8* texturePtr = reinterpret_cast<Utils::AreaU8*>(_textures[i].GetTransferLocation());
+            Util::AreaU8* texturePtr = reinterpret_cast<Util::AreaU8*>(_textures[i].GetTransferLocation());
             for(size_t j = 0; j < _amountTextures; j++) {
                 if(resultPtr->first != i) continue;
                 _assetLoaders[currentAssetLoader]->RenderTexture(texturePtr, *binSizePtr, resultPtr->second, j-_assetLoaders[currentAssetLoader]->_firstTexture);
                 _assetLoaders[currentAssetLoader]->SetTextureRenderInfo(
-                    Utils::AreaF((float)resultPtr->second.x/binSizePtr->x, (float)resultPtr->second.y/binSizePtr->y, (float)resultPtr->second.w/binSizePtr->x, (float)resultPtr->second.h/binSizePtr->y), 
+                    Util::AreaF((float)resultPtr->second.x/binSizePtr->x, (float)resultPtr->second.y/binSizePtr->y, (float)resultPtr->second.w/binSizePtr->x, (float)resultPtr->second.h/binSizePtr->y), 
                     descriptorBinding, 
                     j-_assetLoaders[currentAssetLoader]->_firstTexture
                 );

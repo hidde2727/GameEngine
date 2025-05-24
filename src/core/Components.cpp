@@ -12,23 +12,24 @@ namespace Engine {
 
     TextComponent::TextComponent(Scene* scene, uint32_t assetID, const uint32_t size, std::u32string text) {
         std::shared_ptr<Renderer::TextRenderInfo> info = scene->_window->GetTextInfo(assetID);
+        ASSERT(!(info), "Text size is not loaded, cannot create a text component of a size that is not loaded")
         _renderInfo.reserve(text.size());
         float currentX = 0;
         float currentY = 0;
         for(uint32_t i = 0; i < text.size(); i++) {
             Renderer::CharInfo charInfo = info->at(size)[text[i]];
-            if(charInfo._boundTexture!=UINT32_MAX) {
+            if(charInfo._boundTexture!=UINT32_MAX && charInfo._textureArea.w!=0 && charInfo._textureArea.h!=0) {
                 float x = currentX + (i>0?charInfo._horizontalKerning[text[i-1]]+charInfo._leftSideBearing : 0);
                 _renderInfo.push_back({
-                    Utils::AreaF(
-                        std::floor(x + charInfo._min.x - ENGINE_RENDERER_SDF_PADDING),
+                    Util::AreaF(
+                        std::floor(x - ENGINE_RENDERER_SDF_PADDING) + charInfo._min.x,
                         currentY - charInfo._max.y - ENGINE_RENDERER_SDF_PADDING,
                         charInfo._max.x - charInfo._min.x + 2*ENGINE_RENDERER_SDF_PADDING,
                         charInfo._max.y - charInfo._min.y + 2*ENGINE_RENDERER_SDF_PADDING
                     ),
                     charInfo._textureArea,
                     charInfo._boundTexture,
-                    0.25f*sqrt((charInfo._max.x-charInfo._min.x)*(charInfo._max.x-charInfo._min.x)+(charInfo._max.y-charInfo._min.y)*(charInfo._max.y-charInfo._min.y))
+                    (float)ENGINE_RENDERER_PX_RANGE_FACTOR*sqrt((charInfo._max.x-charInfo._min.x)*(charInfo._max.x-charInfo._min.x)+(charInfo._max.y-charInfo._min.y)*(charInfo._max.y-charInfo._min.y))
                 });
             }
             currentX += charInfo._advance;

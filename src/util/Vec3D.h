@@ -2,10 +2,10 @@
 #define ENGINE_UTILS_VEC3D_H
 
 #include "core/PCH.h"
-#include "util/FundamentalType.h"
+#include "util/TemplateConcepts.h"
 
 namespace Engine {
-namespace Utils {
+namespace Util {
 
     template<FundamentalType T>
 	class Vec3 {

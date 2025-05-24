@@ -16,7 +16,7 @@ namespace Vulkan {
     class Texture {
     public:
 
-        void Init(Context& context, const Utils::Vec2U32 size, const VkFormat format);
+        void Init(Context& context, const Util::Vec2U32 size, const VkFormat format);
         void Cleanup(Context& context);
 
         void SetData(Context& context, const void* data, const uint32_t length);
@@ -70,7 +70,7 @@ namespace Vulkan {
         VmaAllocation _allocation;
         TransferBuffer _transferBuffer;
         size_t _size;
-        Utils::Vec2U32 _rectSize;
+        Util::Vec2U32 _rectSize;
 
         uint32_t _boundDescriptorSlot = UINT32_MAX;
     };

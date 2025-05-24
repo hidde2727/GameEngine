@@ -37,26 +37,26 @@ namespace Engine {
 namespace Renderer {
 
     struct Vertex {
-        Utils::Vec2F dimensions;
+        Util::Vec2F dimensions;
     };
     struct InstanceDataRect {
-        InstanceDataRect(const Utils::Vec2F pos, const Utils::Vec2F dimensions, const Utils::Vec3F color, const Utils::Vec2F texturePos, const Utils::Vec2F textureDimensions, const uint32_t texture)
+        InstanceDataRect(const Util::Vec2F pos, const Util::Vec2F dimensions, const Util::Vec3F color, const Util::Vec2F texturePos, const Util::Vec2F textureDimensions, const uint32_t texture)
          : pos(pos), dimensions(dimensions), color(color), texturePos(texturePos), textureDimensions(textureDimensions), texture(texture) {}
-        Utils::Vec2F pos;
-        Utils::Vec2F dimensions;
-        Utils::Vec3F color;
-        Utils::Vec2F texturePos;
-        Utils::Vec2F textureDimensions;
+        Util::Vec2F pos;
+        Util::Vec2F dimensions;
+        Util::Vec3F color;
+        Util::Vec2F texturePos;
+        Util::Vec2F textureDimensions;
         uint32_t texture;
     };
     struct InstanceDataText {
-        InstanceDataText(const Utils::Vec2F pos, const Utils::Vec2F dimensions, const Utils::Vec3F color, const Utils::Vec2F texturePos, const Utils::Vec2F textureDimensions, const uint32_t texture, const float pxRange)
+        InstanceDataText(const Util::Vec2F pos, const Util::Vec2F dimensions, const Util::Vec3F color, const Util::Vec2F texturePos, const Util::Vec2F textureDimensions, const uint32_t texture, const float pxRange)
          : pos(pos), dimensions(dimensions), color(color), texturePos(texturePos), textureDimensions(textureDimensions), texture(texture), pxRange(pxRange) {}
-        Utils::Vec2F pos;
-        Utils::Vec2F dimensions;
-        Utils::Vec3F color;
-        Utils::Vec2F texturePos;
-        Utils::Vec2F textureDimensions;
+        Util::Vec2F pos;
+        Util::Vec2F dimensions;
+        Util::Vec3F color;
+        Util::Vec2F texturePos;
+        Util::Vec2F textureDimensions;
         uint32_t texture;
         float pxRange;
     };
@@ -65,8 +65,8 @@ namespace Renderer {
     class Window {
     public:
 
-        Window(const uint32_t textureMapSlots);
-        ~Window();
+        void Init(const uint32_t textureMapSlots);
+        void Cleanup();
 
         bool ShouldClose();
         void Update();
@@ -83,6 +83,8 @@ namespace Renderer {
 
         std::shared_ptr<ImageRenderInfo> GetTextureInfo(AssetID asset);
         std::shared_ptr<TextRenderInfo> GetTextInfo(AssetID asset);
+
+        std::string GetVulkanDeviceLimits();
 
     private:
 
@@ -109,7 +111,7 @@ namespace Renderer {
         Vulkan::TextureSampler _linearSampler;
 
         bool _framebufferResized;
-        Utils::Vec2F _framebufferSize;
+        Util::Vec2F _framebufferSize;
 
         std::vector<TextureMap> _textureMaps;
 

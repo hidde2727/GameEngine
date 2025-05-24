@@ -7,7 +7,7 @@
 namespace Engine {
 namespace Renderer {
 
-    typedef std::pair<Utils::AreaF, uint32_t> ImageRenderInfo;
+    typedef std::pair<Util::AreaF, uint32_t> ImageRenderInfo;
     class ImageLoader : public AssetLoader {
     public:
 
@@ -15,10 +15,10 @@ namespace Renderer {
 
         bool CanUseCache(const std::filesystem::file_time_type lastCacheChange) override;
         size_t GetAmountTextures() override;
-        void SetTextureSizes(Utils::Vec3U32* start) override;
-        void RenderTexture(Utils::AreaU8* texture, const Utils::Vec2U32 textureSize, const Utils::AreaU32 area, const size_t id) override;
+        void SetTextureSizes(Util::Vec3U32* start) override;
+        void RenderTexture(Util::AreaU8* texture, const Util::Vec2U32 textureSize, const Util::AreaU32 area, const size_t id) override;
 
-        void SetTextureRenderInfo(const Utils::AreaF area, const uint32_t boundTexture, const size_t id) override;
+        void SetTextureRenderInfo(const Util::AreaF area, const uint32_t boundTexture, const size_t id) override;
         std::shared_ptr<uint8_t> GetRenderInfo() override;
         std::shared_ptr<uint8_t> GetRenderInfo(uint8_t* cache, const size_t size) override;
         std::shared_ptr<uint8_t> GetCacheData() override;
@@ -27,7 +27,7 @@ namespace Renderer {
     private:
         
         std::string _file;
-        Utils::AreaF _area;
+        Util::AreaF _area;
         uint32_t _descriptorArrayID;
 
     };

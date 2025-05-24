@@ -1,10 +1,10 @@
 #ifndef ENGINE_UTIL_BITMASK_H
 #define ENGINE_UTIL_BITMASK_H
 
-#include "util/FundamentalType.h"
+#include "util/TemplateConcepts.h"
 
 namespace Engine {
-namespace Utils {
+namespace Util {
 
     template<FundamentalType T>
     constexpr T BitMask(const int from, const int till) {

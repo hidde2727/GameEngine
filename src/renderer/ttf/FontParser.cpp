@@ -371,7 +371,7 @@ namespace Renderer {
 				}
 			}
 			else if (format == 6) {
-				ERROR("Font file, this CMAP format type hasn't been tested yet, please proceed with caution");
+				WARNING("Font file, this CMAP format type hasn't been tested yet, please proceed with caution");
 				uint16_t length		= GetUint16();
 				uint16_t language	= GetUint16();
 				uint16_t firstCode	= GetUint16();
@@ -384,19 +384,19 @@ namespace Renderer {
 				}
 			}
 			else if (format == 8) {
-				ERROR("Font file contains a format not yet implemented");
+				WARNING("Font file contains a format not yet implemented");
 			}
 			else if (format == 10) {
-				ERROR("Font file contains a format not yet implemented");
+				WARNING("Font file contains a format not yet implemented");
 			}
 			else if (format == 12) {
-				ERROR("Font file contains a format not yet implemented");
+				WARNING("Font file contains a format not yet implemented");
 			}
 			else if (format == 13) {
-				ERROR("Font file contains a format not yet implemented");
+				WARNING("Font file contains a format not yet implemented");
 			}
 			else if (format == 14) {
-				ERROR("Font file contains a format not yet implemented");
+				WARNING("Font file contains a format not yet implemented");
 			}
 		}
 	}
@@ -438,8 +438,8 @@ namespace Renderer {
 			GLYFTable::GlyphInfo* info = &_glyf._glyphs[c];
 
 			if (_loca._locations[_glyphIDs[c]] == _loca._locations[_glyphIDs[c] + 1]) {
-				info->_min = Utils::Vec2I16(0, 0);
-				info->_max = Utils::Vec2I16(0,0);
+				info->_min = Util::Vec2I16(0, 0);
+				info->_max = Util::Vec2I16(0,0);
 				continue;
 			}
 
@@ -487,7 +487,7 @@ namespace Renderer {
 				size_t xPosStart = _currentOffset;
 				size_t xIndex = 0;
 				size_t yIndex = 0;
-				Utils::Vec2I16 pos;
+				Util::Vec2I16 pos;
 				for(uint8_t flag : info->_flags) {
 					// X coordinate
 					if (flag & GLYF_X_SHORT_VECTOR) {
@@ -528,7 +528,7 @@ namespace Renderer {
 				}
 			}
 			else if (numberOfContours == -1) {
-				ERROR("Sorry, font files with composite glyphs aren't supported at the moment");
+				WARNING("Sorry, font files with composite glyphs aren't supported at the moment");
 			}
 			else {
 				THROW("Illegal font file given, numberOfContours contains an illegal value");
@@ -564,7 +564,11 @@ namespace Renderer {
 		for (uint32_t i = 0; i < tableSize; i++) {
 			_instructionExecutor.AddToInstructionStream(GetUint8());
 		}
-		_instructionExecutor.ExecuteStack();
+		try {
+			_instructionExecutor.ExecuteStack();
+		} catch(std::exception exc) {
+			WARNING("Failed to execute instructions of the font-program, executor returned the error:\n" + std::string(exc.what()))
+		}
 	}
 
 	void TTFFontParser::LoadPREPTable() {
@@ -635,7 +639,11 @@ namespace Renderer {
 		double scale = GetScale(size);
 		executor.SetScale(_head._unitsPerEm, size);
 		executor.AddToInstructionStream(&_prep._program);
-		executor.ExecuteStack();
+		try {
+			executor.ExecuteStack();
+		} catch(std::exception exc) {
+			WARNING("Failed to execute instructions of the PREP, executor returned the error:\n" + std::string(exc.what()))
+		}
 		executor.StoreGraphicsState();
 
 		std::map<char32_t, GLYFTable::GlyphInfo> glyphs;
@@ -646,10 +654,14 @@ namespace Renderer {
 			executor.AddPhantomPoints(info._min, info._max, GetLeftSideBearing(c), GetGlyphAdvance(c), 0, 0);
 			executor.AddToInstructionStream(&info._instructions);
 
-			executor.ExecuteStack();
+			try {
+				executor.ExecuteStack();
+			} catch(std::exception exc) {
+				WARNING("Failed to execute instructions of '" + std::string(1, c) + "', executor returned the error:\n" + std::string(exc.what()))
+			}
 
-			glyphs[c]._min = Utils::Vec2F(info._min.x, info._min.y);
-			glyphs[c]._max = Utils::Vec2F(info._max.x, info._max.y);
+			glyphs[c]._min = Util::Vec2F(info._min.x, info._min.y);
+			glyphs[c]._max = Util::Vec2F(info._max.x, info._max.y);
 			glyphs[c]._endPoints = info._endPoints;
 			glyphs[c]._flags = *executor.GetNewFlags();
 			glyphs[c]._points = *executor.GetNewPoints();
@@ -672,7 +684,7 @@ namespace Renderer {
 			glyphInfo->_leftSideBearing = GetLeftSideBearing(c)*renderScale;
 			// TODO: horizontal/vertical kerning
 
-			if (info._min == Utils::Vec2F(0,0) && info._max == Utils::Vec2F(0, 0)) continue;
+			if (info._min == Util::Vec2F(0,0) && info._max == Util::Vec2F(0, 0)) continue;
 
 			data->_curves.push_back(BezierCurve());
 
@@ -681,7 +693,7 @@ namespace Renderer {
 			uint32_t currentContourStart = curveIndex;
 			uint32_t pointIndex = 1;
 
-			for (Utils::Vec2F p : info._points) {
+			for (Util::Vec2F p : info._points) {
 				// Check if this is the start of a new contour
 				if (info._endPoints[contourIndex] + 1 == index) {
 					// Start a new contour

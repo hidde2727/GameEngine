@@ -26,15 +26,15 @@ namespace Renderer {
         // Only the x and y has to be set, the z is for internal use
         // If the cache is not used, this function will be the first to be called (you can init your loading utilities here)
         // Garantueed to only be called once
-        virtual void SetTextureSizes(Utils::Vec3U32* start) = 0;
+        virtual void SetTextureSizes(Util::Vec3U32* start) = 0;
         // Should render the textures on the returned texture at the returned areas
         // ID=n is the nth texture returned in SetTextureSizes
-        virtual void RenderTexture(Utils::AreaU8* texture, const Utils::Vec2U32 textureSize, const Utils::AreaU32 area, const size_t id) = 0;
+        virtual void RenderTexture(Util::AreaU8* texture, const Util::Vec2U32 textureSize, const Util::AreaU32 area, const size_t id) = 0;
 
         // Called with the area and descriptor binding for the ID
         // Area is different from render texture that it is normalized
         // ID=n is the nth texture returned in SetTextureSizes
-        virtual void SetTextureRenderInfo(const Utils::AreaF area, const uint32_t boundTexture, const size_t id) = 0;
+        virtual void SetTextureRenderInfo(const Util::AreaF area, const uint32_t boundTexture, const size_t id) = 0;
 
         // Called after every texture has been called to render
         // Needs to return the information neccesary to render the assets

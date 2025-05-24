@@ -46,6 +46,7 @@ namespace Vulkan {
         allocInfo.pSetLayouts = layouts.data();
         _descriptorSets.resize(info._descriptorPoolInfo.maxSets);
         result = vkAllocateDescriptorSets(context._device, &allocInfo, _descriptorSets.data());
+        ASSERT(result != VK_SUCCESS, "Failed to allocate descriptor sets")
     }
 
     void Pipeline::BindSamplerDescriptor(const Context& context, const TextureSampler sampler, const uint32_t arrayElement) {
