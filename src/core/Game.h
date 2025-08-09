@@ -10,25 +10,32 @@
 
 #include "network/WebHandler.h"
 
+#include "physics/Engine.h"
+
 #define ENGINE_GAME_TEXTUREMAP_ID 0
 #define ENGINE_SCENE_TEXTUREMAP_ID 1
 
 namespace Engine {
     typedef Renderer::AssetID AssetID;
+    typedef Network::HTTP::RequestHeader HTTPRequestHeader;
+    typedef Network::HTTP::Response HTTPResponse;
+    typedef Network::Websocket::Frame WebsocketFrame;
+    typedef Network::WebHandler::WebsocketConnection WebsocketConnection;
 
     class Game {
     public:
 
         Game();
 
+        virtual std::string GetEngineResourceDirectory() { return "resources/engine/"; }
         virtual void OnStart() {}
         virtual void OnSceneStart() {}
         virtual void LoadAssets() {}
-        virtual void OnHTTPRequest(Network::HTTP::RequestHeader& requestHeader, std::vector<uint8_t>& requestBody, Network::HTTP::Response& response) {}
-        virtual bool AllowWebsocketConnection(Network::HTTP::RequestHeader& requestHeader) { return true; }
-        virtual void OnWebsocketRequest(Network::Websocket::Frame& frame, Network::WebHandler::WebsocketConnection& connection) {}
-        virtual void OnWebsocketStart(Network::WebHandler::WebsocketConnection& connection, const size_t uuid, Network::HTTP::RequestHeader& requestHeader) {}
-        virtual void OnWebsocketStop(Network::WebHandler::WebsocketConnection& connection, const size_t uuid) {}
+        virtual void OnHTTPRequest(HTTPRequestHeader& requestHeader, std::vector<uint8_t>& requestBody, HTTPResponse& response) {}
+        virtual bool AllowWebsocketConnection(HTTPRequestHeader& requestHeader) { return true; }
+        virtual void OnWebsocketRequest(WebsocketFrame& frame, WebsocketConnection& connection) {}
+        virtual void OnWebsocketStart(WebsocketConnection& connection, const size_t uuid, HTTPRequestHeader& requestHeader) {}
+        virtual void OnWebsocketStop(WebsocketConnection& connection, const size_t uuid) {}
 
         int Run();
 
@@ -55,10 +62,13 @@ namespace Engine {
         // Should only be called inside the LoadAssets function
         AssetID LoadTextFile(const std::string file, const Renderer::Characters characters, const std::initializer_list<uint32_t> sizes);
 
+        void DebugLine(const Util::Vec2F start, const Util::Vec2F end, const Util::Vec3F color);
+
     private:
         Scene* _scene;
         Renderer::Window _window;
         Network::WebHandler _webhandler;
+        Physics::Engine _physics;
     };
 
 }

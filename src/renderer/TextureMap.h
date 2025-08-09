@@ -60,7 +60,7 @@ namespace Renderer {
         void StartLoading();
         uint32_t AddTextureLoader(std::unique_ptr<AssetLoader> textureLoader);
         void SetCacheName(const std::string name);
-        void EndLoading(Vulkan::Context& context, std::initializer_list<Vulkan::Pipeline*> bindToPipelines);
+        void EndLoading(Vulkan::Context& context, std::initializer_list<Vulkan::Pipeline*> bindToPipelines, const std::string resourceDirectory);
 
         std::shared_ptr<uint8_t> GetRenderInfo(const uint32_t id);
 

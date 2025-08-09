@@ -30,7 +30,7 @@ namespace Renderer {
             MaxRects
         };
         void SetPackingAlgorithm(const PackingAlgorithm packingAlgorithm) { _packingAlgorithm = packingAlgorithm; }
-        void SetMaximumBinSize(const Util::Vec3U32 size);
+        void SetMaximumBinSize(const Util::Vec2U32 size) { _maxBinSize = size; }
 
         // Garantuees that the rectangles in the result are in the same order as in the input
         void Pack();

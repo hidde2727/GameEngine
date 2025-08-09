@@ -30,20 +30,28 @@
     #define ENGINE_RENDERER_ASSETTYPE_TEXTUREMAPID_SHIFT_BITS 22
 #endif
 
+#ifndef ENGINE_ENABLE_DEBUG_GRAPHICS
+    #define ENGINE_ENABLE_DEBUG_GRAPHICS _DEBUG
+#endif
+
 #define ENGINE_RENDERER_ASSETTYPE_TEXTURE 1
 #define ENGINE_RENDERER_ASSETTYPE_TEXT 2
 
 namespace Engine {
 namespace Renderer {
 
-    struct Vertex {
+    struct VertexDataRect {
+        uint32_t vertex;
+    };
+    struct VertexDataText {
         Util::Vec2F dimensions;
     };
     struct InstanceDataRect {
-        InstanceDataRect(const Util::Vec2F pos, const Util::Vec2F dimensions, const Util::Vec3F color, const Util::Vec2F texturePos, const Util::Vec2F textureDimensions, const uint32_t texture)
-         : pos(pos), dimensions(dimensions), color(color), texturePos(texturePos), textureDimensions(textureDimensions), texture(texture) {}
-        Util::Vec2F pos;
-        Util::Vec2F dimensions;
+        InstanceDataRect(const PositionComponent::Precalculated area, const Util::Vec3F color, const Util::Vec2F texturePos, const Util::Vec2F textureDimensions, const uint32_t texture)
+         : topLeft(area._topLeft), bottomRight(area._bottomRight), deltaPosition(area._deltaPosition), color(color), texturePos(texturePos), textureDimensions(textureDimensions), texture(texture) {}
+        Util::Vec2F topLeft;
+        Util::Vec2F bottomRight;
+        Util::Vec2F deltaPosition;
         Util::Vec3F color;
         Util::Vec2F texturePos;
         Util::Vec2F textureDimensions;
@@ -65,7 +73,7 @@ namespace Renderer {
     class Window {
     public:
 
-        void Init(const uint32_t textureMapSlots);
+        void Init(const uint32_t textureMapSlots, const std::string resourceDirectory);
         void Cleanup();
 
         bool ShouldClose();
@@ -86,7 +94,18 @@ namespace Renderer {
 
         std::string GetVulkanDeviceLimits();
 
+#if ENGINE_ENABLE_DEBUG_GRAPHICS
+        // Makes sure the next frame a line gets drawn on the screen, will only last for one frame
+        void AddDebugLine(const Util::Vec2F start, const Util::Vec2F end, const Util::Vec3F color) {
+            _debugLines.push_back(DebugLine{start, color, end, color});
+        }
+#else
+        // Makes sure the next frame a line gets drawn on the screen, will only last for one frame
+        void AddDebugLine(const Util::Vec2F start, const Util::Vec2F end, const Util::Vec3F color) {}
+#endif
+
     private:
+        std::string _engineResourceDirectory;
 
         GLFWwindow* _window = nullptr;
         Vulkan::Context _vkContext;
@@ -100,12 +119,11 @@ namespace Renderer {
         Vulkan::Semaphore _vkImageAvailableSemaphore;
         Vulkan::Semaphore _vkRenderFinishedSemaphore;
 
-        // First (sizeof(Vertex)*4) is reserved for the vertex data, afterwards sits the instance data
         Vulkan::EfficientVertexBuffer _vkRectVertexBuffer;
-        // First (sizeof(Vertex)*4) is reserved for the vertex data, afterwards sits the instance data
         Vulkan::EfficientVertexBuffer _vkTextVertexBuffer;
         Vulkan::IndexBuffer _vkIndexBuffer;
-        Vulkan::EfficientVertexBuffer _vkPerVertexBuffer;
+        Vulkan::EfficientVertexBuffer _vkRectPerVertexBuffer;
+        Vulkan::EfficientVertexBuffer _vkTextPerVertexBuffer;
 
         Vulkan::TextureSampler _pixelSampler;
         Vulkan::TextureSampler _linearSampler;
@@ -115,6 +133,17 @@ namespace Renderer {
 
         std::vector<TextureMap> _textureMaps;
 
+#if ENGINE_ENABLE_DEBUG_GRAPHICS
+        Vulkan::Pipeline _vkDebugPipeline;
+        Vulkan::EfficientVertexBuffer _vkDebugVertexBuffer;
+        struct DebugLine {
+            Util::Vec2F _start;
+            Util::Vec3F _colorStart;
+            Util::Vec2F _end;
+            Util::Vec3F _colorEnd;
+        };
+        std::vector<DebugLine> _debugLines;
+#endif
     };
 
 }

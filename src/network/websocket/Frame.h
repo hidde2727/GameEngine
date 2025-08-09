@@ -57,6 +57,12 @@ namespace Websocket {
         std::vector<asio::const_buffer> GetWriteBuffers();
         void SetMandatoryResponse();// Will repurpose this frame to be a data->network frame to react to te incoming frame
         void SetClosingHandshake();// Will set the frame to contain data for stopping the connecction
+        template<class T>
+        T GetFromBody(const size_t byteOffset) {
+            ASSERT(byteOffset+sizeof(T)>_body.size(), "Cannot obtain a value that is outside of the size of the websocket frame body")
+            T* t = reinterpret_cast<T*>(_body.data() + byteOffset);
+            return Util::FromBigEndian(*t);
+        }
 
         // General
         Opcode GetOpcode() { return _code; }

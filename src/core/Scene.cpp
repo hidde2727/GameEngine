@@ -16,4 +16,8 @@ namespace Engine{
         return _window->AddAsset(ENGINE_SCENE_TEXTUREMAP_ID, std::make_unique<Renderer::TextLoader>(file, characters, sizes), ENGINE_RENDERER_ASSETTYPE_TEXT);
     }
 
+    void Scene::DebugLine(const Util::Vec2F start, const Util::Vec2F end, const Util::Vec3F color) {
+        _window->AddDebugLine(start, end, color);
+    }
+
 }

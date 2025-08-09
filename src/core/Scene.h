@@ -42,6 +42,9 @@ namespace Engine{
         inline entt::entity CreateEntity() { return _entt.create(); }
 		template<class ComponentType, class ... Ts>
 		inline void AddComponent(entt::entity entity, Ts && ... inputs) {
+#ifdef __DEBUG__
+            ASSERT(_entt.all_of<ComponentType>(entity), "Cannot add a component to an entity that already has that component")
+#endif
             if(IsTextureComponent<ComponentType>()) _textureComponents++;
 			_entt.emplace<ComponentType>(entity, inputs...);
             
@@ -49,10 +52,19 @@ namespace Engine{
                 _textComponents += (uint32_t)_entt.get<TextComponent>(entity)._renderInfo.size();
             }
 		}
+		template<class ComponentType, class ... Ts>
+		inline void SetComponent(entt::entity entity, Ts && ... inputs) {
+#ifdef __DEBUG__
+            ASSERT(!_entt.all_of<ComponentType>(entity), "Cannot set a component to an entity that doesnt't have that component")
+#endif
+			_entt.replace<ComponentType>(entity, inputs...);
+		}
 		template<class ComponentType>
 		inline ComponentType& GetComponent(entt::entity entity) {
 			return _entt.get<ComponentType>(entity);
 		}
+        
+        void DebugLine(const Util::Vec2F start, const Util::Vec2F end, const Util::Vec3F color);
 
     private:
         friend struct TextureComponent;

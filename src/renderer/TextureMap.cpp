@@ -27,12 +27,13 @@ namespace Renderer {
     void TextureMap::SetCacheName(const std::string name) {
         _cacheName = name;
     }
-    void TextureMap::EndLoading(Vulkan::Context& context, std::initializer_list<Vulkan::Pipeline*> bindToPipelines) {
+    void TextureMap::EndLoading(Vulkan::Context& context, std::initializer_list<Vulkan::Pipeline*> bindToPipelines, const std::string engineResourceDirectory) {
         if(_amountTextures == 0) return;
         // Check if the cache is usable
         
         // Retrieve needed texture sizes
         RectanglePacker packer;
+        packer.SetMaximumBinSize(Util::Vec2U32(1920, 1080));
         packer.SetAmountRectangles(_amountTextures);
         Util::Vec3U32* inputPtr = packer.GetRectangleInputPtr();
         size_t currentTexture = 0;

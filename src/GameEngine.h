@@ -2,3 +2,5 @@
 #include "core/Game.h"
 #include "core/Scene.h"
 #include "core/Components.h"
+#include "physics/Components.h"
+#include "util/Log.h"

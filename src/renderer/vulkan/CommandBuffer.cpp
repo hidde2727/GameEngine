@@ -118,6 +118,7 @@ namespace Vulkan {
         vkCmdBindIndexBuffer(_commandBuffers[_currentFrame], buffer._buffer, 0, VK_INDEX_TYPE_UINT16);
     }
     void CommandBuffer::BindDescriptorSet(const Pipeline& pipeline) {
+        if(pipeline._descriptorSets.size() == 0) return;
         vkCmdBindDescriptorSets(_commandBuffers[_currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline._pipelineLayout, 0, 1, &pipeline._descriptorSets[_currentFrame], 0, nullptr);
     }
 

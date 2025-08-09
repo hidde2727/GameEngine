@@ -1,14 +1,35 @@
 const socket = new WebSocket("ws://" + window.location.host);
-socket.addEventListener("open", (event) => {
-  socket.send("Hello world");
-});
 socket.addEventListener("message", (event) => {
   console.log("Message from server ", event.data);
 });
 window.addEventListener("beforeunload", function(e){
-  socket.send("closing")
   socket.close();
 });
+
+// Floating point number to a 32 bit fixed point number
+function ToFixedPoint(float, sizeAfterDecimal) {
+  return float * (1 << sizeAfterDecimal);
+}
+function Uint32ToBigEndianUint8(value) {
+  const buffer = new ArrayBuffer(4);
+  const view = new DataView(buffer);
+  view.setUint32(0, value);
+  return new Uint8Array(buffer);
+}
+function GetDataInBigEndian(values) {
+  let size = 0;
+  values.forEach(element => {
+    size += parseInt(element.type.replace(/\D/g,''))/8;
+  });
+  const buffer = new ArrayBuffer(size);
+  const view = new DataView(buffer);
+  let offset = 0;
+  values.forEach(element => {
+    view[element.type](offset, element.value);
+    offset += parseInt(element.type.replace(/\D/g,''))/8;
+  });
+  return new Uint8Array(buffer);
+}
 
 // Insert the css
 let fontAwesome = document.createElement("link");
@@ -132,6 +153,46 @@ customElements.define(
   },
 );
 
+/*-----------------------------------------------------------------------------------+
+| UI layout                                                                          |
++-----------------------------------------------------------------------------------*/
+customElements.define(
+  "engine-grid",
+  class extends HTMLElement {
+    static observedAttributes = ["horizontal", "vertical"];
+    constructor() {
+      super();
+    }
+    attributeChangedCallback(name, oldValue, newValue) {
+      if(name=="horizontal") this.style.gridTemplateColumns = ((100/newValue) + "% ").repeat(newValue);
+      if(name=="vertical") this.style.gridTemplateRows = ((100/newValue) + "% ").repeat(newValue);
+    }
+  }
+);
+customElements.define(
+  "engine-center",
+  class extends HTMLElement {
+    constructor() {
+      super();
+    }
+  }
+);
+customElements.define(
+  "engine-triangle-layout",
+  class extends HTMLElement {
+    constructor() {
+      super();
+    }
+  }
+);
+customElements.define(
+  "engine-rhombus-layout",
+  class extends HTMLElement {
+    constructor() {
+      super();
+    }
+  }
+);
 
 /*-----------------------------------------------------------------------------------+
 | Joystick                                                                           |
@@ -145,13 +206,14 @@ customElements.define(
 
     connectedCallback() {
       setTimeout(() => {
-        this.innerHTML = `<div class="inner-circle"></div>`;
-        this.innerCircle = this.getElementsByClassName("inner-circle")[0];
+        this.innerHTML = `<div class="outer-circle"><div class="joycon-circle"></div></div>`;
+        this.outerCircle = this.getElementsByClassName("outer-circle")[0];
+        this.innerCircle = this.getElementsByClassName("joycon-circle")[0];
         this.onpointerdown = (event) => {
           this.setPointerCapture(event.pointerId);
           function pointerMove(eventm) {
             if(event.pointerId == eventm.pointerId) {
-              let viewportOffset = this.getBoundingClientRect();
+              let viewportOffset = this.outerCircle.getBoundingClientRect();
               let innerCircleOffset = this.innerCircle.getBoundingClientRect();
               let x = eventm.clientX - viewportOffset.x;
               let y = eventm.clientY - viewportOffset.y;
@@ -163,6 +225,13 @@ customElements.define(
               y = (y-middleXY)*(newLength/length)+middleXY;
               this.innerCircle.style.left = (x-0.5*innerCircleOffset.width).toString() + "px";
               this.innerCircle.style.top  = (y-0.5*innerCircleOffset.height).toString() + "px";
+
+              let maxSize = viewportOffset.width - innerCircleOffset.width;
+              socket.send(GetDataInBigEndian([
+                { value: ToFixedPoint((2*(x-0.5*innerCircleOffset.width)/maxSize-1), 31), type:"setUint32"},// Map the value from -1 till 1
+                { value: ToFixedPoint((2*(y-0.5*innerCircleOffset.width)/maxSize-1), 31), type:"setUint32"} // Map the value from -1 till 1
+              ]));
+              console.log("x: " + (2*(x-0.5*innerCircleOffset.width)/maxSize-1) + " - y: " + (2*(y-0.5*innerCircleOffset.width)/maxSize-1) + " - maxSize: " + maxSize);
             }
           }
           this.addEventListener("pointermove", pointerMove);
@@ -171,13 +240,14 @@ customElements.define(
               this.removeEventListener("pointermove", pointerMove);
               this.removeEventListener("pointerup", pointerUp);
               this.innerCircle.style.left = "";
-              this.innerCircle.style.top  = "";
+              this.innerCircle.style.top  = "";socket.send(GetDataInBigEndian([
+                { value: ToFixedPoint(0, 31), type:"setUint32"},
+                { value: ToFixedPoint(0, 31), type:"setUint32"}
+              ]));
             }
           });
         }
       });
     }
-
-
   }
 );

@@ -4,8 +4,8 @@ namespace Engine {
 namespace Renderer {
 
     ImageLoader::ImageLoader(const std::string file) {
-        ASSERT(!std::filesystem::exists(file), "ImageLoader received an image that does not exist")
-        ASSERT(!std::filesystem::is_regular_file(file), "ImageLoader received an invalid file")
+        ASSERT(!std::filesystem::exists(file), "ImageLoader received an image that does not exist (" + file + ")")
+        ASSERT(!std::filesystem::is_regular_file(file), "ImageLoader received an invalid file (" + file + ")")
         _file = file;
     }
     

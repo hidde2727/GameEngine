@@ -4,7 +4,7 @@
 namespace Engine {
 namespace Renderer {
     
-    void Window::Init(const uint32_t textureMapSlots) {
+    void Window::Init(const uint32_t textureMapSlots, const std::string engineResourceDirectory) {
         glfwInit();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -28,15 +28,17 @@ namespace Renderer {
         _framebufferSize.x = (float)width;
         _framebufferSize.y = (float)height;
         _vkSwapchain.Init(_vkContext, (uint32_t)width, (uint32_t)height);
-
+#if ENGINE_ENABLE_DEBUG_GRAPHICS
+        _vkRenderPass.Init(_vkContext, _vkSwapchain, 3);
+#else
         _vkRenderPass.Init(_vkContext, _vkSwapchain, 2);
-
+#endif
         _vkSwapchain.Resize(_vkContext, _vkRenderPass, width, height);
 
         // Rect pipeline
         Vulkan::PipelineCreator rectPipelineInfo;
-        rectPipelineInfo.SetShaders({ "resources/engine/shaders/rect.vert", "resources/engine/shaders/rect.frag" });
-        rectPipelineInfo.SetVertexInput({Vulkan::Vertex::Vec2 }, { Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec3, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::UInt });
+        rectPipelineInfo.SetShaders({ (engineResourceDirectory+"/shaders/rect.vert").c_str(), (engineResourceDirectory+"/shaders/rect.frag").c_str() }, "resources/engine/");
+        rectPipelineInfo.SetVertexInput({Vulkan::Vertex::UInt }, { Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec3, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::UInt });
         rectPipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
         rectPipelineInfo.SetDescriptorInfo(2, 16, 2, 0);
         rectPipelineInfo.SetPushConstantInput({ Vulkan::Vertex::Vec2 }, VK_SHADER_STAGE_VERTEX_BIT);
@@ -45,7 +47,7 @@ namespace Renderer {
 
         // Text pipeline
         Vulkan::PipelineCreator textPipelineInfo;
-        textPipelineInfo.SetShaders({ "resources/engine/shaders/text.vert", "resources/engine/shaders/text.frag" });
+        textPipelineInfo.SetShaders({ (engineResourceDirectory+"/shaders/text.vert").c_str(), (engineResourceDirectory+"/shaders/text.frag").c_str() }, "resources/engine/");
         textPipelineInfo.SetVertexInput({Vulkan::Vertex::Vec2 }, { Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec3, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::UInt, Vulkan::Vertex::Float });
         textPipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
         textPipelineInfo.SetDescriptorInfo(2, 16, 2, 0);
@@ -58,9 +60,13 @@ namespace Renderer {
         _vkImageAvailableSemaphore = _vkCommandBuffer.CreateSemaphore(_vkContext);
         _vkRenderFinishedSemaphore = _vkCommandBuffer.CreateSemaphore(_vkContext);
 
-        Vertex rectangleData[] = { Vertex({0,0}), Vertex({1,0}), Vertex({1,1}), Vertex({0,1}) };
-        _vkPerVertexBuffer.Init(_vkContext, sizeof(Vertex) * 4);
-        _vkPerVertexBuffer.SetData(_vkContext, rectangleData);
+        VertexDataRect rectangleData[] = { VertexDataRect(0), VertexDataRect(1), VertexDataRect(2), VertexDataRect(3) };
+        _vkRectPerVertexBuffer.Init(_vkContext, sizeof(VertexDataRect) * 4);
+        _vkRectPerVertexBuffer.SetData(_vkContext, rectangleData);
+
+        VertexDataText textRectangleData[] = { VertexDataText({0,0}), VertexDataText({1,0}), VertexDataText({0,1}), VertexDataText({1,1}) };
+        _vkTextPerVertexBuffer.Init(_vkContext, sizeof(VertexDataText) * 4);
+        _vkTextPerVertexBuffer.SetData(_vkContext, textRectangleData);
 
         _vkRectVertexBuffer.Init(_vkContext, sizeof(InstanceDataRect) * 4);
         _vkTextVertexBuffer.Init(_vkContext, sizeof(InstanceDataText) * 4);
@@ -68,7 +74,7 @@ namespace Renderer {
         Vulkan::TransferBuffer indexTransfer;
         indexTransfer.Init(_vkContext, 6*sizeof(uint16_t));
         _vkIndexBuffer.Init(_vkContext, 6*sizeof(uint16_t), true);
-        indexTransfer.SetData<uint16_t>(_vkContext, {0, 1, 2, 0, 2, 3});
+        indexTransfer.SetData<uint16_t>(_vkContext, {0, 1, 2, 2, 1, 3});
         indexTransfer.CopyTo(_vkContext, &_vkIndexBuffer);
         indexTransfer.Cleanup(_vkContext);
         
@@ -80,6 +86,21 @@ namespace Renderer {
         _linearSampler.Init(_vkContext, VK_FILTER_LINEAR, VK_FILTER_LINEAR);
         _vkRectPipeline.BindSamplerDescriptor(_vkContext, _linearSampler, 1);
         _vkTextPipeline.BindSamplerDescriptor(_vkContext, _linearSampler, 1);
+
+        // Debug pipeline
+#if ENGINE_ENABLE_DEBUG_GRAPHICS
+        Vulkan::PipelineCreator debugPipelineInfo;
+        debugPipelineInfo.SetShaders({ (engineResourceDirectory+"/shaders/debug.vert").c_str(), (engineResourceDirectory+"/shaders/debug.frag").c_str() }, "resources/engine/");
+        debugPipelineInfo.SetVertexInput({ Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec3 });
+        debugPipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
+        debugPipelineInfo.SetDescriptorInfo(2, 0, 0, 0);
+        debugPipelineInfo.SetPushConstantInput({ Vulkan::Vertex::Vec2 }, VK_SHADER_STAGE_VERTEX_BIT);
+        debugPipelineInfo.SetInputAssembly(VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_LINE_LIST, 0);
+        debugPipelineInfo.EnableAlphaBlending();
+        _vkDebugPipeline.Init(debugPipelineInfo, _vkContext, _vkRenderPass, 2);
+
+        _vkDebugVertexBuffer.Init(_vkContext, 1);
+#endif
     }
     void Window::Cleanup() {
         _vkContext.WaitIdle();
@@ -91,9 +112,15 @@ namespace Renderer {
             textureMap.Cleanup(_vkContext, { &_vkRectPipeline, &_vkTextPipeline });
         }
         _vkIndexBuffer.Cleanup(_vkContext);
-        _vkPerVertexBuffer.Cleanup(_vkContext);
+        _vkRectPerVertexBuffer.Cleanup(_vkContext);
         _vkRectVertexBuffer.Cleanup(_vkContext);
+        _vkTextPerVertexBuffer.Cleanup(_vkContext);
         _vkTextVertexBuffer.Cleanup(_vkContext);
+
+#if ENGINE_ENABLE_DEBUG_GRAPHICS
+        _vkDebugPipeline.Cleanup(_vkContext);
+        _vkDebugVertexBuffer.Cleanup(_vkContext);
+#endif
 
         _vkCommandBuffer.Cleanup(_vkContext);
         _vkRectPipeline.Cleanup(_vkContext);
@@ -117,21 +144,22 @@ namespace Renderer {
             _framebufferResized = false; 
             int width = 0, height = 0;
             glfwGetFramebufferSize(_window, &width, &height);
-            if(width==0 && height==0) return;
-            _vkSwapchain.Resize(_vkContext, _vkRenderPass, width, height);
             _framebufferSize.x = (float)width;
             _framebufferSize.y = (float)height;
+            if(width==0 || height==0) return;
+            _vkSwapchain.Resize(_vkContext, _vkRenderPass, width, height);
         }
+        if(_framebufferSize.x == 0 || _framebufferSize.y == 0) return;
+
         _vkRectVertexBuffer.Resize(_vkContext, amountRectangles*sizeof(InstanceDataRect));
         _vkTextVertexBuffer.Resize(_vkContext, amountText*sizeof(InstanceDataText));
 
         {// Rectangle data
-			auto group = registry.group<TextureComponent>(entt::get<AreaComponent>);
+			auto group = registry.group<TextureComponent>(entt::get<PositionComponent>);
             _vkRectVertexBuffer.StartTransferingData(_vkContext);
-			for (const auto [entity, texture, area] : group.each()) {
+			for (const auto [entity, texture, pos] : group.each()) {
 				_vkRectVertexBuffer.AddData(InstanceDataRect(
-                    Util::Vec2F(area.x , area.y),
-                    Util::Vec2F(area.w , area.h),
+                    pos.GetPrecalculated(texture._size.x, texture._size.y),
                     Util::Vec3F(1.f, 1.f, 1.f),
                     Util::Vec2F(texture._textureArea.x, texture._textureArea.y),
                     Util::Vec2F(texture._textureArea.w, texture._textureArea.h),
@@ -141,14 +169,14 @@ namespace Renderer {
             _vkRectVertexBuffer.EndTransferingData(_vkContext, _vkCommandBuffer);
 		}
         {// Text data
-			auto group = registry.group<TextComponent>(entt::get<AreaComponent>);
+			auto group = registry.group<TextComponent>(entt::get<PositionComponent>);
             _vkTextVertexBuffer.StartTransferingData(_vkContext);
-			for (const auto [entity, text, area] : group.each()) {
-                float x = area.x;
-                float y = area.y;
+			for (const auto [entity, text, pos] : group.each()) {
+                float x = pos._pos.x;
+                float y = pos._pos.y;
             for(const auto renderInfo : text._renderInfo) {
-                x = area.x + renderInfo._position.x;
-                y = area.y + renderInfo._position.y;
+                x = pos._pos.x + renderInfo._position.x;
+                y = pos._pos.y + renderInfo._position.y;
                 _vkTextVertexBuffer.AddData(InstanceDataText(
                     Util::Vec2F(x , y),
                     Util::Vec2F(renderInfo._position.w , renderInfo._position.h),
@@ -172,7 +200,7 @@ namespace Renderer {
         _vkCommandBuffer.BindGraphicsPipeline(_vkRectPipeline);
         _vkCommandBuffer.SetPushConstantData(_vkRectPipeline, _framebufferSize, VK_SHADER_STAGE_VERTEX_BIT);
         _vkCommandBuffer.BindDescriptorSet(_vkRectPipeline);
-        _vkCommandBuffer.BindVertexBuffer(_vkPerVertexBuffer, 0);
+        _vkCommandBuffer.BindVertexBuffer(_vkRectPerVertexBuffer, 0);
         _vkCommandBuffer.BindVertexBuffer(_vkRectVertexBuffer, 1);
         _vkCommandBuffer.BindIndexBuffer(_vkIndexBuffer);
         _vkCommandBuffer.DrawIndexed(6, amountRectangles);
@@ -182,10 +210,23 @@ namespace Renderer {
         _vkCommandBuffer.BindGraphicsPipeline(_vkTextPipeline);
         _vkCommandBuffer.SetPushConstantData(_vkTextPipeline, _framebufferSize, VK_SHADER_STAGE_VERTEX_BIT);
         _vkCommandBuffer.BindDescriptorSet(_vkTextPipeline);
-        _vkCommandBuffer.BindVertexBuffer(_vkPerVertexBuffer, 0);
+        _vkCommandBuffer.BindVertexBuffer(_vkTextPerVertexBuffer, 0);
         _vkCommandBuffer.BindVertexBuffer(_vkTextVertexBuffer, 1);
         _vkCommandBuffer.BindIndexBuffer(_vkIndexBuffer);
         _vkCommandBuffer.DrawIndexed(6, amountText);
+
+#if ENGINE_ENABLE_DEBUG_GRAPHICS
+        _vkDebugVertexBuffer.Resize(_vkContext, _debugLines.size()*sizeof(DebugLine));
+        _vkDebugVertexBuffer.SetData(_vkContext, _debugLines);
+
+        _vkCommandBuffer.NextSubPass();
+
+        _vkCommandBuffer.BindGraphicsPipeline(_vkDebugPipeline);
+        _vkCommandBuffer.SetPushConstantData(_vkDebugPipeline, _framebufferSize, VK_SHADER_STAGE_VERTEX_BIT);
+        _vkCommandBuffer.BindVertexBuffer(_vkDebugVertexBuffer, 0);
+        _vkCommandBuffer.Draw(_debugLines.size()*2, 1);
+        _debugLines.clear();
+#endif
 
         _vkCommandBuffer.EndRenderPass();
         _vkCommandBuffer.EndRecording();
@@ -215,7 +256,7 @@ namespace Renderer {
         );
     }
     void Window::EndAssetLoading(const size_t textureMapID) {
-        _textureMaps[textureMapID].EndLoading(_vkContext, { &_vkRectPipeline, &_vkTextPipeline });
+        _textureMaps[textureMapID].EndLoading(_vkContext, { &_vkRectPipeline, &_vkTextPipeline }, _engineResourceDirectory);
     }
     void Window::CleanupAssets(const size_t textureMapID) {
         _textureMaps[textureMapID].Cleanup(_vkContext, { &_vkRectPipeline, &_vkTextPipeline });

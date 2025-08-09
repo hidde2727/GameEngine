@@ -35,6 +35,8 @@ namespace Vulkan {
 
         for(uint32_t i = 0; i < info._amountTextures; i++) { _availableTextureSlots.push(i); }
 
+        if(info._descriptorPoolInfo.poolSizeCount == 0 || info._descriptorPoolInfo.maxSets == 0) return;// Early return
+
         result = vkCreateDescriptorPool(context._device, &info._descriptorPoolInfo, nullptr, &_descriptorPool);
         ASSERT(result != VK_SUCCESS, "Failed to create vulkan descriptor pool")
 
@@ -188,7 +190,7 @@ namespace Vulkan {
         _pipelineInfo.basePipelineIndex = -1;
     }
 
-    void PipelineCreator::SetShaders(const std::initializer_list<const char*> fileLocations) {
+    void PipelineCreator::SetShaders(const std::initializer_list<const char*> fileLocations, const std::string engineResourceDirectory) {
         _shaders.resize(fileLocations.size());
         _shaderInfos.resize(fileLocations.size());
         _shaderStageInfos.resize(fileLocations.size());
@@ -198,7 +200,7 @@ namespace Vulkan {
         for(const char* fileLocation : fileLocations) {
             ASSERT(!std::filesystem::exists(fileLocation), "Specified vulkan shader file does not exist");
 
-            std::string chacheName = "resources/engine/chache/" + Util::Base64FileEncode(Util::SHA1(fileLocation)) + ".spiv";
+            std::string chacheName = engineResourceDirectory + "chache/" + Util::Base64FileEncode(Util::SHA1(fileLocation)) + ".spiv";
             if(!std::filesystem::exists(chacheName)) { cannotUseCache = true; break; }
             std::filesystem::file_time_type lastFileChange = std::filesystem::last_write_time(fileLocation);
             std::filesystem::file_time_type lastCacheChange = std::filesystem::last_write_time(chacheName);
@@ -209,7 +211,7 @@ namespace Vulkan {
         if(!cannotUseCache) {
             int i = 0;
             for(const char* fileLocation : fileLocations) {
-                std::string chacheName = "resources/engine/chache/" + Util::Base64FileEncode(Util::SHA1(fileLocation)) + ".spiv";
+                std::string chacheName = engineResourceDirectory + "chache/" + Util::Base64FileEncode(Util::SHA1(fileLocation)) + ".spiv";
 
                 const std::string filetype = std::filesystem::path(fileLocation).extension().string();
                 VkShaderStageFlagBits stageType = VK_SHADER_STAGE_VERTEX_BIT;
@@ -319,7 +321,7 @@ namespace Vulkan {
             _shaderStageInfos[i].pName = "main";
 
             // Write the generated program to the cache
-            std::string chacheName = "resources/engine/chache/" + Util::Base64FileEncode(Util::SHA1(*(fileLocations.begin() + i))) + ".spiv";
+            std::string chacheName = engineResourceDirectory + "chache/" + Util::Base64FileEncode(Util::SHA1(*(fileLocations.begin() + i))) + ".spiv";
             {
                 std::ofstream outputStream(chacheName.c_str(), std::ios::app); // Create the file if not exists
                 ASSERT(outputStream.fail(), ("Failed to create file '" + chacheName + "' because : \n\t" + std::string(strerror(errno))).c_str());

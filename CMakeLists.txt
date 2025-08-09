@@ -56,6 +56,12 @@ add_library (GameEngine STATIC
 "src/network/websocket/Frame.h"
 "src/network/websocket/Frame.cpp"
 
+"src/physics/Components.h"
+"src/physics/Engine.h"
+"src/physics/Engine.cpp"
+"src/physics/CollisionSolvers.h"
+"src/physics/CollisionSolvers.cpp"
+
 "src/util/Log.h"
 "src/util/Log.cpp"
 "src/util/Hashing.h"
@@ -68,6 +74,8 @@ add_library (GameEngine STATIC
 "src/util/BitMask.h"
 "src/util/Endianess.h"
 "src/util/Endianess.cpp"
+"src/util/DebugGraphics.h"
+"src/util/DebugGraphics.cpp"
 
 "lib/glslang/glslang/ResourceLimits/ResourceLimits.cpp"
 )

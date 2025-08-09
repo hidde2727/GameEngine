@@ -9,7 +9,6 @@ namespace Util {
 	template <typename T>
 	concept FloatingPoint = std::floating_point<T>;
 
-#define PI 3.141592653589793
 #define ROOT_MAX_SEARCH_ITERATIONS 1024
 #define BRACKET_SEARCH_MAX_STEPS 32
 #define PRECISION 0.000000001
