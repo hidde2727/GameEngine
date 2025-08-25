@@ -43,7 +43,7 @@ namespace Renderer {
         const uint32_t fontID = (uint32_t)std::floor(id / _characters._characterCount);
         const uint32_t fontSize = _sizes[(size_t)fontID];
         TTFFontParser::FontData* fontData = _fontData[(size_t)std::floor(id / _characters._characterCount)].get();
-        const char32_t c = _characters[(uint32_t)id - fontID*_characters._characterCount];
+        const char32_t c = _characters[(uint32_t)id - fontID*(uint32_t)_characters._characterCount];
         
         size_t amountCurves = 0;
         for(const auto& contour : fontData->_glyphs[c]._contours) { amountCurves += (size_t)contour._contourLength; }
@@ -152,7 +152,7 @@ namespace Renderer {
             Util::Vec2D derivitive = curve.p1;
             Util::Vec2D onCurve = curve.P0;
             if(!start) onCurve = curve.p1 + curve.P0;
-            return (float)abs(derivitive.normalized().crossProduct((p-onCurve).normalized()));
+            return (float)abs(derivitive.normalized().cross((p-onCurve).normalized()));
         }
         else if(curve.p3.x == FLOAT_MAX && curve.p3.y == FLOAT_MAX) {
             // Second degree
@@ -160,7 +160,7 @@ namespace Renderer {
             if(!start) derivitive = curve.p2*2 + curve.p1*2;
             Util::Vec2D onCurve = curve.P0;
             if(!start) onCurve = curve.p2 + curve.p1*2 + curve.P0;
-            return (float)abs(derivitive.normalized().crossProduct((p-onCurve).normalized()));
+            return (float)abs(derivitive.normalized().cross((p-onCurve).normalized()));
         }
         else {
             // Third degree
@@ -168,7 +168,7 @@ namespace Renderer {
             if(!start) derivitive = curve.p3*3+curve.p2*6+curve.p1*3;
             Util::Vec2D onCurve = curve.P0;
             if(!start) onCurve = curve.p3 + curve.p2*3 + curve.p1*3 + curve.P0;
-            return (float)abs(derivitive.normalized().crossProduct((p-onCurve).normalized()));
+            return (float)abs(derivitive.normalized().cross((p-onCurve).normalized()));
         }
     }
 
@@ -184,7 +184,7 @@ namespace Renderer {
 
             Util::Vec2D BMinusP =  curve.p1*t + curve.P0 - p;// p1*t + P0 - p
             distance = BMinusP.length();
-            sign = SIGN(curve.p1.crossProduct(BMinusP));// (p1)*BMinusP
+            sign = SIGN(curve.p1.cross(BMinusP));// (p1)*BMinusP
         }
         else if(curve.p3.x == FLOAT_MAX && curve.p3.y == FLOAT_MAX) {
             // Second degree
@@ -201,7 +201,7 @@ namespace Renderer {
                 double distanceLocal = BMinusP.length();
                 if(distanceLocal < distance) {
                     distance = distanceLocal;
-                    sign = SIGN((curve.p2*solutions[i]*2+curve.p1*2).crossProduct(BMinusP));// (2*p2*t + 2*p1)*BMinusP
+                    sign = SIGN((curve.p2*solutions[i]*2+curve.p1*2).cross(BMinusP));// (2*p2*t + 2*p1)*BMinusP
                     t = solutions[i];
                 }
             }
@@ -229,7 +229,7 @@ namespace Renderer {
                 double distanceLocal = BMinusP.length();
                 if(distanceLocal < distance) {
                     distance = distanceLocal;
-                    sign = SIGN(((curve.p3*3*solutions[i]+curve.p2*6)*solutions[i]+curve.p1*3).crossProduct(BMinusP));// (3*p3*t^2 + 6*p2*t + 3*p1)*BMinusP
+                    sign = SIGN(((curve.p3*3*solutions[i]+curve.p2*6)*solutions[i]+curve.p1*3).cross(BMinusP));// (3*p3*t^2 + 6*p2*t + 3*p1)*BMinusP
                     t = solutions[i];
                 }
             }
@@ -240,7 +240,7 @@ namespace Renderer {
         } else if(t <= 0.001) {
             if(Orthogonality(curve, p, true) < Orthogonality(prev, p, false)) return FLOAT_MAX;
         }
-        return (float)distance*sign;
+        return (float)distance*(float)sign;
     }
     Util::AreaU8 TextLoader::CalculateSignedField(const float x, const float y) {
         float lowestDistance = FLOAT_MAX;
@@ -250,7 +250,7 @@ namespace Renderer {
         }
         float color = std::clamp(((lowestDistance/_renderingMaxDistance)+0.5f), 0.f, 1.f);
         color = pow(color, 1.0f / 2.2f)*255.f;// UNORM -> SRGB
-        return Util::AreaU8(color, color, color, 255);
+        return Util::AreaU8((uint8_t)color, (uint8_t)color, (uint8_t)color, 255);
     }
 
 }

@@ -8,7 +8,7 @@
 namespace Engine {
 namespace Physics {
 
-    void ResolveCollision(
+    bool ResolveCollision(
         PositionComponent& pos1, RectangleColliderComponent& col1, VelocityComponent* vel1, 
         PositionComponent& pos2, RectangleColliderComponent& col2, VelocityComponent* vel2
     );

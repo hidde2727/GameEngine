@@ -381,7 +381,7 @@ namespace Vulkan {
             });
         }
 
-        _vertexInputInfo.vertexBindingDescriptionCount = _vertexBinding.size();
+        _vertexInputInfo.vertexBindingDescriptionCount = (uint32_t)_vertexBinding.size();
         _vertexInputInfo.pVertexBindingDescriptions = _vertexBinding.data();
         _vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)_vertexAttributes.size();
         _vertexInputInfo.pVertexAttributeDescriptions = _vertexAttributes.data();

@@ -29,12 +29,15 @@ namespace Util {
 			}
 			return Vec2<T>((T)x / len, (T)y / len);
 		}
-		
-		inline T crossProduct(const Vec2<T> v) const {
-			return this->x * v.y - this->y * v.x;
+
+		template<FundamentalType OT>
+		inline T cross(const Vec2<OT> v) const {
+			return this->x * (T)v.y - this->y * (T)v.x;
 		}
-		inline T dotProduct(const Vec2<T> v) const {
-			return x*(T)v.x+y*(T)v.y;
+
+		template<FundamentalType OT>
+		inline T dot(const Vec2<OT> v) const {
+			return (this->x * v.x) + (this->y * v.y);
 		}
 
 		inline Vec2<T> rotatedR() const {
@@ -134,11 +137,18 @@ namespace Util {
 			this->y -= (T)v.y;
 			return *this;
 		}
-		\
+		
 		template<FundamentalType OT>
 		inline Vec2<T>& operator*=(const OT v) {
 			this->x *= (T)v;
 			this->y *= (T)v;
+			return *this;
+		}
+
+		template<FundamentalType OT>
+		inline Vec2<T>& operator/=(const OT v) {
+			this->x /= (T)v;
+			this->y /= (T)v;
 			return *this;
 		}
 
@@ -159,6 +169,11 @@ namespace Util {
 			return (this->x * v.x) + (this->y * v.y);
 		}
 
+		template<FundamentalType OT>
+		inline Vec2<T> operator/(const OT v) const {
+			return Vec2<T>(this->x / (T)v, this->y / (T)v);
+		}
+
 		
 		inline bool operator==(const Vec2<T> v) const {
 			return this->x == v.x && this->y == v.y;
@@ -177,8 +192,24 @@ namespace Util {
 		inline operator Vec2<OT>() const {
 			return Vec2<OT>((OT)x, (OT)y);
 		}
+		inline operator std::string() const {
+			return "{ x: " + std::to_string(x) + ", y: " + std::to_string(y) + " }";
+		}
 
 	};
+
+	template<class T>
+	inline Vec2<T> Cross(const Vec2<T> v, const T a) {
+		return Vec2( a * v.y, -a * v.x );
+	}
+	template<class T>
+	inline Vec2<T> Cross(const T a, const Vec2<T> v) {
+		return Vec2( -a * v.y, a * v.x );
+	}
+	template<class T>
+	inline Vec2<T> Cross(const Vec2<T> a, const Vec2<T> b) {
+		return a.cross(b);
+	}
 
 	typedef Vec2<double> Vec2D;
 	typedef Vec2<int> Vec2I;

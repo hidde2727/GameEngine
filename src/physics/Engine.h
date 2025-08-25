@@ -12,7 +12,7 @@ namespace Physics {
     class Engine {
     public:
 
-        void Update(entt::registry& registry);
+        void Update(entt::registry& registry, float dt);
 
     private:
 

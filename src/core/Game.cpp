@@ -49,7 +49,8 @@ namespace Engine {
             while(!_window.ShouldClose()) {
                 ASSERT(_scene==nullptr, "No scene bound, there should always be a scene bound")
                 _webhandler.HandleRequests();
-                _physics.Update(_scene->_entt);
+                _scene->OnFrame();
+                _physics.Update(_scene->_entt, 1/60.f);
                 _window.Update();
                 _window.Draw(_scene->_entt, _scene->_textureComponents, _scene->_textComponents);
             }

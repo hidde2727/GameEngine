@@ -76,6 +76,7 @@ add_library (GameEngine STATIC
 "src/util/Endianess.cpp"
 "src/util/DebugGraphics.h"
 "src/util/DebugGraphics.cpp"
+"src/util/Math.h"
 
 "lib/glslang/glslang/ResourceLimits/ResourceLimits.cpp"
 )

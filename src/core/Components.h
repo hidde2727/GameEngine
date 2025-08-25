@@ -27,6 +27,10 @@ namespace Engine {
 
         Util::Vec2F _pos;
         float _rotation=0;
+
+        operator std::string() const {
+            return "{ pos: " + (std::string)_pos + ", rotation: " + std::to_string(_rotation) + " }";
+        }
     };
 
     class Scene;

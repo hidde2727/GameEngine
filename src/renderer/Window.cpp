@@ -216,7 +216,7 @@ namespace Renderer {
         _vkCommandBuffer.DrawIndexed(6, amountText);
 
 #if ENGINE_ENABLE_DEBUG_GRAPHICS
-        _vkDebugVertexBuffer.Resize(_vkContext, _debugLines.size()*sizeof(DebugLine));
+        _vkDebugVertexBuffer.Resize(_vkContext, (uint32_t)(_debugLines.size()*sizeof(DebugLine)));
         _vkDebugVertexBuffer.SetData(_vkContext, _debugLines);
 
         _vkCommandBuffer.NextSubPass();
@@ -224,7 +224,7 @@ namespace Renderer {
         _vkCommandBuffer.BindGraphicsPipeline(_vkDebugPipeline);
         _vkCommandBuffer.SetPushConstantData(_vkDebugPipeline, _framebufferSize, VK_SHADER_STAGE_VERTEX_BIT);
         _vkCommandBuffer.BindVertexBuffer(_vkDebugVertexBuffer, 0);
-        _vkCommandBuffer.Draw(_debugLines.size()*2, 1);
+        _vkCommandBuffer.Draw((int)_debugLines.size()*2, 1);
         _debugLines.clear();
 #endif
 

@@ -16,7 +16,7 @@ namespace Util {
 		Vec3(const Vec3<T>& v) : x(v.x), y(v.y), z(v.z) {}
 		Vec3(Vec3<T>&& v) : x(v.x), y(v.y), z(v.z) {}
 		template<FundamentalType OT>
-		Vec3(const OT x, const OT y, const OT z) : x(x), y(y), z(z) {}
+		Vec3(const OT x, const OT y, const OT z) : x((T)x), y((T)y), z((T)z) {}
 
 		T x = 0;
 		T y = 0;
@@ -128,6 +128,9 @@ namespace Util {
 		template<FundamentalType OT>
 		inline operator Vec3<OT>() const {
 			return Vec3<OT>((OT)x, (OT)y, (OT)z);
+		}
+		inline operator std::string() const {
+			return "{ x: " + std::to_string(x) + ", y: " + std::to_string(y)  + ", z: " + std::to_string(z) + " }";
 		}
 
 	};

@@ -21,6 +21,7 @@ namespace Engine{
         Scene(Game* game, Renderer::Window* window) : _game(game), _window(window) {}
 
         virtual void OnSceneStart() {}
+        virtual void OnFrame() {}
         virtual void OnSceneStop() {}
         virtual void LoadAssets() {}
         virtual void OnHTTPRequest(Network::HTTP::RequestHeader& requestHeader, std::vector<uint8_t>& requestBody, Network::HTTP::Response& response) {}
@@ -40,31 +41,64 @@ namespace Engine{
         Renderer::AssetID LoadTextFile(const std::string file, const Renderer::Characters characters, const std::initializer_list<uint32_t> sizes);
 
         inline entt::entity CreateEntity() { return _entt.create(); }
+        template<class ... Ts>
+        inline entt::entity CreateEntity(Ts&&...components) {
+            entt::entity entity = CreateEntity();
+            AddComponents(entity, std::forward<Ts>(components)...);
+            return entity;
+        }
 		template<class ComponentType, class ... Ts>
-		inline void AddComponent(entt::entity entity, Ts && ... inputs) {
+		inline void AddComponent(const entt::entity entity, Ts&&...inputs) {
 #ifdef __DEBUG__
             ASSERT(_entt.all_of<ComponentType>(entity), "Cannot add a component to an entity that already has that component")
 #endif
             if(IsTextureComponent<ComponentType>()) _textureComponents++;
-			_entt.emplace<ComponentType>(entity, inputs...);
+			_entt.emplace<ComponentType>(entity, std::forward<Ts>(inputs)...);
             
             if(IsTextComponent<ComponentType>()) {
                 _textComponents += (uint32_t)_entt.get<TextComponent>(entity)._renderInfo.size();
             }
 		}
+        template<class T>
+        inline void AddComponents(const entt::entity entity, T&& c) {
+            AddComponent<T>(entity, c);
+        }
+        template<class T, class ... Ts>
+        inline void AddComponents(const entt::entity entity, T&& c, Ts&&...others) {
+            AddComponent<T>(entity, c);
+            AddComponents(entity, std::forward<Ts>(others)...);
+        }
 		template<class ComponentType, class ... Ts>
-		inline void SetComponent(entt::entity entity, Ts && ... inputs) {
+		inline void SetComponent(const entt::entity entity, Ts&&...inputs) {
 #ifdef __DEBUG__
-            ASSERT(!_entt.all_of<ComponentType>(entity), "Cannot set a component to an entity that doesnt't have that component")
+            ASSERT(!HasComponent<ComponentType>(entity), "Cannot set a component to an entity that doesnt't have that component")
 #endif
 			_entt.replace<ComponentType>(entity, inputs...);
 		}
+        template<class ComponentType>
+        inline bool HasComponent(const entt::entity entity) {
+            return _entt.all_of<ComponentType>(entity);
+        }
 		template<class ComponentType>
-		inline ComponentType& GetComponent(entt::entity entity) {
+		inline ComponentType& GetComponent(const entt::entity entity) {
 			return _entt.get<ComponentType>(entity);
 		}
+        inline void DeleteEntity(const entt::entity entity) {
+            if(HasComponent<TextureComponent>(entity)) _textureComponents--;
+            if(HasComponent<TextComponent>(entity)) {
+                _textComponents -= (uint32_t)GetComponent<TextComponent>(entity)._renderInfo.size();
+            }
+            _entt.destroy(entity);
+        }
         
         void DebugLine(const Util::Vec2F start, const Util::Vec2F end, const Util::Vec3F color);
+
+        struct BoundingboxID {
+            entt::entity e1, e2, e3, e4;
+        };
+        BoundingboxID CreateBoundingBox(const Util::Vec2F pos, const float rotation, const Util::Vec2F dimensions);
+        void ModifyBoundingBox(const BoundingboxID id, const Util::Vec2F pos, const float rotation, const Util::Vec2F dimensions);
+        void DeleteBoundingBox(const BoundingboxID id);
 
     private:
         friend struct TextureComponent;

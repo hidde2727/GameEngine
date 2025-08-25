@@ -70,13 +70,13 @@ namespace Websocket {
         if(_body.size() < 126) {
             _buffer.push_back((uint8_t)_body.size());
         } else if(_body.size() <= 0xFFFF) {
-            uint16_t size = _body.size();
+            uint16_t size = (uint16_t)_body.size();
             size = Util::ToBigEndian(size);
             uint8_t* sizePtr = reinterpret_cast<uint8_t*>(&size);
             _buffer.push_back(*sizePtr);
             _buffer.push_back(*(sizePtr+1));
         } else if(_body.size() <= 0xFFFFFFFF) {
-            uint32_t size = _body.size();
+            uint32_t size = (uint32_t)_body.size();
             size = Util::ToBigEndian(size);
             uint8_t* sizePtr = reinterpret_cast<uint8_t*>(&size);
             _buffer.push_back(*sizePtr);
