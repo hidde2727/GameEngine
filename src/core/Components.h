@@ -7,12 +7,16 @@
 
 namespace Engine {
 
-    struct PositionComponent {
-		PositionComponent(const float value) : _pos(value) {}
-		PositionComponent(const float x, const float y) : _pos(x, y) {}
-		PositionComponent(const float x, const float y, const float rotation) : _pos(x, y), _rotation(rotation) {}
-        PositionComponent(Util::Vec2F pos) : _pos(pos) {}
-        PositionComponent(Util::Vec2F pos, const float rotation) : _pos(pos), _rotation(rotation) {}
+    class Scene;
+    
+namespace Component {
+
+    struct Position {
+		Position(const float value) : _pos(value) {}
+		Position(const float x, const float y) : _pos(x, y) {}
+		Position(const float x, const float y, const float rotation) : _pos(x, y), _rotation(rotation) {}
+        Position(Util::Vec2F pos) : _pos(pos) {}
+        Position(Util::Vec2F pos, const float rotation) : _pos(pos), _rotation(rotation) {}
 
         struct Precalculated {
             Util::Vec2F _topLeft;
@@ -23,6 +27,7 @@ namespace Engine {
         struct Corners {
             Util::Vec2F _points[4];
         };
+        inline Corners GetCornerPositions(const Util::Vec2F size) { return GetCornerPositions(size.x, size.y); }
         Corners GetCornerPositions(const float w, const float h);
 
         Util::Vec2F _pos;
@@ -33,19 +38,18 @@ namespace Engine {
         }
     };
 
-    class Scene;
-    struct TextureComponent {
+    struct Texture {
         
-        TextureComponent(Scene* scene, const uint32_t assetID, const Util::Vec2F size);
+        Texture(Scene* scene, const uint32_t assetID, const Util::Vec2F size);
 
         Util::AreaF _textureArea;
         uint32_t _descriptorID;
         Util::Vec2F _size;
     };
-    typedef TextureComponent QRCodeComponent;
+    typedef Texture QRCode;
 
-    struct TextComponent {
-        TextComponent(Scene* scene, uint32_t assetID, const uint32_t size, const std::u32string text);
+    struct Text {
+        Text(Scene* scene, uint32_t assetID, const uint32_t size, const std::u32string text);
         
         struct CharRenderInfo {
             Util::AreaF _position;
@@ -56,7 +60,7 @@ namespace Engine {
         std::vector<CharRenderInfo> _renderInfo;
     };
 
-
+}
 }
 
 #endif

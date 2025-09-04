@@ -59,8 +59,11 @@ add_library (GameEngine STATIC
 "src/physics/Components.h"
 "src/physics/Engine.h"
 "src/physics/Engine.cpp"
-"src/physics/CollisionSolvers.h"
-"src/physics/CollisionSolvers.cpp"
+"src/physics/Collision.h"
+"src/physics/Collision.cpp"
+"src/physics/CollisionManifold.h"
+"src/physics/CollisionManifold.cpp"
+"src/physics/Shapes.h"
 
 "src/util/Log.h"
 "src/util/Log.cpp"

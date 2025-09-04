@@ -3,8 +3,9 @@
 #include "core/Scene.h"
 
 namespace Engine {
+namespace Component {
 
-    PositionComponent::Precalculated PositionComponent::GetPrecalculated(const float w, const float h) {
+    Position::Precalculated Position::GetPrecalculated(const float w, const float h) {
         Util::Vec2F middle = Util::Vec2F(_pos.x, _pos.y);
         Precalculated ret;
         ret._topLeft = Util::Vec2F(_pos.x - 0.5f*w, _pos.y - 0.5f*h).rotate(_rotation, middle);
@@ -12,7 +13,7 @@ namespace Engine {
         ret._deltaPosition = Util::Vec2F(_pos.x + 0.5f*w, _pos.y-0.5f*h).rotate(_rotation, middle) - ret._topLeft;
         return ret;
     }
-    PositionComponent::Corners PositionComponent::GetCornerPositions(const float w, const float h) {
+    Position::Corners Position::GetCornerPositions(const float w, const float h) {
         Util::Vec2F middle = Util::Vec2F(_pos.x, _pos.y);
         Corners ret;
         ret._points[0] = Util::Vec2F(_pos.x - 0.5f*w, _pos.y - 0.5f*h).rotate(_rotation, middle);
@@ -22,14 +23,14 @@ namespace Engine {
         return ret;
     }
 
-    TextureComponent::TextureComponent(Scene* scene, const uint32_t assetID, const Util::Vec2F size) {
+    Texture::Texture(Scene* scene, const uint32_t assetID, const Util::Vec2F size) {
         std::shared_ptr<Renderer::ImageRenderInfo> info = scene->_window->GetTextureInfo(assetID);
         _textureArea = info->first;
         _descriptorID = info->second;
         _size = size;
     }
 
-    TextComponent::TextComponent(Scene* scene, uint32_t assetID, const uint32_t size, std::u32string text) {
+    Text::Text(Scene* scene, uint32_t assetID, const uint32_t size, std::u32string text) {
         std::shared_ptr<Renderer::TextRenderInfo> info = scene->_window->GetTextInfo(assetID);
         ASSERT(!(info), "Text size is not loaded, cannot create a text component of a size that is not loaded")
         _renderInfo.reserve(text.size());
@@ -55,4 +56,5 @@ namespace Engine {
         }
     }
 
+}
 }

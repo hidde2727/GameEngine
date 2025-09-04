@@ -155,7 +155,7 @@ namespace Renderer {
         _vkTextVertexBuffer.Resize(_vkContext, amountText*sizeof(InstanceDataText));
 
         {// Rectangle data
-			auto group = registry.group<TextureComponent>(entt::get<PositionComponent>);
+			auto group = registry.group<Component::Texture>(entt::get<Component::Position>);
             _vkRectVertexBuffer.StartTransferingData(_vkContext);
 			for (const auto [entity, texture, pos] : group.each()) {
 				_vkRectVertexBuffer.AddData(InstanceDataRect(
@@ -169,7 +169,7 @@ namespace Renderer {
             _vkRectVertexBuffer.EndTransferingData(_vkContext, _vkCommandBuffer);
 		}
         {// Text data
-			auto group = registry.group<TextComponent>(entt::get<PositionComponent>);
+			auto group = registry.group<Component::Text>(entt::get<Component::Position>);
             _vkTextVertexBuffer.StartTransferingData(_vkContext);
 			for (const auto [entity, text, pos] : group.each()) {
                 float x = pos._pos.x;

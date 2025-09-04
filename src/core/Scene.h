@@ -47,16 +47,16 @@ namespace Engine{
             AddComponents(entity, std::forward<Ts>(components)...);
             return entity;
         }
-		template<class ComponentType, class ... Ts>
-		inline void AddComponent(const entt::entity entity, Ts&&...inputs) {
+		template<class ComponentType>
+		inline void AddComponent(const entt::entity entity, const ComponentType component) {
 #ifdef __DEBUG__
             ASSERT(_entt.all_of<ComponentType>(entity), "Cannot add a component to an entity that already has that component")
 #endif
             if(IsTextureComponent<ComponentType>()) _textureComponents++;
-			_entt.emplace<ComponentType>(entity, std::forward<Ts>(inputs)...);
+			_entt.emplace<ComponentType>(entity, component);
             
             if(IsTextComponent<ComponentType>()) {
-                _textComponents += (uint32_t)_entt.get<TextComponent>(entity)._renderInfo.size();
+                _textComponents += (uint32_t)_entt.get<Component::Text>(entity)._renderInfo.size();
             }
 		}
         template<class T>
@@ -84,9 +84,9 @@ namespace Engine{
 			return _entt.get<ComponentType>(entity);
 		}
         inline void DeleteEntity(const entt::entity entity) {
-            if(HasComponent<TextureComponent>(entity)) _textureComponents--;
-            if(HasComponent<TextComponent>(entity)) {
-                _textComponents -= (uint32_t)GetComponent<TextComponent>(entity)._renderInfo.size();
+            if(HasComponent<Component::Texture>(entity)) _textureComponents--;
+            if(HasComponent<Component::Text>(entity)) {
+                _textComponents -= (uint32_t)GetComponent<Component::Text>(entity)._renderInfo.size();
             }
             _entt.destroy(entity);
         }
@@ -101,14 +101,14 @@ namespace Engine{
         void DeleteBoundingBox(const BoundingboxID id);
 
     private:
-        friend struct TextureComponent;
-        friend struct TextComponent;
+        friend struct Component::Texture;
+        friend struct Component::Text;
         friend class Game;
 
         template <typename T>
-		constexpr bool IsTextureComponent() { return std::is_same<T, TextureComponent>::value; }
+		constexpr bool IsTextureComponent() { return std::is_same<T, Component::Texture>::value; }
         template <typename T>
-		constexpr bool IsTextComponent() { return std::is_same<T, TextComponent>::value; }
+		constexpr bool IsTextComponent() { return std::is_same<T, Component::Text>::value; }
 
         entt::registry _entt;
         Game* _game;

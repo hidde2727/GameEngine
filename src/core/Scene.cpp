@@ -24,28 +24,28 @@ namespace Engine{
     Scene::BoundingboxID Scene::CreateBoundingBox(const Util::Vec2F pos, const float rotation, const Util::Vec2F dimensions) {
         BoundingboxID ret;
         ret.e1 = CreateEntity(
-            PositionComponent(pos+Util::Vec2F(0.5f*(-dimensions.x-BOUNDINGBOXWIDTH), 0).rotate(rotation), rotation), 
-            RectangleColliderComponent(Util::Vec2F(BOUNDINGBOXWIDTH, dimensions.y), ColliderFlags::NoMove));
+            Component::Position(pos+Util::Vec2F(0.5f*(-dimensions.x-BOUNDINGBOXWIDTH), 0).rotate(rotation), rotation), 
+            Component::Collider::StaticRect(Util::Vec2F(BOUNDINGBOXWIDTH, dimensions.y), Component::ColliderFlags::NoMove));
         ret.e2 = CreateEntity(
-            PositionComponent(pos+Util::Vec2F(0.5f*(dimensions.x+BOUNDINGBOXWIDTH), 0).rotate(rotation), rotation), 
-            RectangleColliderComponent(Util::Vec2F(BOUNDINGBOXWIDTH, dimensions.y), ColliderFlags::NoMove));
+            Component::Position(pos+Util::Vec2F(0.5f*(dimensions.x+BOUNDINGBOXWIDTH), 0).rotate(rotation), rotation), 
+            Component::Collider::StaticRect(Util::Vec2F(BOUNDINGBOXWIDTH, dimensions.y), Component::ColliderFlags::NoMove));
         ret.e3 = CreateEntity(
-            PositionComponent(pos+Util::Vec2F(0, 0.5f*(-dimensions.y-BOUNDINGBOXWIDTH)).rotate(rotation), rotation), 
-            RectangleColliderComponent(Util::Vec2F(dimensions.x, BOUNDINGBOXWIDTH), ColliderFlags::NoMove));
+            Component::Position(pos+Util::Vec2F(0, 0.5f*(-dimensions.y-BOUNDINGBOXWIDTH)).rotate(rotation), rotation), 
+            Component::Collider::StaticRect(Util::Vec2F(dimensions.x, BOUNDINGBOXWIDTH), Component::ColliderFlags::NoMove));
         ret.e4 = CreateEntity(
-            PositionComponent(pos+Util::Vec2F(0, 0.5f*(dimensions.y+BOUNDINGBOXWIDTH)).rotate(rotation), rotation), 
-            RectangleColliderComponent(Util::Vec2F(dimensions.x, BOUNDINGBOXWIDTH), ColliderFlags::NoMove));       
+            Component::Position(pos+Util::Vec2F(0, 0.5f*(dimensions.y+BOUNDINGBOXWIDTH)).rotate(rotation), rotation), 
+            Component::Collider::StaticRect(Util::Vec2F(dimensions.x, BOUNDINGBOXWIDTH), Component::ColliderFlags::NoMove));       
         return ret;
     }
     void Scene::ModifyBoundingBox(const BoundingboxID id, const Util::Vec2F pos, const float rotation, const Util::Vec2F dimensions) {
-        SetComponent<PositionComponent>(id.e1, PositionComponent(pos+Util::Vec2F(0.5f*(-dimensions.x-BOUNDINGBOXWIDTH), 0).rotate(rotation), rotation));
-        SetComponent<RectangleColliderComponent>(id.e1, RectangleColliderComponent(Util::Vec2F(BOUNDINGBOXWIDTH, dimensions.y), ColliderFlags::NoMove));
-        SetComponent<PositionComponent>(id.e2, PositionComponent(pos+Util::Vec2F(0.5f*(dimensions.x+BOUNDINGBOXWIDTH), 0).rotate(rotation), rotation));
-        SetComponent<RectangleColliderComponent>(id.e2, RectangleColliderComponent(Util::Vec2F(BOUNDINGBOXWIDTH, dimensions.y), ColliderFlags::NoMove));
-        SetComponent<PositionComponent>(id.e3, PositionComponent(pos+Util::Vec2F(0, 0.5f*(-dimensions.y-BOUNDINGBOXWIDTH)).rotate(rotation), rotation)); 
-        SetComponent<RectangleColliderComponent>(id.e3, RectangleColliderComponent(Util::Vec2F(dimensions.x, BOUNDINGBOXWIDTH), ColliderFlags::NoMove));
-        SetComponent<PositionComponent>(id.e4, PositionComponent(pos+Util::Vec2F(0, 0.5f*(dimensions.y+BOUNDINGBOXWIDTH)).rotate(rotation), rotation)); 
-        SetComponent<RectangleColliderComponent>(id.e4, RectangleColliderComponent(Util::Vec2F(dimensions.x, BOUNDINGBOXWIDTH), ColliderFlags::NoMove));  
+        SetComponent<Component::Position>(id.e1, Component::Position(pos+Util::Vec2F(0.5f*(-dimensions.x-BOUNDINGBOXWIDTH), 0).rotate(rotation), rotation));
+        SetComponent<Component::Collider>(id.e1, Component::Collider::StaticRect(Util::Vec2F(BOUNDINGBOXWIDTH, dimensions.y), Component::ColliderFlags::NoMove));
+        SetComponent<Component::Position>(id.e2, Component::Position(pos+Util::Vec2F(0.5f*(dimensions.x+BOUNDINGBOXWIDTH), 0).rotate(rotation), rotation));
+        SetComponent<Component::Collider>(id.e2, Component::Collider::StaticRect(Util::Vec2F(BOUNDINGBOXWIDTH, dimensions.y), Component::ColliderFlags::NoMove));
+        SetComponent<Component::Position>(id.e3, Component::Position(pos+Util::Vec2F(0, 0.5f*(-dimensions.y-BOUNDINGBOXWIDTH)).rotate(rotation), rotation)); 
+        SetComponent<Component::Collider>(id.e3, Component::Collider::StaticRect(Util::Vec2F(dimensions.x, BOUNDINGBOXWIDTH), Component::ColliderFlags::NoMove));
+        SetComponent<Component::Position>(id.e4, Component::Position(pos+Util::Vec2F(0, 0.5f*(dimensions.y+BOUNDINGBOXWIDTH)).rotate(rotation), rotation)); 
+        SetComponent<Component::Collider>(id.e4, Component::Collider::StaticRect(Util::Vec2F(dimensions.x, BOUNDINGBOXWIDTH), Component::ColliderFlags::NoMove));  
     }
     void Scene::DeleteBoundingBox(const BoundingboxID id) {
         DeleteEntity(id.e1);

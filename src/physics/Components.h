@@ -2,54 +2,93 @@
 #define ENGINE_PHYSICS_COMPONENTS_H
 
 #include "core/PCH.h"
-#include "util/Vec2D.h"
+#include "physics/Shapes.h"
 
 namespace Engine {
+namespace Component {
 
-    struct VelocityComponent {
-        VelocityComponent() {}
-        VelocityComponent(const float v) : velocity(v), angular(v), velocityDamping(v), angularDamping(v) {}
-        VelocityComponent(const Util::Vec2F v, const float a) : velocity(v), angular(a) {}
-        VelocityComponent(const Util::Vec2F v, const float a, const float velocityDamping, const float angularDamping) : velocity(v), angular(a), velocityDamping(velocityDamping), angularDamping(angularDamping) {}
-        VelocityComponent(const Util::Vec2F v, const float a, const Util::Vec2F velocityDamping, const Util::Vec2F angularDamping) : velocity(v), angular(a), velocityDamping(velocityDamping), angularDamping(angularDamping) {}
-
-
-        Util::Vec2F velocity = {0,0};
-        float angular = 0;
-        Util::Vec2F velocityDamping = { 0.001f, 0.00001f };// x is damping proportional to v, y is damping proportional to v^2
-        Util::Vec2F angularDamping = { 0.01f, 0.001f };// x is damping proportional to v, y is damping proportional to v^2
-
-        operator std::string() const {
-            return "{ velocity: " + (std::string)velocity + ", angular: " + std::to_string(angular) + " }";
-        }
+    struct Acceleration {
+        Util::Vec2F a;// acceleration;
+        float alpha;// angular acceleration
     };
-    struct RotationToVelocity {
 
-    };
-    struct AccelerationComponent {
-        Util::Vec2F acceleration;
-        float angular;
-        Util::Vec2F accelerationDamping;// x is damping proportional to v, y is damping proportional to v^2
-        Util::Vec2F angularDamping;// x is damping proportional to v, y is damping proportional to v^2
+    struct Velocity {
+        Util::Vec2F v;// velocity
+        float w;// angular velocity
     };
 
     enum ColliderFlags {
         Continuos=1,
         NoMove=2,
-        NoVelocityChanges=4
-    };
-    struct RectangleColliderComponent {
-        RectangleColliderComponent(Util::Vec2F size) : _size(size), flags(0), restitution(0) {}
-        RectangleColliderComponent(Util::Vec2F size, uint8_t flags) : _size(size), flags(flags), restitution(0) {}
-        RectangleColliderComponent(Util::Vec2F size, uint8_t flags, float restitution) : _size(size), flags(flags), restitution(restitution) {}
+        NoVelocityChanges=4,
 
-        uint8_t flags;
-        float restitution = 0.5;
-        float mass = 1;
-        float momentOfIntertia = 1;
-        Util::Vec2F _size;
+        Polygon=256,
+        Rectangle=512,
+        Circle=1024
     };
 
+    struct Collider {
+        Collider() {}
+        Collider(const Collider& col) : shape(), flags(col.flags), e(col.e), im(col.im), iL(col.iL) {
+            if(col.flags&ColliderFlags::Polygon) shape.polygon=col.shape.polygon;
+            if(col.flags&ColliderFlags::Rectangle) shape.rectangle=col.shape.rectangle;
+            if(col.flags&ColliderFlags::Circle) shape.circle=col.shape.circle;
+        }
+        Collider& operator=(const Collider& c) {
+            flags = c.flags; 
+            e = c.e;
+            im = c.im; 
+            iL = c.iL;
+            if(c.flags&ColliderFlags::Polygon) shape.polygon=c.shape.polygon;
+            if(c.flags&ColliderFlags::Rectangle) shape.rectangle=c.shape.rectangle;
+            if(c.flags&ColliderFlags::Circle) shape.circle=c.shape.circle;
+            return *this;
+        }
+
+        struct Empty {};
+        union Shape {
+            Physics::Polygon polygon;
+            Physics::Rectangle rectangle;
+            Physics::Circle circle;
+            Empty empty;
+            Shape() : empty() {}
+        } shape;
+        uint16_t flags;
+        float e = 1;// restitution
+        float im = 1;// inverse mass
+        float iL = 1;// inverse inertia
+
+        static Collider StaticRect(const Util::Vec2F size) {
+            Collider col;
+            col.shape.rectangle.size = size;
+            col.flags = ColliderFlags::Rectangle;
+            col.im = 0;
+            col.iL = 0;
+            return col;
+        }
+        static Collider StaticRect(const Util::Vec2F size, const uint16_t flags) {
+            Collider col;
+            col.shape.rectangle.size = size;
+            col.flags = ColliderFlags::Rectangle | flags;
+            col.im = 0;
+            col.iL = 0;
+            return col;
+        }
+        static Collider KinematicRect(const Util::Vec2F size) {
+            Collider col;
+            col.shape.rectangle.size = size;
+            col.flags = ColliderFlags::Rectangle;
+            return col;
+        }
+        static Collider DynamicRect(const Util::Vec2F size) {
+            Collider col;
+            col.shape.rectangle.size = size;
+            col.flags = ColliderFlags::Rectangle;
+            return col;
+        }
+    };
+
+}
 }
 
 #endif

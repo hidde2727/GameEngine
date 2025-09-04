@@ -47,7 +47,7 @@ namespace Renderer {
         Util::Vec2F dimensions;
     };
     struct InstanceDataRect {
-        InstanceDataRect(const PositionComponent::Precalculated area, const Util::Vec3F color, const Util::Vec2F texturePos, const Util::Vec2F textureDimensions, const uint32_t texture)
+        InstanceDataRect(const Component::Position::Precalculated area, const Util::Vec3F color, const Util::Vec2F texturePos, const Util::Vec2F textureDimensions, const uint32_t texture)
          : topLeft(area._topLeft), bottomRight(area._bottomRight), deltaPosition(area._deltaPosition), color(color), texturePos(texturePos), textureDimensions(textureDimensions), texture(texture) {}
         Util::Vec2F topLeft;
         Util::Vec2F bottomRight;
