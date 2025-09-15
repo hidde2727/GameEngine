@@ -1,4 +1,5 @@
 #include "renderer/vulkan/Texture.h"
+#include "renderer/vulkan/CommandBuffer.h"
 
 namespace Engine {
 namespace Renderer {

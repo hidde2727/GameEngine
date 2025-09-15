@@ -10,7 +10,7 @@ namespace Websocket {
 
     #ifndef ENGINE_NETWORK_MAXIMUM_WEBSOCKET_BODY
     #define ENGINE_NETWORK_MAXIMUM_WEBSOCKET_BODY 2048
-    #endif;
+    #endif
 
     // See https://en.wikipedia.org/wiki/WebSocket#Opcodes
     enum class Opcode {

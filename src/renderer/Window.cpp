@@ -1,5 +1,5 @@
-#include "renderer/window.h"
-    #include <bitset>
+#include "renderer/Window.h"
+#include <bitset>
 
 namespace Engine {
 namespace Renderer {

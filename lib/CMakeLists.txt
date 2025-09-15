@@ -1,5 +1,11 @@
 cmake_minimum_required (VERSION 3.8)
 
+set(GLFW_BUILD_WAYLAND OFF)
+find_package(X11 REQUIRED)
+link_libraries(${X11_LIBRARIES})
+include_directories(${X11_INCLUDE_DIR})
+set(GLFW_INCLUDE_VULKAN ON)
+#set(GLFW_VULKAN_STATIC ON)
 add_subdirectory("glfw")
 add_subdirectory("entt")
 
