@@ -7,6 +7,8 @@
 #include "network/HTTP/Response.h"
 #include "network/websocket/Frame.h"
 
+#include "util/FileManager.h"
+
 namespace Engine {
 namespace Network {
 
@@ -22,13 +24,14 @@ namespace Network {
         WebHandler();
 
         void Start(
+            const Util::FileManager* fileManager,
             ENGINE_NETWORK_HTTPHANDLER_FUNCTION httpHandler, 
             ENGINE_NETWORK_UPGRADEHANDLER_FUNCTION upgradeHandler, 
             ENGINE_NETWORK_WEBSOCKETHANDLER_FUNCTION websocketHandler,
             ENGINE_NETWORK_ONWEBSOCKETSTART_FUNCTION onWebsocketStart,
             ENGINE_NETWORK_ONWEBSOCKETSTOP_FUNCTION onWebsocketStop
         );
-        void Start();
+        void Start(const Util::FileManager* fileManager);
         // Will run the handeling functions on the thread the function is called
         // Makes sure no resources are accessed by the networking thread that are used by the main thread
         void HandleRequests();
@@ -46,6 +49,7 @@ namespace Network {
 
         void AwaitConnection();
 
+        const Util::FileManager* _fileManager;
         // Used to make sure the request are handeled on the main thread
         asio::io_context _requestHandler;
 

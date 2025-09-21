@@ -344,6 +344,9 @@ namespace Vulkan{
         _extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         _instanceInfo.enabledExtensionCount = (uint32_t)_extensions.size();
         _instanceInfo.ppEnabledExtensionNames = _extensions.data();
+
+        // Debug callbacks from instance creation
+        _instanceInfo.pNext = &_debugMessengerInfo;
     }
 
     void ContextCreationInfo::SetDeviceFeatures(const VkPhysicalDeviceFeatures deviceFeatures) {

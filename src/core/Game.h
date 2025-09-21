@@ -12,6 +12,8 @@
 
 #include "physics/Engine.h"
 
+#include "util/FileManager.h"
+
 #define ENGINE_GAME_TEXTUREMAP_ID 0
 #define ENGINE_SCENE_TEXTUREMAP_ID 1
 
@@ -27,7 +29,13 @@ namespace Engine {
 
         Game();
 
-        virtual std::string GetEngineResourceDirectory() { return "resources/engine/"; }
+        // Should return the directories where resources are located
+        // The first element in the list has the hightest priority
+        // If there are two files with the same name, the one in the folder with the highest priority will be choosen
+        virtual std::vector<std::string> GetResourceDirectories() { return { "resources/engine/" }; }
+        // Should return the directories where the chache should be located
+        // Will by default choose to create a /cache/ directory in the first resource directory
+        virtual std::string GetCacheDirectory() { return *GetResourceDirectories().begin() + "/engine/cache/"; }
         virtual void OnStart() {}
         virtual void OnSceneStart() {}
         virtual void LoadAssets() {}
@@ -65,6 +73,8 @@ namespace Engine {
         void DebugLine(const Util::Vec2F start, const Util::Vec2F end, const Util::Vec3F color);
 
     private:
+        Util::FileManager _fileManager;
+
         Scene* _scene;
         Renderer::Window _window;
         Network::WebHandler _webhandler;

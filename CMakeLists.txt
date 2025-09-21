@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required (VERSION 3.10)
 
 add_library (GameEngine STATIC
 "src/GameEngine.h"
@@ -80,6 +80,8 @@ add_library (GameEngine STATIC
 "src/util/DebugGraphics.h"
 "src/util/DebugGraphics.cpp"
 "src/util/Math.h"
+"src/util/FileManager.h"
+"src/util/FileManager.cpp"
 
 "lib/glslang/glslang/ResourceLimits/ResourceLimits.cpp"
 )

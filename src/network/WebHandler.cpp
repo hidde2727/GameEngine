@@ -7,6 +7,7 @@ namespace Network {
     }
 
     void WebHandler::Start(
+        const Util::FileManager* fileManager,
         ENGINE_NETWORK_HTTPHANDLER_FUNCTION httpHandler, 
         ENGINE_NETWORK_UPGRADEHANDLER_FUNCTION upgradeHandler, 
         ENGINE_NETWORK_WEBSOCKETHANDLER_FUNCTION websocketHandler,
@@ -19,25 +20,30 @@ namespace Network {
         _onWebsocketStart = onWebsocketStart;
         _onWebsocketStop = onWebsocketStop;
 
-        Start();
+        Start(fileManager);
     }
-    void WebHandler::Start() {
+    void WebHandler::Start(const Util::FileManager* fileManager) {
+        _fileManager = fileManager;
         try {
             _localAddress = GetLocalAdress();
-            LOG(_localAddress)
+            LOG("[WebHandler] Opening for web requests on 'http://" + _localAddress + ":8000'")
         } catch(std::exception exc) {
-            THROW("Failed to get the local adress, are you connected to the internet?")
+            WARNING("Failed to get the local adress, are you connected to the internet?")
+            return;
         }
+        try {
+            asio::ip::tcp::resolver resolver(_context);
+            asio::ip::tcp::endpoint endpoint = *resolver.resolve(_localAddress, "8000").begin();
+            _acceptor.open(endpoint.protocol());
+            _acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
+            _acceptor.bind(endpoint);
+            _acceptor.listen();
 
-        asio::ip::tcp::resolver resolver(_context);
-		asio::ip::tcp::endpoint endpoint = *resolver.resolve(_localAddress, "80").begin();
-		_acceptor.open(endpoint.protocol());
-		_acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
-		_acceptor.bind(endpoint);
-		_acceptor.listen();
-
-        AwaitConnection();
-        _thread = std::thread([&] { try { _context.run(); } catch (std::exception err) { THROW("Webhandler experienced an error:\n" + std::string(err.what())); return 1;} return 0; });
+            AwaitConnection();
+            _thread = std::thread([&] { try { _context.run(); } catch (std::exception err) { THROW("Webhandler experienced an error:\n" + std::string(err.what())); return 1;} return 0; });
+        } catch(asio::system_error err) {
+            WARNING("Failed to open an acceptor to the adress '" + _localAddress + "'. Because: '" + err.code().message() + "'")
+        }
     }
     void WebHandler::Stop() {
         _context.stop();
@@ -45,7 +51,8 @@ namespace Network {
     }
     
     void WebHandler::HandleRequests() {
-        _requestHandler.poll();
+        auto count = _requestHandler.poll();
+        if(_requestHandler.stopped()) _requestHandler.restart();
     }
 
     void WebHandler::AwaitConnection() {
@@ -90,24 +97,24 @@ namespace Network {
     }
 
     std::string WebHandler::GetLocalAdress() {
-		asio::ip::tcp::resolver resolver(_context);
-		const auto query = resolver.resolve(asio::ip::host_name(), "");
-		asio::ip::basic_resolver_iterator<asio::ip::tcp> iter = query.begin();
-		asio::ip::basic_resolver_iterator<asio::ip::tcp> end = query.end();
-		while (iter != end)
-		{
-			if (iter->endpoint().address().is_v4()
-				&& !iter->endpoint().address().is_loopback()
-				&& !iter->endpoint().address().is_multicast()
-				&& !iter->endpoint().address().is_unspecified())
-			{
-				return iter->endpoint().address().to_string();
-			}
+        asio::ip::tcp::resolver resolver(_context);
+        const auto query = resolver.resolve(asio::ip::host_name(), "");
+        asio::ip::basic_resolver_iterator<asio::ip::tcp> iter = query.begin();
+        asio::ip::basic_resolver_iterator<asio::ip::tcp> end = query.end();
+        while (iter != end)
+        {
+            if (iter->endpoint().address().is_v4()
+            && !iter->endpoint().address().is_loopback()
+            && !iter->endpoint().address().is_multicast()
+            && !iter->endpoint().address().is_unspecified())
+            {
+            return iter->endpoint().address().to_string();
+            }
 
-			++iter;
-		}
-		return 0;
-	}
+            ++iter;
+        }
+        return 0;
+    }
 
 }
 }

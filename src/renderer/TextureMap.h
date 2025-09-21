@@ -11,18 +11,20 @@
 #include "util/Vec2D.h"
 #include "util/Vec3D.h"
 #include "util/Area.h"
+#include "util/FileManager.h"
 
 namespace Engine {
 namespace Renderer {
 
     class AssetLoader {
     public:
-        // Should return if it possible to use the cache for this AssetLoader
-        virtual bool CanUseCache(const std::filesystem::file_time_type lastCacheChange) = 0;
+        // Will be the first function called after intialising this class
+        // fileManager will be set
+        virtual void Init() {}
         // Should return a number of textures that this TextureLoader provides
         // Can at no moment return something else then it returned the first time GetAmountTextures was called
         virtual size_t GetAmountTextures() = 0;
-        // Should set the start* till the start+GetAmountTextures() to the sizes the mapped textures should be
+        // Should set the start* till the start+GetAmountTextures() to the sizes the textures should be
         // Only the x and y has to be set, the z is for internal use
         // If the cache is not used, this function will be the first to be called (you can init your loading utilities here)
         // Garantueed to only be called once
@@ -39,12 +41,9 @@ namespace Renderer {
         // Called after every texture has been called to render
         // Needs to return the information neccesary to render the assets
         virtual std::shared_ptr<uint8_t> GetRenderInfo() = 0;
-        // Called if the information was all cached, should return the same as GetRenderInfo() but from the cached data
-        virtual std::shared_ptr<uint8_t> GetRenderInfo(uint8_t* cache, const size_t size) = 0;
 
-        // Should return the bytes neccesary to reconstruct the result of GetRenderInfo()
-        virtual std::shared_ptr<uint8_t> GetCacheData() = 0;
-
+    protected:
+        Util::FileManager const* _fileManager = nullptr;        
     private:
         friend class TextureMap;
         size_t _firstTexture = 0;
@@ -60,7 +59,7 @@ namespace Renderer {
         void StartLoading();
         uint32_t AddTextureLoader(std::unique_ptr<AssetLoader> textureLoader);
         void SetCacheName(const std::string name);
-        void EndLoading(Vulkan::Context& context, std::initializer_list<Vulkan::Pipeline*> bindToPipelines, const std::string resourceDirectory);
+        void EndLoading(Vulkan::Context& context, std::initializer_list<Vulkan::Pipeline*> bindToPipelines, const Util::FileManager& fileManager);
 
         std::shared_ptr<uint8_t> GetRenderInfo(const uint32_t id);
 

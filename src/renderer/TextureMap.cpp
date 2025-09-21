@@ -27,7 +27,7 @@ namespace Renderer {
     void TextureMap::SetCacheName(const std::string name) {
         _cacheName = name;
     }
-    void TextureMap::EndLoading(Vulkan::Context& context, std::initializer_list<Vulkan::Pipeline*> bindToPipelines, const std::string engineResourceDirectory) {
+    void TextureMap::EndLoading(Vulkan::Context& context, std::initializer_list<Vulkan::Pipeline*> bindToPipelines, const Util::FileManager& fileManager) {
         if(_amountTextures == 0) return;
         // Check if the cache is usable
         
@@ -38,11 +38,16 @@ namespace Renderer {
         Util::Vec3U32* inputPtr = packer.GetRectangleInputPtr();
         size_t currentTexture = 0;
         for(const auto& assetLoader : _assetLoaders) {
+            // Set all the variables
+            assetLoader->_fileManager = &fileManager;
             assetLoader->_firstTexture = currentTexture;
-            assetLoader->SetTextureSizes(inputPtr);
-            inputPtr += assetLoader->GetAmountTextures();
             currentTexture += assetLoader->GetAmountTextures();
             assetLoader->_lastTexture = currentTexture-1;
+            assetLoader->Init();
+
+            // Retrieve the texture sizes needed for the loader
+            assetLoader->SetTextureSizes(inputPtr);
+            inputPtr += assetLoader->GetAmountTextures();
         }
 
         // Pack

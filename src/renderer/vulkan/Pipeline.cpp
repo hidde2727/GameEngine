@@ -190,28 +190,24 @@ namespace Vulkan {
         _pipelineInfo.basePipelineIndex = -1;
     }
 
-    void PipelineCreator::SetShaders(const std::initializer_list<const char*> fileLocations, const std::string engineResourceDirectory) {
+    void PipelineCreator::SetShaders(const std::initializer_list<std::string> fileLocations, const Util::FileManager& fileManager) {
         _shaders.resize(fileLocations.size());
         _shaderInfos.resize(fileLocations.size());
         _shaderStageInfos.resize(fileLocations.size());
 
         // Check if we can use the cache
         bool cannotUseCache = false;
-        for(const char* fileLocation : fileLocations) {
-            ASSERT(!std::filesystem::exists(fileLocation), "Specified vulkan shader file does not exist");
-
-            std::string chacheName = engineResourceDirectory + "chache/" + Util::Base64FileEncode(Util::SHA1(fileLocation)) + ".spiv";
-            if(!std::filesystem::exists(chacheName)) { cannotUseCache = true; break; }
-            std::filesystem::file_time_type lastFileChange = std::filesystem::last_write_time(fileLocation);
-            std::filesystem::file_time_type lastCacheChange = std::filesystem::last_write_time(chacheName);
-            if(lastFileChange > lastCacheChange) { cannotUseCache = true; break; }
+        for(std::string fileLocation : fileLocations) {
+            if(!fileManager.CanUseCache(fileLocation + ".spiv", { fileLocation })) { 
+                cannotUseCache = true; break; 
+            }
         }
 
         // Use the cache
         if(!cannotUseCache) {
             int i = 0;
-            for(const char* fileLocation : fileLocations) {
-                std::string chacheName = engineResourceDirectory + "chache/" + Util::Base64FileEncode(Util::SHA1(fileLocation)) + ".spiv";
+            for(std::string fileLocation : fileLocations) {
+                std::string cacheID = fileLocation+".spiv";
 
                 const std::string filetype = std::filesystem::path(fileLocation).extension().string();
                 VkShaderStageFlagBits stageType = VK_SHADER_STAGE_VERTEX_BIT;
@@ -219,10 +215,7 @@ namespace Vulkan {
                 else if(filetype == ".comp") stageType = VK_SHADER_STAGE_COMPUTE_BIT;
                 else if(filetype == ".geom") stageType = VK_SHADER_STAGE_GEOMETRY_BIT;
 
-                std::ifstream inputStream(chacheName, std::ios::binary);
-                _shaders[i].resize((size_t)std::ceil(std::filesystem::file_size(chacheName) / sizeof(uint32_t)));
-                inputStream.read(reinterpret_cast<char*>(_shaders[i].data()), _shaders[i].size() * sizeof(uint32_t));
-                inputStream.close();
+                fileManager.ReadCacheFile(cacheID, _shaders[i]);
 
                 _shaderInfos[i].sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
                 _shaderInfos[i].codeSize = _shaders[i].size()*sizeof(uint32_t);
@@ -244,20 +237,17 @@ namespace Vulkan {
         std::vector<std::unique_ptr<glslang::TShader>> shaders(fileLocations.size());
 
         int i = 0;
-        for(const char* fileLocation : fileLocations) {
+        for(std::string fileLocation : fileLocations) {
             const std::string filetype = std::filesystem::path(fileLocation).extension().string();
             EShLanguage languageType = EShLangVertex;
             if(filetype == ".frag") languageType = EShLangFragment;
             else if(filetype == ".comp") languageType = EShLangCompute;
             else if(filetype == ".geom") languageType = EShLangGeometry;
             
-            INFO("Compiling vulkan shader - " + std::string(fileLocation));
+            INFO("Compiling vulkan shader - " + fileLocation);
 
             std::string shaderCode;
-            std::ifstream inputStream(fileLocation);
-            ASSERT(inputStream.fail(), ("Failed to open output stream for file '" + std::string(fileLocation) + "' because : \n\t" + std::string(strerror(errno))).c_str());
-            shaderCode.resize(std::filesystem::file_size(fileLocation));
-            inputStream.read(shaderCode.data(), shaderCode.size());
+            fileManager.ReadFile(fileLocation, shaderCode);
 
             shaders[i] = std::make_unique<glslang::TShader>(languageType);
             const char* sources[1] = { shaderCode.c_str() };
@@ -321,14 +311,8 @@ namespace Vulkan {
             _shaderStageInfos[i].pName = "main";
 
             // Write the generated program to the cache
-            std::string chacheName = engineResourceDirectory + "chache/" + Util::Base64FileEncode(Util::SHA1(*(fileLocations.begin() + i))) + ".spiv";
-            {
-                std::ofstream outputStream(chacheName.c_str(), std::ios::app); // Create the file if not exists
-                ASSERT(outputStream.fail(), ("Failed to create file '" + chacheName + "' because : \n\t" + std::string(strerror(errno))).c_str());
-                outputStream.close();
-            }
-            std::ofstream outputStream(chacheName.c_str(), std::ios::trunc | std::ios::binary);
-            ASSERT(outputStream.fail(), ("Failed to open output stream for file '" + chacheName + "' because : \n\t" + std::string(strerror(errno))).c_str());
+            std::string cacheID = *(fileLocations.begin() + i) + ".spiv";
+            std::ofstream outputStream = fileManager.AddCachedFile(cacheID, std::ios::trunc | std::ios::binary);
             outputStream.write(reinterpret_cast<char*>(_shaders[i].data()), _shaders[i].size()*sizeof(uint32_t));
             outputStream.close();
         }
@@ -431,7 +415,7 @@ namespace Vulkan {
         if(textures > 0) {
             VkDescriptorPoolSize poolSize{};
             poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-            poolSize.descriptorCount = textures;
+            poolSize.descriptorCount = textures*duplicateSets;
             _descriptorPoolSizes.push_back(poolSize);
             VkDescriptorSetLayoutBinding layout{};
 
@@ -447,7 +431,7 @@ namespace Vulkan {
         if(imageSamplers > 0) {
             VkDescriptorPoolSize poolSize{};
             poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLER;
-            poolSize.descriptorCount = imageSamplers;
+            poolSize.descriptorCount = imageSamplers*duplicateSets;
             _descriptorPoolSizes.push_back(poolSize);
             VkDescriptorSetLayoutBinding layout{};
 
@@ -463,7 +447,7 @@ namespace Vulkan {
         if(uniformBuffers > 0) {
             VkDescriptorPoolSize poolSize{};
             poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            poolSize.descriptorCount = uniformBuffers;
+            poolSize.descriptorCount = uniformBuffers*duplicateSets;
             _descriptorPoolSizes.push_back(poolSize);
 
             VkDescriptorSetLayoutBinding layout{};

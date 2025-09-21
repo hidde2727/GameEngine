@@ -4,6 +4,10 @@ namespace Engine {
 namespace Network {
 namespace HTTP {
 
+    Response::Response(Util::FileManager const* fileManager) {
+        _fileManager = fileManager;
+    }
+
     void Response::SetHTTPVersion(const std::string version) {
         _version = version;
     }
@@ -70,9 +74,7 @@ namespace HTTP {
     bool Response::SetBodyToFile(const std::string fileName, const bool ifNotFound404) {
         try {
             ASSERT(fileName.find("..")!=std::string::npos, "HTTP::Response::SetBodyToFile received a file with .., this is unsafe behavior")
-            std::ifstream in(fileName, std::ios::binary);
-            ASSERT(!in.is_open(), "HTTP::Response::SetBodyToFile failed to open file: '" + fileName + "'")            
-            _body.insert(_body.begin(), std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+            _fileManager->ReadFile(fileName, _body);
         }
         catch (std::exception ex) {
             if(!ifNotFound404) THROW("HTTP::Response::SetBodyToFile failed to load file '" + fileName + "':\n" + std::string(ex.what()))

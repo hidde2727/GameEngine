@@ -53,7 +53,8 @@ namespace Network {
                 ReceiveBody(stoi(contentLength));
                 return;
             }
-
+            // There is no body, so create an empty one
+            _body = std::make_shared<std::vector<uint8_t>>();
             HandleRequest();
             ReceiveHeader();
         }
@@ -108,8 +109,9 @@ namespace Network {
         std::shared_ptr<HTTP::RequestHeader> header = _header;
         std::shared_ptr<std::vector<uint8_t>> body = _body;
         // Post work for the main thread
-        asio::post(_webhandler->_requestHandler, [this, self, header, body]() {
-            std::shared_ptr<HTTP::Response> response = std::make_shared<HTTP::Response>();
+        asio::post(asio::bind_executor(_webhandler->_requestHandler, 
+        [this, self, header, body]() {
+            std::shared_ptr<HTTP::Response> response = std::make_shared<HTTP::Response>(_webhandler->_fileManager);
             // Default response initializing
             response->SetResponseCode(HTTP::ResponseCode::OK);
             if(header->GetHeader("Connection").find("close")!=std::string::npos) {
@@ -124,7 +126,7 @@ namespace Network {
                 _writeQueue.push(response);
                 if(_writeQueue.size() == 1) Write();
             });
-        });
+        }));
     }
 
     void WebHandler::HTTPConnection::UpgradeConnection() {
@@ -134,7 +136,7 @@ namespace Network {
 
         // Post work for the main thread
         asio::post(_webhandler->_requestHandler, [this, self, header]() {
-            std::shared_ptr<HTTP::Response> response = std::make_shared<HTTP::Response>();
+            std::shared_ptr<HTTP::Response> response = std::make_shared<HTTP::Response>(_webhandler->_fileManager);
             const bool allowUpgrade = _webhandler->_upgradeHandler(*header);
             // Default response initializing
             if(allowUpgrade) {

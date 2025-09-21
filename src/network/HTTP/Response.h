@@ -2,6 +2,7 @@
 #define ENGINE_NETWORK_HTTP_RESPONSE_H
 
 #include "core/PCH.h"
+#include "util/FileManager.h"
 
 namespace Engine {
 namespace Network {
@@ -65,6 +66,8 @@ namespace HTTP {
     class Response {
     public:
 
+        Response(Util::FileManager const* fileManager);
+
         void SetHTTPVersion(const std::string version);
         void SetResponseCode(const ResponseCode code);
         void SetHeader(const std::string name, const std::string value);
@@ -79,6 +82,8 @@ namespace HTTP {
 		std::vector<asio::const_buffer> ToBuffers();
 
     private:
+        Util::FileManager const* _fileManager;
+
         std::string _version = "HTTP/1.1";
         std::string _code = "200 OK";
         std::map<std::string, std::string> _headers;

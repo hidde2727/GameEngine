@@ -12,14 +12,15 @@ namespace Renderer {
         // Should remove all the duplicates of size above ENGINE_RENDERER_FONTPROGRAM_MAXSIZE
     }
 
-    bool TextLoader::CanUseCache(const std::filesystem::file_time_type lastCacheChange) {
-        return std::filesystem::last_write_time(_file) < lastCacheChange;
+    void TextLoader::Init() {
+        ASSERT(!_fileManager->DoesFileExists(_file), "[TextLoader] TextLoader received a file that does not exist '" + _file + "'")
+        ASSERT(!_fileManager->IsFileRegular(_file), "[TextLoader] TextLoader received an invalid file '" + _file + "'")
     }
     size_t TextLoader::GetAmountTextures() {
         return _characters._characterCount * _sizes.size();
     }
     void TextLoader::SetTextureSizes(Util::Vec3U32* start) {
-        TTFFontParser fontParser = TTFFontParser(_file, _characters);
+        TTFFontParser fontParser = TTFFontParser(_fileManager->GetFileLocation(_file), _characters);
         size_t i = 0;
         _fontData.resize(_sizes.size());
         _textureAreas.resize(_sizes.size()*_characters._characterCount);
@@ -138,12 +139,6 @@ namespace Renderer {
         }
                 
         return std::reinterpret_pointer_cast<uint8_t>(ret);
-    }
-    std::shared_ptr<uint8_t> TextLoader::GetRenderInfo(uint8_t* cache, const size_t size) {
-        return std::reinterpret_pointer_cast<uint8_t>(std::make_shared<TextRenderInfo>());
-    }
-    std::shared_ptr<uint8_t> TextLoader::GetCacheData() {
-        return std::reinterpret_pointer_cast<uint8_t>(std::make_shared<TextRenderInfo>());
     }
 
     float TextLoader::Orthogonality(const Curve& curve, const Util::Vec2D p, const bool start) {

@@ -100,8 +100,6 @@ namespace Network {
         _receivingFrame = std::make_shared<Websocket::Frame>();
         // Post work for the main thread
         asio::post(_webhandler->_requestHandler, [this, self, frame]() {
-            std::shared_ptr<HTTP::Response> response = std::make_shared<HTTP::Response>();
-
             _webhandler->_websocketHandler(*frame, *this);
         });
     }

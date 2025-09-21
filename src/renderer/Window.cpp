@@ -4,7 +4,9 @@
 namespace Engine {
 namespace Renderer {
     
-    void Window::Init(const uint32_t textureMapSlots, const std::string engineResourceDirectory) {
+    void Window::Init(const uint32_t textureMapSlots, const Util::FileManager& fileManager) {
+        _fileManager = &fileManager;
+
         glfwInit();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -37,7 +39,7 @@ namespace Renderer {
 
         // Rect pipeline
         Vulkan::PipelineCreator rectPipelineInfo;
-        rectPipelineInfo.SetShaders({ (engineResourceDirectory+"/shaders/rect.vert").c_str(), (engineResourceDirectory+"/shaders/rect.frag").c_str() }, "resources/engine/");
+        rectPipelineInfo.SetShaders({ "engine/shaders/rect.vert", "engine/shaders/rect.frag" }, *_fileManager);
         rectPipelineInfo.SetVertexInput({Vulkan::Vertex::UInt }, { Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec3, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::UInt });
         rectPipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
         rectPipelineInfo.SetDescriptorInfo(2, 16, 2, 0);
@@ -47,7 +49,7 @@ namespace Renderer {
 
         // Text pipeline
         Vulkan::PipelineCreator textPipelineInfo;
-        textPipelineInfo.SetShaders({ (engineResourceDirectory+"/shaders/text.vert").c_str(), (engineResourceDirectory+"/shaders/text.frag").c_str() }, "resources/engine/");
+        textPipelineInfo.SetShaders({ "engine/shaders/text.vert", "engine/shaders/text.frag" }, *_fileManager);
         textPipelineInfo.SetVertexInput({Vulkan::Vertex::Vec2 }, { Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec3, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::UInt, Vulkan::Vertex::Float });
         textPipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
         textPipelineInfo.SetDescriptorInfo(2, 16, 2, 0);
@@ -90,7 +92,7 @@ namespace Renderer {
         // Debug pipeline
 #if ENGINE_ENABLE_DEBUG_GRAPHICS
         Vulkan::PipelineCreator debugPipelineInfo;
-        debugPipelineInfo.SetShaders({ (engineResourceDirectory+"/shaders/debug.vert").c_str(), (engineResourceDirectory+"/shaders/debug.frag").c_str() }, "resources/engine/");
+        debugPipelineInfo.SetShaders({ "engine/shaders/debug.vert", "engine/shaders/debug.frag" }, *_fileManager);
         debugPipelineInfo.SetVertexInput({ Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec3 });
         debugPipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
         debugPipelineInfo.SetDescriptorInfo(2, 0, 0, 0);
@@ -256,7 +258,7 @@ namespace Renderer {
         );
     }
     void Window::EndAssetLoading(const size_t textureMapID) {
-        _textureMaps[textureMapID].EndLoading(_vkContext, { &_vkRectPipeline, &_vkTextPipeline }, _engineResourceDirectory);
+        _textureMaps[textureMapID].EndLoading(_vkContext, { &_vkRectPipeline, &_vkTextPipeline }, *_fileManager);
     }
     void Window::CleanupAssets(const size_t textureMapID) {
         _textureMaps[textureMapID].Cleanup(_vkContext, { &_vkRectPipeline, &_vkTextPipeline });

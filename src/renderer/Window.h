@@ -18,6 +18,7 @@
 #include "util/Vec2D.h"
 #include "util/Vec3D.h"
 #include "util/BitMask.h"
+#include "util/FileManager.h"
 
 // The amount of bits the asset vs the texturemap will use of the AssetID
 // Defaults to 24 bits for the asset and 8 bits for the texturemap
@@ -73,7 +74,7 @@ namespace Renderer {
     class Window {
     public:
 
-        void Init(const uint32_t textureMapSlots, const std::string resourceDirectory);
+        void Init(const uint32_t textureMapSlots, const Util::FileManager& fileManager);
         void Cleanup();
 
         bool ShouldClose();
@@ -105,7 +106,7 @@ namespace Renderer {
 #endif
 
     private:
-        std::string _engineResourceDirectory;
+        Util::FileManager const* _fileManager = nullptr;
 
         GLFWwindow* _window = nullptr;
         Vulkan::Context _vkContext;

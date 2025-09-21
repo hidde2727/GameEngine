@@ -8,9 +8,11 @@ namespace Engine {
 
     int Game::Run() {
         try {
+            _fileManager.Init(GetResourceDirectories(), GetCacheDirectory());
             Util::SetDebugGraphicsTargetIfNull(this);
 
             _webhandler.Start(
+                &_fileManager,
                 // HTTP Handler
                 [this] (Network::HTTP::RequestHeader& requestHeader, std::vector<uint8_t>& requestBody, Network::HTTP::Response& response) {
                     this->OnHTTPRequest(requestHeader, requestBody, response);
@@ -38,7 +40,7 @@ namespace Engine {
                     this->_scene->OnWebsocketStop(connection, uuid);
                 }
             );
-            _window.Init(2, GetEngineResourceDirectory());
+            _window.Init(2, _fileManager);
 
             _window.StartAssetLoading(ENGINE_GAME_TEXTUREMAP_ID);
             LoadAssets();
@@ -58,12 +60,16 @@ namespace Engine {
             _webhandler.Stop();
             _window.Cleanup();
         } catch(std::exception exc) {
+#ifndef __DEBUG__
+            WARNING(exc.what())
             try {
                 INFO(_window.GetVulkanDeviceLimits())
             } catch(std::exception exc) {}
+#endif
+            WARNING(exc.what())
+            _webhandler.Stop();
             _window.Cleanup();
 
-            WARNING(exc.what())
             LOG("Press any key to continue . . .")
             std::cin.get();
 
