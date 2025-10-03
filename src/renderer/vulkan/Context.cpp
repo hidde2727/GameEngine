@@ -23,22 +23,22 @@ namespace Vulkan{
     void Context::Init(ContextCreationInfo& info, GLFWwindow* window) {
         // Create instance
         VkResult result = vkCreateInstance(&info._instanceInfo, nullptr, &_instance);
-        ASSERT(result != VK_SUCCESS, "Failed to create vulkan instance");
+        ASSERT(result == VK_SUCCESS, "[Vulkan::Context] Failed to create vulkan instance");
 
         if(info._debugMessengerInfo.pfnUserCallback != nullptr) {
             result = CreateDebugUtilsMessengerEXT(_instance, &info._debugMessengerInfo, nullptr, &_debugMessenger);
-            ASSERT(result != VK_SUCCESS, "Failed to create vulkan debug messenger");
+            ASSERT(result == VK_SUCCESS, "[Vulkan::Context] Failed to create vulkan debug messenger");
         }
 
         if(window) {
             result = glfwCreateWindowSurface(_instance, window, nullptr, &_surfaceKHR);
-            ASSERT(result != VK_SUCCESS, "Failed to create vulkan surface for GLFW window");
+            ASSERT(result == VK_SUCCESS, "[Vulkan::Context] Failed to create vulkan surface for GLFW window");
         }
 
         // Get all available devices
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(_instance, &deviceCount, nullptr);
-        ASSERT(deviceCount==0, "No vulkan physical devices found");
+        ASSERT(deviceCount>0, "[Vulkan::Context] No vulkan physical devices found");
         std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
         vkEnumeratePhysicalDevices(_instance, &deviceCount, physicalDevices.data());
 
@@ -47,7 +47,7 @@ namespace Vulkan{
         for(const VkPhysicalDevice device : physicalDevices) {
             candidates.insert(std::pair<int, VkPhysicalDevice>(RateDevice(device, info), device));
         }
-        ASSERT(candidates.rbegin()->first <= 0, "No fitting vulkan physical device found");
+        ASSERT(candidates.rbegin()->first > 0, "[Vulkan::Context] No fitting vulkan physical device found");
         _physicalDevice = candidates.rbegin()->second;
 
         // Create the logical device
@@ -55,7 +55,7 @@ namespace Vulkan{
         uint32_t kHRPresentQueue = UINT32_MAX; // Used to check if the KHR present queue is alone in its queue family
         for(size_t i = 0; i < info._queueInfos.size(); i++) {
             QueueFamilyIndices queueFamily=GetQueueFamily(info._queues[i], 1);
-            ASSERT(!queueFamily.has_value(), "No queue family found for a selected vulkan physical device");
+            ASSERT(queueFamily.has_value(), "[Vulkan::Context] No queue family found for the selected physical device");
             uniqueQueueFamilies.insert(queueFamily.value());
             _queueFamilies[info._queues[i]] = queueFamily.value();
             if(info._queues[i] == QueueType::KHRPresentQueue) {
@@ -75,7 +75,7 @@ namespace Vulkan{
         info._deviceInfo.queueCreateInfoCount = (uint32_t)info._queueInfos.size();
 
         result = vkCreateDevice(_physicalDevice, &info._deviceInfo, nullptr, &_device);
-        ASSERT(result, "Failed to create vulkan device");
+        ASSERT(result == VK_SUCCESS, "[Vulkan::Context] Failed to create vulkan device");
 
         // Create the queues
         std::map<uint32_t, VkQueue> queueFamilyToQueue;
@@ -91,7 +91,7 @@ namespace Vulkan{
                 poolInfo.queueFamilyIndex = queueFamily;
                 result = vkCreateCommandPool(_device, &poolInfo, nullptr, &queueFamilyToCommandPool[queueFamily]);
                 _commandPools.push_back(queueFamilyToCommandPool[queueFamily]);
-                ASSERT(result!=VK_SUCCESS, "Failed to create vulkan command pool");
+                ASSERT(result == VK_SUCCESS, "[Vulkan::Context] Failed to create vulkan command pool");
             }
         }
         for(const auto&[type, queueFamily] : _queueFamilies) {
@@ -237,8 +237,8 @@ namespace Vulkan{
 		vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamilyCount, queueFamilies.data());
         int i = 0;
         for (const auto& queueFamily : queueFamilies) {
-            if(queueType==QueueType::KHRPresentQueue) {
-                ASSERT(_surfaceKHR==VK_NULL_HANDLE, "Vulkan surface not set");
+            if(queueType == QueueType::KHRPresentQueue) {
+                ASSERT(_surfaceKHR != VK_NULL_HANDLE, "[Vulkan::Context] Vulkan surface not set");
                 VkBool32 KHRPresentSupport = false;
 				vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, i, _surfaceKHR, &KHRPresentSupport);
                 if(KHRPresentSupport) return QueueFamilyIndices(i);
@@ -331,7 +331,7 @@ namespace Vulkan{
             }
             if(!found) { notFound=true; break; }
         }
-        ASSERT(notFound, "Requested validation layer not available")
+        ASSERT(!notFound, "[Vulkan::ContextCreateInfo] Requested validation layer not available")
 
         _instanceInfo.enabledLayerCount = (uint32_t)_validationLayers.size();
         _instanceInfo.ppEnabledLayerNames = _validationLayers.data();

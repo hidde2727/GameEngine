@@ -8,8 +8,8 @@ namespace Renderer {
     }
     
     void ImageLoader::Init() {
-        ASSERT(!_fileManager->DoesFileExists(_file), "ImageLoader received an image that does not exist (" + _file + ")")
-        ASSERT(!_fileManager->IsFileRegular(_file), "ImageLoader received an invalid file (" + _file + ")")
+        ASSERT(_fileManager->DoesFileExists(_file), "[Renderer::ImageLoader] Received an image that does not exist (" + _file + ")")
+        ASSERT(_fileManager->IsFileRegular(_file), "[Renderer::ImageLoader] Received an invalid file (" + _file + ")")
     }
     size_t ImageLoader::GetAmountTextures() {
         return 1;
@@ -17,7 +17,7 @@ namespace Renderer {
     void ImageLoader::SetTextureSizes(Util::Vec3U32* start) {
         int x, y, n;
         bool success = stbi_info(_fileManager->GetFileLocation(_file).c_str(), &x, &y, &n);
-        ASSERT(!success, "Failed to load image info with the stbi_info function:\n" + std::string(stbi_failure_reason()))
+        ASSERT(success, "[Renderer::ImageLoader] Failed to load image info with the stbi_info function:\n" + std::string(stbi_failure_reason()))
 
         *start = Util::Vec3U32(x, y, 0);
     }

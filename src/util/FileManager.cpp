@@ -9,7 +9,7 @@ namespace Util {
             _folders.push_back(std::filesystem::path(folder));
         }
         _cacheFolder = cacheFolder;
-        LOG("[FileManager] Create cache directory at '" + std::filesystem::path(_cacheFolder).string() + "'")
+        LOG("[Util::FileManager] Create cache directory at '" + std::filesystem::path(_cacheFolder).string() + "'")
         std::filesystem::create_directory(_cacheFolder);
     }
     void FileManager::Init(const std::vector<std::string>& folders, const std::string cacheFolder) {
@@ -17,7 +17,7 @@ namespace Util {
             _folders.push_back(std::filesystem::path(folder));
         }
         _cacheFolder = cacheFolder;
-        LOG("[FileManager] Create cache directory at '" + std::filesystem::path(_cacheFolder).string() + "'")
+        LOG("[Util::FileManager] Create cache directory at '" + std::filesystem::path(_cacheFolder).string() + "'")
         std::filesystem::create_directory(_cacheFolder);
     }
     
@@ -28,14 +28,14 @@ namespace Util {
 
     std::filesystem::file_time_type FileManager::GetLastCacheChange(const std::string cacheID) const {
         std::string cacheLocation = GetCacheLocation(cacheID);
-        ASSERT(!std::filesystem::exists(cacheLocation), "[Util::FileManager] Cannot get the last cache change of a item that is not cached")
+        ASSERT(std::filesystem::exists(cacheLocation), "[Util::FileManager] Cannot get the last cache change of a item that is not cached")
         return std::filesystem::last_write_time(cacheLocation);
     }
 
     bool FileManager::CanUseCache(const std::string cacheID, const std::initializer_list<std::string> cacheFileDependency) const {
         for(std::string filePath : cacheFileDependency) {
             std::string fileLocation = GetFileLocation(filePath);
-            ASSERT(!std::filesystem::exists(fileLocation), "[Util::Filemanager] Specified cache dependency does not exists (FileManager)")
+            ASSERT(std::filesystem::exists(fileLocation), "[Util::Filemanager] Specified cache dependency does not exists (FileManager)")
             std::string cacheLocation = GetCacheLocation(cacheID);
             if(!std::filesystem::exists(cacheLocation)) return false;
             std::filesystem::file_time_type lastFileChange = std::filesystem::last_write_time(fileLocation);
@@ -47,7 +47,7 @@ namespace Util {
 
     std::ifstream FileManager::GetCachedFile(const std::string cacheID, const std::ios_base::openmode inputMode) const {
         std::ifstream inputStream(GetCacheLocation(cacheID), inputMode);
-        ASSERT(inputStream.fail(), ("[Util::Filemanager] Failed to open input stream for file '" + cacheID + "' because : \n\t" + std::string(strerror(errno))).c_str());
+        ASSERT(!inputStream.fail(), ("[Util::Filemanager] Failed to open input stream for cahceID '" + cacheID + "' because : \n\t" + std::string(strerror(errno))).c_str());
         return inputStream;
     }
 
@@ -59,11 +59,11 @@ namespace Util {
         std::string cacheLocation = GetCacheLocation(cacheID);
         {
             std::ofstream outputStream(cacheLocation.c_str(), std::ios::app); // Create the file if not exists
-            ASSERT(outputStream.fail(), ("[Util::Filemanager] Failed to create file '" + cacheLocation + "' because : \n\t" + std::string(strerror(errno))).c_str());
+            ASSERT(!outputStream.fail(), ("[Util::Filemanager] Failed to create file '" + cacheLocation + "' because : \n\t" + std::string(strerror(errno))).c_str());
             outputStream.close();
         }
         std::ofstream outputStream(cacheLocation.c_str(), outputMode);
-        ASSERT(outputStream.fail(), ("[Util::Filemanager] Failed to open output stream for file '" + cacheID + "' because : \n\t" + std::string(strerror(errno))).c_str());
+        ASSERT(!outputStream.fail(), ("[Util::Filemanager] Failed to open output stream for file '" + cacheID + "' because : \n\t" + std::string(strerror(errno))).c_str());
         return outputStream;
     }
 
@@ -86,7 +86,7 @@ namespace Util {
 
     std::ifstream FileManager::GetFile(const std::string path, const std::ios_base::openmode inputMode) const {
         std::ifstream inputStream(GetFileLocation(path), inputMode);
-        ASSERT(inputStream.fail(), ("[Util::Filemanager] Failed to open input stream for file '" + GetFileLocation(path) + "' because : \n\t" + std::string(strerror(errno))).c_str());
+        ASSERT(!inputStream.fail(), ("[Util::Filemanager] Failed to open input stream for file '" + GetFileLocation(path) + "' because : \n\t" + std::string(strerror(errno))).c_str());
         return inputStream;
     }
     

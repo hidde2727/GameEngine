@@ -3,7 +3,7 @@
 namespace Engine {
 namespace Network {
     
-    WebHandler::WebHandler() :  _acceptor(_context) {
+    WebHandler::WebHandler() : _acceptor(_context) {
     }
 
     void WebHandler::Start(
@@ -26,24 +26,21 @@ namespace Network {
         _fileManager = fileManager;
         try {
             _localAddress = GetLocalAdress();
-            LOG("[WebHandler] Opening for web requests on 'http://" + _localAddress + ":8000'")
+            LOG("[Network::WebHandler] Opening for web requests on 'http://" + _localAddress + ":8000'")
         } catch(std::exception exc) {
-            WARNING("Failed to get the local adress, are you connected to the internet?")
+            WARNING("[Network::WebHandler] Failed to get the local adress, are you connected to the internet?")
             return;
         }
-        try {
-            asio::ip::tcp::resolver resolver(_context);
-            asio::ip::tcp::endpoint endpoint = *resolver.resolve(_localAddress, "8000").begin();
-            _acceptor.open(endpoint.protocol());
-            _acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
-            _acceptor.bind(endpoint);
-            _acceptor.listen();
+        asio::ip::tcp::resolver resolver(_context);
+        asio::ip::tcp::endpoint endpoint(asio::ip::address_v4::any(), 8000);
+        _acceptor.open(endpoint.protocol());
+        _acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
+        _acceptor.bind(endpoint);
+        _acceptor.listen();
+        LOG(_acceptor.local_endpoint().address().to_string() + ":" + std::to_string(_acceptor.local_endpoint().port()) );
 
-            AwaitConnection();
-            _thread = std::thread([&] { try { _context.run(); } catch (std::exception err) { THROW("Webhandler experienced an error:\n" + std::string(err.what())); return 1;} return 0; });
-        } catch(asio::system_error err) {
-            WARNING("Failed to open an acceptor to the adress '" + _localAddress + "'. Because: '" + err.code().message() + "'")
-        }
+        AwaitConnection();
+        _thread = std::thread([&] { try { _context.run(); } catch (std::exception err) { THROW("[Network::Webhandler] Experienced an error:\n\t\t" + std::string(err.what())); return 1;} return 0; });
     }
     void WebHandler::Stop() {
         _context.stop();
@@ -56,18 +53,20 @@ namespace Network {
     }
 
     void WebHandler::AwaitConnection() {
+        if(ENGINE_NETWORK_VERBOSE_HTTP) LOG("[Network::WebHandler] Awaiting connections")
 		_acceptor.async_accept(
             asio::make_strand(_context),
             [this](const std::error_code& ec, asio::ip::tcp::socket socket)
             {
-                if (!_acceptor.is_open()) return;
+                AwaitConnection();
                 if (!ec) {
                     std::shared_ptr<HTTPConnection>newConnection = std::make_shared<HTTPConnection>(this, std::move(socket));
                     size_t uuid = reinterpret_cast<size_t>(newConnection.get());// Using the memory adress as the uuid (lifetime of the uuid and the unique_ptr are the same, thus the uuid is unique)
+                    if(ENGINE_NETWORK_VERBOSE_HTTP) LOG("[Network::WebHandler] Starting a connection with id: '" + std::to_string(uuid) + "'")
                     newConnection->Start(uuid);
                     _httpConnections[uuid] = std::move(newConnection);
+                    if(ENGINE_NETWORK_VERBOSE_HTTP) LOG("[Network::WebHandler] Started a connection with id: '" + std::to_string(uuid) + "'")
                 }
-                AwaitConnection();
             }
         );
         asio::detail::event event;
@@ -90,9 +89,10 @@ namespace Network {
         size_t uuid = reinterpret_cast<size_t>(newConnection.get());// Using the memory adress as the uuid (lifetime of the uuid and the unique_ptr are the same, thus the uuid is unique)
         newConnection->Start(uuid);
         _websocketConnections[uuid] = std::move(newConnection);
+        if(ENGINE_NETWORK_VERBOSE_HTTP_WEBSOCKET) LOG("[Network::WebHandler] Upgraded connection (" + std::to_string(uuid) + ")")
         // Post work for the main thread
         asio::post(_requestHandler, [this, &newConnection, uuid, &requestHeader]() {
-            _onWebsocketStart(*newConnection, uuid, requestHeader);
+            _onWebsocketStart(*newConnection.get(), uuid, requestHeader);
         });
     }
 

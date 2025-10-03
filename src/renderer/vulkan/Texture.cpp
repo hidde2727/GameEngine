@@ -28,7 +28,7 @@ namespace Vulkan {
 
         VmaAllocationInfo allocationInfo;
         VkResult result = vmaCreateImage(context._allocator, &imageInfo, &allocInfo, &_image, &_allocation, &allocationInfo);
-        ASSERT(result != VK_SUCCESS, "Failed to create a vulkan image with VMA")
+        ASSERT(result == VK_SUCCESS, "[Vulkan::Texture] Failed to create a vulkan image with VMA")
         _rectSize = size;
         _size = allocationInfo.size;
 
@@ -43,7 +43,7 @@ namespace Vulkan {
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount = 1;
         result = vkCreateImageView(context._device, &viewInfo, nullptr, &_imageView);
-        ASSERT(result != VK_SUCCESS, "Failed to create a vulkan image view for texture")
+        ASSERT(result == VK_SUCCESS, "[Vulkan::Texture] Failed to create a vulkan image view for texture")
     }
     void Texture::Cleanup(Context& context) {
         vkDestroyImageView(context._device, _imageView, nullptr);
@@ -108,7 +108,7 @@ namespace Vulkan {
         samplerInfo.minLod = 0.0f;
         samplerInfo.maxLod = 0.0f;
         const VkResult result = vkCreateSampler(context._device, &samplerInfo, nullptr, &_sampler);
-        ASSERT(result != VK_SUCCESS, "Failed to create vulkan image sampler")
+        ASSERT(result == VK_SUCCESS, "[Vulkan::TextureSampler] Failed to create vulkan image sampler")
     }
     void TextureSampler::Cleanup(const Context& context) {
         vkDestroySampler(context._device, _sampler, nullptr);

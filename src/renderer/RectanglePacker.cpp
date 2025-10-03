@@ -4,11 +4,11 @@ namespace Engine {
 namespace Renderer {
 
     void RectanglePacker::Pack() {
-        ASSERT(_sizes.size() == 0, "Cannot pack rectangles without an input")
+        ASSERT(_sizes.size() > 0, "[Renderer::RectanglePacker] Cannot pack rectangles without an input")
         // Give every rectangle his index
         for(uint32_t i = 0; i < _sizes.size(); i++) {
             _sizes[i].z = i;
-            ASSERT(_sizes[i].x > _maxBinSize.x || _sizes[i].y > _maxBinSize.y, "Cannot pack rectangles that are bigger then the maximum bin size");
+            ASSERT(_sizes[i].x < _maxBinSize.x && _sizes[i].y < _maxBinSize.y, "[Renderer::RectanglePacker] Cannot pack rectangles that are bigger then the maximum bin size");
         }
         // Sort the rectangles
         switch(_sortingAlgorithm) {
@@ -24,7 +24,7 @@ namespace Renderer {
             case PackingAlgorithm::Shelf: PackShelf(); break;
             case PackingAlgorithm::Skyline: PackSkyline(); break;
             case PackingAlgorithm::MaxRects: PackMaxRects(); break;
-            default: THROW("No packing algorithm specified for RectanglePacker");
+            default: THROW("[Renderer::RectanglePacker] No packing algorithm specified for RectanglePacker");
         }
     }
 
@@ -58,10 +58,10 @@ namespace Renderer {
         _binSizes.push_back(Util::Vec2U32(binWidth, y+rowHeight));
     }
     void RectanglePacker::PackSkyline() {
-        THROW("Sorry, skyline packing is not implemented yet");
+        THROW("[Renderer::RectanglePacker] Sorry, skyline packing is not implemented yet");
     }
     void RectanglePacker::PackMaxRects() {
-        THROW("Sorry, maxrects packing is not implemented yet");
+        THROW("[Renderer::RectanglePacker] Sorry, maxrects packing is not implemented yet");
     }
 
 }

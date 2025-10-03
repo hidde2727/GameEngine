@@ -10,7 +10,7 @@ namespace Engine {
         try {
             _fileManager.Init(GetResourceDirectories(), GetCacheDirectory());
             Util::SetDebugGraphicsTargetIfNull(this);
-
+            
             _webhandler.Start(
                 &_fileManager,
                 // HTTP Handler
@@ -49,7 +49,7 @@ namespace Engine {
 
 
             while(!_window.ShouldClose()) {
-                ASSERT(_scene==nullptr, "No scene bound, there should always be a scene bound")
+                ASSERT(_scene!=nullptr, "[Game] No scene bound, there should always be a scene bound")
                 _webhandler.HandleRequests();
                 _scene->OnFrame();
                 _physics.Update(_scene->_entt, 1/60.f);

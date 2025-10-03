@@ -9,8 +9,8 @@ namespace Websocket {
         return asio::mutable_buffer(_buffer.data(), 2);
     }
     void Frame::OnHeaderRead() {
-        if((_buffer[0]&0b10000000) == 0) { CloseConnection(StatusCode::PolicyViolated); return WARNING("The websocket parser is not capable of handeling split message frames") }
-        if((_buffer[0]&0b01110000) != 0) { CloseConnection(StatusCode::UnsupportedExtension); return WARNING("The websocket parser received a message frame with websocket extensions it does not support") }
+        if((_buffer[0]&0b10000000) == 0) { CloseConnection(StatusCode::PolicyViolated); return WARNING("[Websocket::Frame] Parser is not capable of handeling split message frames") }
+        if((_buffer[0]&0b01110000) != 0) { CloseConnection(StatusCode::UnsupportedExtension); return WARNING("[Websocket::Frame] Parser received a message frame with a websocket extensions it does not support") }
         _code = static_cast<Opcode>(_buffer[0]&0b00001111);
         _masked = _buffer[1]>>7;
         _bodySize = _buffer[1]&0b01111111;
@@ -41,7 +41,7 @@ namespace Websocket {
             _mask[2] = _buffer[offset+2];
             _mask[3] = _buffer[offset+3];
         }
-        if(_bodySize > ENGINE_NETWORK_MAXIMUM_WEBSOCKET_BODY) { CloseConnection(StatusCode::MessageTooBig); WARNING("The websocket parser received data that was bigger then ENGINE_NETWORK_MAXIMUM_WEBSOCKET_BODY") }
+        if(_bodySize > ENGINE_NETWORK_MAXIMUM_WEBSOCKET_BODY) { CloseConnection(StatusCode::MessageTooBig); WARNING("[Websocket::Frame] Parser received data that was bigger then ENGINE_NETWORK_MAXIMUM_WEBSOCKET_BODY") }
     }
     asio::mutable_buffer Frame::GetBodyBuffer() {
         _body.resize(_bodySize);
@@ -84,7 +84,7 @@ namespace Websocket {
             _buffer.push_back(*(sizePtr+2));
             _buffer.push_back(*(sizePtr+3));
         } else {
-            THROW("A websocket frame received a message of a size to big to send in a websocket message (split messages are not supported)")
+            THROW("[Websocket::Frame] Received a message with a size too big to send in a websocket message (split messages are not supported)")
         }
         std::vector<asio::const_buffer> buffers;
         buffers.push_back(asio::const_buffer(_buffer.data(), _buffer.size()));

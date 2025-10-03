@@ -55,7 +55,7 @@ namespace Vulkan {
         renderPassInfo.pDependencies = dependencies.data();
 
         VkResult result = vkCreateRenderPass(context._device, &renderPassInfo, nullptr, &_renderPass);
-        ASSERT(result!=VK_SUCCESS, "Failed to create vulkan render pass");
+        ASSERT(result==VK_SUCCESS, "[Vulkan::Renderpass] Failed to create vulkan render pass");
 
     }
 

@@ -21,7 +21,7 @@ namespace Renderer {
 		_state._pointSize = pointSize;
 		_state._pixelsPerEM = (uint32_t)(unitsPerEM * _state._pointScale);
 		if (_controlValuesScaled)
-			THROW("Please use a version of the TTFInstructionExecutor where the CVT table hasn't been scaled");
+			THROW("[Renderer::TTFInstructionExecutor] [Renderer::TTFInstructionExecutor] Please use a version of the TTFInstructionExecutor where the CVT table hasn't been scaled");
 		for (F26Dot6& value : _controlValues) {
 			value = (F26Dot6)(value * _state._pointScale);
 		}
@@ -167,21 +167,21 @@ namespace Renderer {
 	}
 	inline int32_t TTFInstructionExecutor::GetNextStackInt32() {
 		if (_interpreterStack.empty())
-			THROW("Can't retrieve a value of an empty stack");
+			THROW("[Renderer::TTFInstructionExecutor] Can't retrieve a value of an empty stack");
 		int32_t value = _interpreterStack.front();
 		_interpreterStack.pop_front();
 		return value;
 	}
 	inline uint32_t TTFInstructionExecutor::GetNextStackUInt32() {
 		if (_interpreterStack.empty())
-			THROW("Can't retrieve a value of an empty stack");
+			THROW("[Renderer::TTFInstructionExecutor] Can't retrieve a value of an empty stack");
 		int32_t value = _interpreterStack.front();
 		_interpreterStack.pop_front();
 		return static_cast<uint32_t>(value);
 	}
 	inline F26Dot6 TTFInstructionExecutor::GetNextStackF26Dot6() {
 		if (_interpreterStack.empty())
-			THROW("Can't retrieve a value of an empty stack");
+			THROW("[Renderer::TTFInstructionExecutor] Can't retrieve a value of an empty stack");
 		int32_t value = _interpreterStack.front();
 		_interpreterStack.pop_front();
 		return value;
@@ -189,14 +189,14 @@ namespace Renderer {
 
 	// Point getters and setters
 	inline Util::Vec2<F26Dot6> TTFInstructionExecutor::GetPoint(const uint32_t p, const uint32_t zone) {
-		if (zone == 1) { if (p >= 0 && p < _points.size()) return _points[p]; else THROW("Invalid point, outside of range of valid points"); }
-		else if (zone == 0) { if (p >= 0 && p < _state._twilightPoints.size()) return _state._twilightPoints[p]; else THROW("Invalid point, outside of range of valid twilight points"); }
-		else THROW("Invalid zone");
+		if (zone == 1) { if (p >= 0 && p < _points.size()) return _points[p]; else THROW("[Renderer::TTFInstructionExecutor] Invalid point, outside of range of valid points"); }
+		else if (zone == 0) { if (p >= 0 && p < _state._twilightPoints.size()) return _state._twilightPoints[p]; else THROW("[Renderer::TTFInstructionExecutor] Invalid point, outside of range of valid twilight points"); }
+		else THROW("[Renderer::TTFInstructionExecutor] Invalid zone");
 	}
 	inline Util::Vec2<F26Dot6> TTFInstructionExecutor::GetOriginalPoint(const uint32_t p, const uint32_t zone) {
-		if (zone == 1) { if (p >= 0 && p < _points.size()) return _originalPoints[p]; else THROW("Invalid point, outside of range of valid points"); }
+		if (zone == 1) { if (p >= 0 && p < _points.size()) return _originalPoints[p]; else THROW("[Renderer::TTFInstructionExecutor] Invalid point, outside of range of valid points"); }
 		else if (zone == 0) { return _state._originalTwilightPoints[p]; }
-		else THROW("Invalid zone");
+		else THROW("[Renderer::TTFInstructionExecutor] Invalid zone");
 	}
 	inline void TTFInstructionExecutor::SetPoint(const uint32_t p, const uint32_t zone, Util::Vec2<F26Dot6> value) {
 		if (zone == 1) {
@@ -204,14 +204,14 @@ namespace Renderer {
 				_points[p] = value;
 				SetPointTouched(p, zone);
 			}
-			else THROW("Invalid point, outside of range of valid points");
+			else THROW("[Renderer::TTFInstructionExecutor] Invalid point, outside of range of valid points");
 		}
 		else if (zone == 0) {
 			if (p > _state._twilightPoints.size())
 				_state._twilightPoints.resize(p+1);
 			_state._twilightPoints[p] = value;
 		}
-		else THROW("Invalid zone");
+		else THROW("[Renderer::TTFInstructionExecutor] Invalid zone");
 	}
 	inline void TTFInstructionExecutor::AddToPoint(const uint32_t p, const uint32_t zone, Util::Vec2<F26Dot6> additive) {
 		AddToPointWithoutTouching(p, zone, additive);
@@ -220,13 +220,13 @@ namespace Renderer {
 	inline void TTFInstructionExecutor::AddToPointWithoutTouching(const uint32_t p, const uint32_t zone, Util::Vec2<F26Dot6> additive) {
 		if (zone == 1) {
 			if (p >= 0 && p < _points.size()) { _points[p] += additive; }
-			else THROW("Invalid point, outside of range of valid points");
+			else THROW("[Renderer::TTFInstructionExecutor] Invalid point, outside of range of valid points");
 		}
 		else if (zone == 0) {
-			if (p < 0 || p > _state._twilightPoints.size()) THROW("Invalid point, outside of range of valid twilight points");
+			if (p < 0 || p > _state._twilightPoints.size()) THROW("[Renderer::TTFInstructionExecutor] Invalid point, outside of range of valid twilight points");
 			_state._twilightPoints[p] += additive;
 		}
-		else THROW("Invalid zone");
+		else THROW("[Renderer::TTFInstructionExecutor] Invalid zone");
 	}
 	inline void TTFInstructionExecutor::SetPointTouched(const uint32_t p, const uint32_t zone) {
 		SetPointTouched(p, zone, _state._freedomVector.x != 0, _state._freedomVector.y != 0);
@@ -248,7 +248,7 @@ namespace Renderer {
 	}
 	inline void TTFInstructionExecutor::MovePointToProjectedValue(const uint32_t p, const uint32_t zone, const F26Dot6 value) {
 		if (_state._freedomVector * _state._projectionVector == 0)
-			THROW("Freedom and projection vector can't be orthoganol when moving");
+			THROW("[Renderer::TTFInstructionExecutor] Freedom and projection vector can't be orthoganol when moving");
 
 		Util::Vec2<F26Dot6> point = GetPoint(p, zone);
 		float multiplicationFactor = (value - ProjectPoint(point)) / (_state._freedomVector * _state._projectionVector);
@@ -262,11 +262,11 @@ namespace Renderer {
 	}
 	// CVT
 	inline F26Dot6 TTFInstructionExecutor::GetCVTValue(const uint32_t n) {
-		if (n >= _controlValues.size()) THROW("Illegal CVT index");
+		if (n >= _controlValues.size()) THROW("[Renderer::TTFInstructionExecutor] Illegal CVT index");
 		return _controlValues[n];
 	}
 	inline void TTFInstructionExecutor::SetCVTValue(const uint32_t n, const F26Dot6 value) {
-		if (n >= _controlValues.size()) THROW("Illegal CVT index");
+		if (n >= _controlValues.size()) THROW("[Renderer::TTFInstructionExecutor] Illegal CVT index");
 		_controlValues[n] = value;
 	}
 	// Utils
@@ -284,7 +284,7 @@ namespace Renderer {
 			ExecuteCommand(GetNextInstructionByte());
 		}
 		_instructionStream.clear();
-		if (!_interpreterStack.empty()) WARNING("TTF interpreter stack isn't empty");
+		if (!_interpreterStack.empty()) WARNING("[Renderer::TTFInstructionExecutor] Stack isn't empty");
 		_interpreterStack.clear();
 	}
 
@@ -539,7 +539,7 @@ namespace Renderer {
 		// case 0x91: GetVariation(); break;
 
 		default:
-			THROW("Unkown TTF instruction = " + std::to_string(command));
+			THROW("[Renderer::TTFInstructionExecutor] Unkown TTF instruction = " + std::to_string(command));
 		}
 	}
 
@@ -575,7 +575,7 @@ namespace Renderer {
 	void TTFInstructionExecutor::ReadStore() {
 		uint32_t location = GetNextStackUInt32();
 		if (location >= _storageArea.size())
-			THROW("Reading invalid value");
+			THROW("[Renderer::TTFInstructionExecutor] Reading invalid value");
 		PushStack(_storageArea[location]);
 	}
 	void TTFInstructionExecutor::WriteStore() {
@@ -604,7 +604,7 @@ namespace Renderer {
 	void TTFInstructionExecutor::ReadCVT() {
 		uint32_t location = GetNextStackUInt32();
 		if (location >= _controlValues.size())
-			THROW("Reading invalid CVT value");
+			THROW("[Renderer::TTFInstructionExecutor] Reading invalid CVT value");
 		PushStack(_controlValues[location]);
 	}
 
@@ -658,7 +658,7 @@ namespace Renderer {
 			_state._projectionVector = _state._projectionVector.rotatedNegative90Degree();
 
 		if(_state._projectionVector.x == 0 && _state._projectionVector.y == 0)
-			WARNING("Received points that are the same")
+			WARNING("[Renderer::TTFInstructionExecutor] Received points that are the same")
 
 		_state._dualProjectionVector = _state._projectionVector;
 	}
@@ -676,7 +676,7 @@ namespace Renderer {
 			_state._freedomVector = _state._freedomVector.rotatedNegative90Degree();
 
 		if (_state._freedomVector.x == 0 && _state._freedomVector.y == 0)
-			WARNING("Received points that are the same")
+			WARNING("[Renderer::TTFInstructionExecutor] Received points that are the same")
 	}
 	void TTFInstructionExecutor::SetFreedomVectorToProjectionVector() {
 		_state._freedomVector = _state._projectionVector;
@@ -695,7 +695,7 @@ namespace Renderer {
 			_state._dualProjectionVector = _state._dualProjectionVector.rotatedNegative90Degree();
 
 		if (_state._dualProjectionVector.x == 0 && _state._dualProjectionVector.y == 0)
-			WARNING("Received points that are the same")
+			WARNING("[Renderer::TTFInstructionExecutor] Received points that are the same")
 
 		Util::Vec2<F26Dot6> point1 = GetPoint(p1, _state._zonePointer2);
 		Util::Vec2<F26Dot6> point2 = GetPoint(p2, _state._zonePointer1);
@@ -707,7 +707,7 @@ namespace Renderer {
 			_state._projectionVector = _state._projectionVector.rotatedNegative90Degree();
 
 		if (_state._projectionVector.x == 0 && _state._projectionVector.y == 0)
-			WARNING("Received points that are the same")
+			WARNING("[Renderer::TTFInstructionExecutor] Received points that are the same")
 	}
 	void TTFInstructionExecutor::SetProjectionVectorFromStack() {
 		uint32_t y = GetNextStackUInt32();
@@ -747,24 +747,24 @@ namespace Renderer {
 	void TTFInstructionExecutor::SetZonePointer0() {
 		_state._zonePointer0 = GetNextStackInt32();
 		if (_state._zonePointer0 != 0 && _state._zonePointer0 != 1)
-			THROW("Invalid zone given");
+			THROW("[Renderer::TTFInstructionExecutor] Invalid zone given");
 	}
 	void TTFInstructionExecutor::SetZonePointer1() {
 		_state._zonePointer1 = GetNextStackInt32();
 		if (_state._zonePointer1 != 0 && _state._zonePointer1 != 1)
-			THROW("Invalid zone given");
+			THROW("[Renderer::TTFInstructionExecutor] Invalid zone given");
 	}
 	void TTFInstructionExecutor::SetZonePointer2() {
 		_state._zonePointer2 = GetNextStackInt32();
 		if (_state._zonePointer2 != 0 && _state._zonePointer2 != 1)
-			THROW("Invalid zone given");
+			THROW("[Renderer::TTFInstructionExecutor] Invalid zone given");
 	}
 	void TTFInstructionExecutor::SetZonePointerS() {
 		_state._zonePointer0 = GetNextStackInt32();
 		_state._zonePointer1 = _state._zonePointer0;
 		_state._zonePointer2 = _state._zonePointer0;
 		if (_state._zonePointer0 != 0 && _state._zonePointer0 != 1)
-			THROW("Invalid zone given");
+			THROW("[Renderer::TTFInstructionExecutor] Invalid zone given");
 	}
 
 	// Rounding commands
@@ -800,7 +800,7 @@ namespace Renderer {
 		case 0: _state._superRoundPeriod = gridPeriod / 2.f; break;
 		case 1: _state._superRoundPeriod = gridPeriod;		  break;
 		case 2: _state._superRoundPeriod = gridPeriod * 2;	  break;
-		case 3: THROW("Invalid period for super round"); break;
+		case 3: THROW("[Renderer::TTFInstructionExecutor] Invalid period for super round"); break;
 		}
 		switch ((n & 0b00110000) >> 4) {
 		case 0: _state._superRoundPhase = 0; break;
@@ -838,15 +838,15 @@ namespace Renderer {
 	void TTFInstructionExecutor::SetInstructionExecutionControl() {
 		int32_t selectorFlag = GetNextStackInt32();
 		uint32_t value = GetNextStackUInt32();
-		THROW("SetInstructionExecutionControl not implemented yet");
+		THROW("[Renderer::TTFInstructionExecutor] SetInstructionExecutionControl not implemented yet");
 	}
 	void TTFInstructionExecutor::SetScanConversionControl() {
 		int32_t flags = GetNextStackInt32();
-		WARNING("SetScanConversionControl not implemented yet (" + std::to_string(flags) + ")");
+		WARNING("[Renderer::TTFInstructionExecutor] SetScanConversionControl not implemented yet (" + std::to_string(flags) + ")");
 	}
 	void TTFInstructionExecutor::SetScanType() {
 		int32_t n = GetNextStackInt32();
-		WARNING("SetScanType not implemented yet (" + std::to_string(n) + ")");
+		WARNING("[Renderer::TTFInstructionExecutor] SetScanType not implemented yet (" + std::to_string(n) + ")");
 	}
 	void TTFInstructionExecutor::SetCVTCutIn() {
 		_state._CVTCutIn = GetNextStackF26Dot6();
@@ -912,7 +912,7 @@ namespace Renderer {
 		}
 	}
 	void TTFInstructionExecutor::MeasurePixelsPerEM() {
-		// TODO: WARNING("NEEDS CHECKING, PROJECTION VECTOR SHOULD BE TAKEN INTO ACCOUNT"); // ppem = pointSize * dpi / 72
+		// TODO: WARNING("[Renderer::TTFInstructionExecutor] NEEDS CHECKING, PROJECTION VECTOR SHOULD BE TAKEN INTO ACCOUNT"); // ppem = pointSize * dpi / 72
 		PushStack(_state._pointSize);
 	}
 	void TTFInstructionExecutor::MeasurePointSize() {
@@ -923,7 +923,7 @@ namespace Renderer {
 
 	void TTFInstructionExecutor::FlipPoint() {
 		if (_state._zonePointer0 != 1)
-			THROW("This function can only be used on real points");
+			THROW("[Renderer::TTFInstructionExecutor] This function can only be used on real points");
 
 		for (uint32_t i = 0; i < _state._loopVariable; i++) {
 			uint32_t p = GetNextStackUInt32();
@@ -978,7 +978,7 @@ namespace Renderer {
 		uint32_t contour = GetNextStackUInt32();
 		if ((_state._zonePointer2 == 1 && contour >= _endpoints.size())
 			|| (_state._zonePointer2 == 0 && contour != 0))
-			THROW("Illegal contour");
+			THROW("[Renderer::TTFInstructionExecutor] Illegal contour");
 		uint32_t pStart = contour == 0 ? 0 : _endpoints[contour - 1];
 		uint32_t pEnd = _endpoints[contour];
 
@@ -1086,7 +1086,7 @@ namespace Renderer {
 		// !UNDOCUMENTED! taken from the FreeType project
 		if (_state._zonePointer0 == 0) { // If in twilight zone
 			if (p >= _state._twilightPoints.size())
-				THROW("Illegal index of a twilight point");
+				THROW("[Renderer::TTFInstructionExecutor] Illegal index of a twilight point");
 			_state._originalTwilightPoints[p] = _state._freedomVector * position;
 			if (applyRounding)
 				position = Round(position);
@@ -1150,7 +1150,7 @@ namespace Renderer {
 		// !UNDOCUMENTED! taken from the FreeType project
 		if (_state._zonePointer1 == 0) {
 			if (p >= _state._twilightPoints.size())
-				THROW("Illegal index of a twilight point");
+				THROW("[Renderer::TTFInstructionExecutor] Illegal index of a twilight point");
 			_state._originalTwilightPoints[p] = GetPoint(_state._refrencePoint0, _state._zonePointer0) + _state._freedomVector * distance;
 			_state._twilightPoints[p] = _state._originalTwilightPoints[p];
 		}
@@ -1263,7 +1263,7 @@ namespace Renderer {
 	}
 	void TTFInstructionExecutor::InterpolateUntouchedPointsThroughTheOutline(const bool xOrY) {
 		if (_state._zonePointer2 != 1)
-			THROW("No zone other then zone 1 contains outlines");
+			THROW("[Renderer::TTFInstructionExecutor] No zone other then zone 1 contains outlines");
 
 		uint8_t flag = xOrY ? GLYF_TOUCHED_X : GLYF_TOUCHED_Y;
 
@@ -1506,21 +1506,21 @@ namespace Renderer {
 		uint32_t condition = GetNextStackUInt32();
 		int32_t amountJump = GetNextStackInt32();
 		if (amountJump == 0)
-			THROW("Can't jump back to same jump instruction, this will cause a loop");
+			THROW("[Renderer::TTFInstructionExecutor] Can't jump back to same jump instruction, this will cause a loop");
 		if (condition)
 			JumpForwardAmountInstruction(amountJump - 1);
 	}
 	void TTFInstructionExecutor::Jump() {
 		int32_t amountJump = GetNextStackInt32();
 		if (amountJump == 0)
-			THROW("Can't jump back to same jump instruction, this will cause a loop");
+			THROW("[Renderer::TTFInstructionExecutor] Can't jump back to same jump instruction, this will cause a loop");
 		JumpForwardAmountInstruction(amountJump - 1);
 	}
 	void TTFInstructionExecutor::JumpRelativeOnFalse() {
 		uint32_t condition = GetNextStackUInt32();
 		int32_t amountJump = GetNextStackInt32();
 		if (amountJump == 0)
-			THROW("Can't jump back to same jump instruction, this will cause a loop");
+			THROW("[Renderer::TTFInstructionExecutor] Can't jump back to same jump instruction, this will cause a loop");
 		if (!condition)
 			JumpForwardAmountInstruction(amountJump - 1);
 	}
@@ -1702,7 +1702,7 @@ namespace Renderer {
 		else if (period == 0x80)
 			value &= (0xFFFFFFFF ^ 0x7F);
 		else
-			THROW("Illegal rounding period");
+			THROW("[Renderer::TTFInstructionExecutor] Illegal rounding period");
 		value += phase;
 
 		if (n < 0)
@@ -1710,11 +1710,11 @@ namespace Renderer {
 
 		if (n > 0 && value < 0) {
 			value = phase;
-			WARNING("Plase check rounding result")
+			WARNING("[Renderer::TTFInstructionExecutor] Plase check rounding result")
 		}
 		else if (n < 0 && value > 0) {
 			value = -phase;
-			WARNING("Plase check rounding result")
+			WARNING("[Renderer::TTFInstructionExecutor] Plase check rounding result")
 		}
 
 		return value;
@@ -1723,16 +1723,16 @@ namespace Renderer {
 		float value = n / 64.0f;
 		value -= phase;
 		value += threshold;
-		THROW("Not implemented trunctuating to period");
+		THROW("[Renderer::TTFInstructionExecutor] Not implemented trunctuating to period");
 		value += phase;
 
 		if (n > 0 && value < 0) {
 			value = phase;
-			WARNING("Plase check rounding result")
+			WARNING("[Renderer::TTFInstructionExecutor] Plase check rounding result")
 		}
 		else if (n < 0 && value > 0) {
 			value = -phase;
-			WARNING("Plase check rounding result")
+			WARNING("[Renderer::TTFInstructionExecutor] Plase check rounding result")
 		}
 
 		return (F26Dot6)(value * 0x40);
@@ -1748,7 +1748,7 @@ namespace Renderer {
 		case GraphicsState::RoundState::Super: return Round(n, (F26Dot6)_state._superRoundPeriod, (F26Dot6)_state._superRoundPhase, (F26Dot6)_state._superRoundThreshold);
 		case GraphicsState::RoundState::Super45Degree: return Round(n, _state._superRoundPeriod, _state._superRoundPhase, _state._superRoundThreshold);
 		}
-		THROW("Invalid TTF rounding state")
+		THROW("[Renderer::TTFInstructionExecutor] Invalid TTF rounding state")
 		return 0;
 	}
 
@@ -1797,13 +1797,13 @@ namespace Renderer {
 		}
 	}
 	void TTFInstructionExecutor::InstructionDefinition() {
-		THROW("InstructionDefinition not implemented yet");
+		THROW("[Renderer::TTFInstructionExecutor] InstructionDefinition not implemented yet");
 	}
 
 	// Debugging
 	void TTFInstructionExecutor::Debug() {
 		uint32_t number = GetNextStackUInt32();
-		LOG("Debug message from font -> " + std::to_string(number));
+		LOG("[Renderer::TTFInstructionExecutor] Debug message from font -> " + std::to_string(number));
 	}
 
 	// Miscellaneous

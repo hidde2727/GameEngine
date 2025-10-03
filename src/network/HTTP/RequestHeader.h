@@ -20,6 +20,9 @@ namespace HTTP {
 		Patch
 	};
 
+    Method StringToMethod(std::string);
+    std::string MethodToString(Method);
+
     class RequestHeader {
     public:
         void Parse(std::istream& stream, const size_t size);
@@ -29,6 +32,7 @@ namespace HTTP {
         std::string GetVersion() const { return _version; }
         std::string GetHeader(const std::string name) { return _headers[name]; }
         std::string GetCookie(const std::string name) { return _cookies[name]; }
+        std::string GetHead() const { return MethodToString(_method) + " " + _url + " " + _version; }
 
     private:
         Method _method;

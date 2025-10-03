@@ -8,17 +8,17 @@ namespace Vulkan {
         std::vector<VkShaderModule> shaderModules(info._shaderInfos.size());
         for(size_t i = 0; i < info._shaderInfos.size(); i++) {
             VkResult result = vkCreateShaderModule(context._device, &info._shaderInfos[i], nullptr, &shaderModules[i]);
-            ASSERT(result != VK_SUCCESS, "Failed to create vulkan shader module");
+            ASSERT(result == VK_SUCCESS, "[Vulkan::Pipeline] Failed to create vulkan shader module");
             info._shaderStageInfos[i].module = shaderModules[i];
         }
         
         VkResult result = vkCreateDescriptorSetLayout(context._device, &info._descriptorLayoutInfo, nullptr, &_descriptorSetLayout);
-        ASSERT(result != VK_SUCCESS, "Failed to create vulkan descriptor set layout")
+        ASSERT(result == VK_SUCCESS, "[Vulkan::Pipeline] Failed to create vulkan descriptor set layout")
 
         info._pipelineLayoutInfo.setLayoutCount = 1;
         info._pipelineLayoutInfo.pSetLayouts = &_descriptorSetLayout;
         result = vkCreatePipelineLayout(context._device, &info._pipelineLayoutInfo, nullptr, &_pipelineLayout);
-        ASSERT(result != VK_SUCCESS, "Failed to create vulkan pipeline layout");
+        ASSERT(result == VK_SUCCESS, "[Vulkan::Pipeline] Failed to create vulkan pipeline layout");
 
         info._pipelineInfo.stageCount = (uint32_t)info._shaderStageInfos.size();
         info._pipelineInfo.pStages = info._shaderStageInfos.data();
@@ -27,7 +27,7 @@ namespace Vulkan {
         info._pipelineInfo.layout = _pipelineLayout;
 
         result = vkCreateGraphicsPipelines(context._device, VK_NULL_HANDLE, 1, &info._pipelineInfo, nullptr, &_pipeline);
-        ASSERT(result != VK_SUCCESS, "Failed to create vulkan pipeline");
+        ASSERT(result == VK_SUCCESS, "[Vulkan::Pipeline] Failed to create vulkan pipeline");
 
         for(const VkShaderModule module : shaderModules) {
             vkDestroyShaderModule(context._device, module, nullptr);
@@ -38,7 +38,7 @@ namespace Vulkan {
         if(info._descriptorPoolInfo.poolSizeCount == 0 || info._descriptorPoolInfo.maxSets == 0) return;// Early return
 
         result = vkCreateDescriptorPool(context._device, &info._descriptorPoolInfo, nullptr, &_descriptorPool);
-        ASSERT(result != VK_SUCCESS, "Failed to create vulkan descriptor pool")
+        ASSERT(result == VK_SUCCESS, "[Vulkan::Pipeline] Failed to create vulkan descriptor pool")
 
         std::vector<VkDescriptorSetLayout> layouts(info._descriptorPoolInfo.maxSets, _descriptorSetLayout);
         VkDescriptorSetAllocateInfo allocInfo{};
@@ -48,7 +48,7 @@ namespace Vulkan {
         allocInfo.pSetLayouts = layouts.data();
         _descriptorSets.resize(info._descriptorPoolInfo.maxSets);
         result = vkAllocateDescriptorSets(context._device, &allocInfo, _descriptorSets.data());
-        ASSERT(result != VK_SUCCESS, "Failed to allocate descriptor sets")
+        ASSERT(result == VK_SUCCESS, "[Vulkan::Pipeline] Failed to allocate descriptor sets")
     }
 
     void Pipeline::BindSamplerDescriptor(const Context& context, const TextureSampler sampler, const uint32_t arrayElement) {
@@ -68,7 +68,7 @@ namespace Vulkan {
         vkUpdateDescriptorSets(context._device, (uint32_t)descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
     }
     uint32_t Pipeline::BindTextureDescriptor(const Context& context, Texture& texture) {
-        ASSERT(_availableTextureSlots.size()==0, "Cannot bind another texture to vulkan pipeline, no available descriptor slots")
+        ASSERT(_availableTextureSlots.size()>0, "[Vulkan::Pipeline] Cannot bind another texture to vulkan pipeline, no available descriptor slots")
         uint32_t nextAvailableDescriptor = _availableTextureSlots.front();
         _availableTextureSlots.pop();
 
@@ -244,7 +244,7 @@ namespace Vulkan {
             else if(filetype == ".comp") languageType = EShLangCompute;
             else if(filetype == ".geom") languageType = EShLangGeometry;
             
-            INFO("Compiling vulkan shader - " + fileLocation);
+            INFO("[Vulkan::PipelineCreator] Compiling vulkan shader - " + fileLocation);
 
             std::string shaderCode;
             fileManager.ReadFile(fileLocation, shaderCode);
@@ -269,25 +269,25 @@ namespace Vulkan {
 
             glslang::TShader::ForbidIncluder forbidInclude;
 
-            LOG("Preprocessing vulkan shader")
+            LOG("[Vulkan::PipelineCreator] Preprocessing vulkan shader")
             std::string preprocessedStr;
             if ( !shaders[i]->preprocess(resources, defaultVersion, defaultProfile, false, forwardCompatible, messageFlags, &preprocessedStr, forbidInclude) )
-                THROW(("Failed to preprocess vulkan shader (" + std::string(fileLocation) + ") :\n" + std::string(shaders[i]->getInfoLog())).c_str())
+                THROW(("[Vulkan::PipelineCreator] Failed to preprocess vulkan shader (" + std::string(fileLocation) + ") :\n" + std::string(shaders[i]->getInfoLog())).c_str())
             
             const char* preprocessedSources[1] = { preprocessedStr.c_str() };
             shaders[i]->setStrings(preprocessedSources, 1);
 
-            LOG("Parsing vulkan shader")
+            LOG("[Vulkan::PipelineCreator] Parsing vulkan shader")
             if ( !shaders[i]->parse(resources, defaultVersion, defaultProfile, false, forwardCompatible, messageFlags, forbidInclude) )
-                THROW(("Failed to parse vulkan shader (" + std::string(fileLocation) + ") :\n" + std::string(shaders[i]->getInfoLog())).c_str())
+                THROW(("[Vulkan::PipelineCreator] Failed to parse vulkan shader (" + std::string(fileLocation) + ") :\n" + std::string(shaders[i]->getInfoLog())).c_str())
 
             program->addShader(shaders[i].get());
             i++;
         }
 
-        INFO("Linking vulkan shaders")
+        INFO("[Vulkan::PipelineCreator] Linking vulkan shaders")
         if( !program->link(EShMsgDefault) )
-            THROW(("Failed to link vulkan shaders :" + std::string(shaders[i]->getInfoLog())).c_str())
+            THROW(("[Vulkan::PipelineCreator] Failed to link vulkan shaders :" + std::string(shaders[i]->getInfoLog())).c_str())
 
         for(i = 0; i < shaders.size(); i++) {
             VkShaderStageFlagBits stageType = VK_SHADER_STAGE_VERTEX_BIT;
@@ -295,7 +295,7 @@ namespace Vulkan {
             else if(shaders[i]->getStage() == EShLangCompute) stageType = VK_SHADER_STAGE_COMPUTE_BIT;
             else if(shaders[i]->getStage() == EShLangGeometry) stageType = VK_SHADER_STAGE_GEOMETRY_BIT;
 
-            LOG("Converting vulkan shader to spv")
+            LOG("[Vulkan::PipelineCreator] Converting vulkan shader to spv")
             glslang::TIntermediate& intermediateRef = *(program->getIntermediate(shaders[i]->getStage()));
             glslang::SpvOptions options{};
             options.validate = true;

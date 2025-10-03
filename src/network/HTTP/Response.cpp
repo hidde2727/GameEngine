@@ -73,11 +73,11 @@ namespace HTTP {
     }
     bool Response::SetBodyToFile(const std::string fileName, const bool ifNotFound404) {
         try {
-            ASSERT(fileName.find("..")!=std::string::npos, "HTTP::Response::SetBodyToFile received a file with .., this is unsafe behavior")
+            ASSERT(fileName.find("..")==std::string::npos, "[HTTP::Response::SetBodyToFile] Received a file with .., this is unsafe behavior")
             _fileManager->ReadFile(fileName, _body);
         }
         catch (std::exception ex) {
-            if(!ifNotFound404) THROW("HTTP::Response::SetBodyToFile failed to load file '" + fileName + "':\n" + std::string(ex.what()))
+            if(!ifNotFound404) THROW("[HTTP::Response::SetBodyToFile] Failed to load file '" + fileName + "':\n" + std::string(ex.what()))
             SetResponseCode(ResponseCode::NotFound);
             _body.clear();
             return false;

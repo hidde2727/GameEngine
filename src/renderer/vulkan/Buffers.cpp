@@ -6,14 +6,14 @@ namespace Renderer {
 namespace Vulkan {
 
     void BaseBuffer::Init(const Context& context, const VkBufferUsageFlagBits usage, const uint32_t size, const VmaAllocationCreateFlags memoryFlags) {
-        ASSERT(size<=0, "Size must be greater than zero for a vulkan buffer")
+        ASSERT(size>0, "[Vulkan::BeaseBuffer] Size must be greater than zero for a vulkan buffer")
         _usage = usage;
         _memoryFlags = memoryFlags;
         BaseBuffer::ResizeInternal(context, size);
     }
 
     void BaseBuffer::ResizeInternal(const Context& context, const uint32_t size) {
-        ASSERT(size<=0, "Size must be greater than zero for a vulkan buffer")
+        ASSERT(size>0, "[Vulkan::BaseBuffer] Size must be greater than zero for a vulkan buffer")
         if(_buffer != VK_NULL_HANDLE) Cleanup(context);
         _size = size;
 
@@ -28,7 +28,7 @@ namespace Vulkan {
         allocInfo.flags = _memoryFlags;
 
         VkResult result = vmaCreateBuffer(context._allocator, &bufferInfo, &allocInfo, &_buffer, &_allocation, nullptr);
-        ASSERT(result != VK_SUCCESS, "Failed to allocate vulkan memory for a buffer");
+        ASSERT(result == VK_SUCCESS, "[Vulkan::BaseBuffer] Failed to allocate vulkan memory for a buffer");
     }
     
     void BaseBuffer::Cleanup(const Context& context) {
@@ -50,19 +50,19 @@ namespace Vulkan {
     }
 
     void BaseBuffer::AddData(const void* data, const uint32_t length) {
-        ASSERT(_mappedData==nullptr, "Received data but StartTransferingData has not been called yet")
-        ASSERT(_writingOffset+length>_size, "Received data too big to fit in the allocated vulkan buffer")
+        ASSERT(_mappedData!=nullptr, "[Vulkan::BaseBuffer] Received data but StartTransferingData has not been called yet")
+        ASSERT(_writingOffset+length<=_size, "R[Vulkan::BaseBuffer] eceived data too big to fit in the allocated vulkan buffer")
 
         memcpy(static_cast<char*>(_mappedData)+_writingOffset, data, length);
         _writingOffset+=length;
     }
 
     void BaseBuffer::EndTransferingData(Context& context) {
-        ASSERT(_mappedData==nullptr, "End transfering data called while vulkan memory isn't mapped")
+        ASSERT(_mappedData!=nullptr, "[Vulkan::BaseBuffer] End transfering data called while vulkan memory isn't mapped")
         _mappedData = nullptr;
         vmaUnmapMemory(context._allocator, _allocation);
         VkResult result = vmaFlushAllocation(context._allocator, _allocation, 0, VK_WHOLE_SIZE);
-        ASSERT(result != VK_SUCCESS, "Failed to flush vulkan allocation");
+        ASSERT(result == VK_SUCCESS, "[Vulkan::BaseBuffer] Failed to flush vulkan allocation");
     }
     
 

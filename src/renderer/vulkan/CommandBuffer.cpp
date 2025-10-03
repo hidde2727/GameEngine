@@ -16,7 +16,7 @@ namespace Vulkan {
         allocInfo.commandBufferCount = _framesInFlight;
 
         const VkResult result = vkAllocateCommandBuffers(context._device, &allocInfo, _commandBuffers.data());
-        ASSERT(result!=VK_SUCCESS, "Failed to create an vulkan command buffer");
+        ASSERT(result==VK_SUCCESS, "[Vulkan::CommandBuffer] Failed to create a vulkan command buffer");
     }
     void CommandBuffer::Cleanup(const Context& context) {
         for(const Fence& fences : _fences) {
@@ -46,11 +46,11 @@ namespace Vulkan {
         beginInfo.pInheritanceInfo = nullptr;
         
         const VkResult result = vkBeginCommandBuffer(_commandBuffers[_currentFrame], &beginInfo);
-        ASSERT(result!=VK_SUCCESS, "Failed to start recording of an vulkan command buffer")
+        ASSERT(result==VK_SUCCESS, "[Vulkan::CommandBuffer] Failed to start recording")
     }
     void CommandBuffer::EndRecording() {
         const VkResult result = vkEndCommandBuffer(_commandBuffers[_currentFrame]);
-        ASSERT(result!=VK_SUCCESS, "Failed to end recording of an vulkan command buffer")
+        ASSERT(result==VK_SUCCESS, "[Vulkan::CommandBuffer] Failed to end recording")
     }
 
     void CommandBuffer::BeginRenderPass(const RenderPass renderPass, const Swapchain swapChain, const VkClearValue clearColor, bool setViewportAndScissor) {
@@ -184,7 +184,7 @@ namespace Vulkan {
 
             sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
             destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        } else { THROW("Unsupported transition") }
+        } else { THROW("[Vulkan::CommandBuffer] Unsupported transition") }
 
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = 0;
@@ -263,7 +263,7 @@ namespace Vulkan {
         submitInfo.pSignalSemaphores = signalSemaphores.data();
 
         const VkResult result = vkQueueSubmit(context.GetQueue(_queue), 1, &submitInfo, (signalFence.size()>0 ? signalFence[_currentFrame] : VK_NULL_HANDLE));
-        ASSERT(result!=VK_SUCCESS, "Failed to submit vulkan command buffer to an queue");
+        ASSERT(result==VK_SUCCESS, "[Vulkan::CommandBuffer] Failed to submit command buffer to an queue");
 
     }
 
@@ -284,7 +284,7 @@ namespace Vulkan {
         presentInfo.pResults = nullptr;
 
         const VkResult result = vkQueuePresentKHR(context.GetQueue(QueueType::KHRPresentQueue), &presentInfo);
-        ASSERT(result!=VK_SUCCESS, "Failed to present to KHRPresentQueue")
+        ASSERT(result==VK_SUCCESS, "[Vulkan::CommandBuffer] Failed to present to KHRPresentQueue")
     }
 
 }

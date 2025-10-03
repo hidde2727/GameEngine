@@ -18,12 +18,14 @@ namespace Network {
         ReceiveFirstPartHeader();
     }
     void WebHandler::WebsocketConnection::Stop() {
+        if(ENGINE_NETWORK_VERBOSE_WEBSOCKET) LOG("[Network::WebsocketConnection] Stopping connection (" + std::to_string(_uuid) + ")")
         if(_isStopped || _closeAfterRead) return;
         _closeAfterRead = true;
         std::shared_ptr<Websocket::Frame> stopFrame = std::make_shared<Websocket::Frame>();
         stopFrame->SetClosingHandshake();
     }
     void WebHandler::WebsocketConnection::StopWithoutHandshake() {
+        if(ENGINE_NETWORK_VERBOSE_WEBSOCKET) LOG("[Network::WebsocketConnection] Stopping connection (" + std::to_string(_uuid) + ") without handshake")
         if(_isStopped) return;
         _isStopped = true;
         _timeout.cancel();
@@ -36,10 +38,11 @@ namespace Network {
         asio::async_read(_socket, _receivingFrame->GetHeaderBuffer(), [this, self](const std::error_code& ec, size_t bytesTransfered) {
             if (ec) {
                 if(ec==asio::error::eof) return StopWithoutHandshake();
-				WARNING("Connection: " + std::to_string(_uuid) + " stopped because: " + ec.message())
+				WARNING("[Network::WebsocketConnection] Connection: " + std::to_string(_uuid) + " stopped because: " + ec.message())
 				Stop();
 				return;
 			}
+            if(ENGINE_NETWORK_VERBOSE_WEBSOCKET) LOG("[Network::WebsocketConnection] Received first part of header on connection (" + std::to_string(_uuid) + ")")
             _receivingFrame->OnHeaderRead();
             ReceiveSecondPartHeader();
         });
@@ -50,10 +53,11 @@ namespace Network {
         asio::async_read(_socket, _receivingFrame->GetSecondHeaderBuffer(), [this, self](const std::error_code& ec, size_t bytesTransfered) {
             if (ec) {
                 if(ec==asio::error::eof) return StopWithoutHandshake();
-				WARNING("Connection: " + std::to_string(_uuid) + " stopped because: " + ec.message())
+				WARNING("[Network::WebsocketConnection] Connection: " + std::to_string(_uuid) + " stopped because: " + ec.message())
 				Stop();
 				return;
 			}
+            if(ENGINE_NETWORK_VERBOSE_WEBSOCKET) LOG("[Network::WebsocketConnection] Received second part of header on connection (" + std::to_string(_uuid) + ")")
             _receivingFrame->OnSecondHeaderRead();
             ReceiveBody();
         });
@@ -64,10 +68,11 @@ namespace Network {
         asio::async_read(_socket, _receivingFrame->GetBodyBuffer(), [this, self](const std::error_code& ec, size_t bytesTransfered) {
             if (ec) {
                 if(ec==asio::error::eof) return StopWithoutHandshake();
-				WARNING("Connection: " + std::to_string(_uuid) + " stopped because: " + ec.message())
+				WARNING("[Network::WebsocketConnection] Connection: " + std::to_string(_uuid) + " stopped because: " + ec.message())
 				Stop();
 				return;
 			}
+            if(ENGINE_NETWORK_VERBOSE_WEBSOCKET) LOG("[Network::WebsocketConnection] Received body on connection (" + std::to_string(_uuid) + ")")
             if(_closeAfterRead) return StopWithoutHandshake();
             _receivingFrame->OnBodyRead();
             _closeAfterWrite = _receivingFrame->ShouldCloseAfterReturningMessage();
@@ -90,7 +95,7 @@ namespace Network {
                 _timeout.async_wait([this, self](const std::error_code& e) {
                     if(e == asio::error::operation_aborted) return;
                     StopWithoutHandshake();
-                    WARNING("Websocket connection closed by timeout and not by the correct closing handshake")
+                    WARNING("[Network::WebsocketConnection] Connection closed by timeout and without the correct closing handshake")
                 });
             }
             if(_writeQueue.size() == 1) Write();
@@ -110,6 +115,7 @@ namespace Network {
         // Post work for the networking thread
         asio::post(_webhandler->_context, [this, self, data]() {
             if(_closeAfterWrite) return;
+            if(ENGINE_NETWORK_VERBOSE_WEBSOCKET) LOG("[Network::WebsocketConnection] Added frame to writing queue of connection (" + std::to_string(_uuid) + ")")
             _writeQueue.push(data);
             if(_writeQueue.size() == 1) Write();
         });
@@ -125,10 +131,11 @@ namespace Network {
         {
             if (ec) {
                 if(ec==asio::error::eof) return StopWithoutHandshake();
-				WARNING("Connection: " + std::to_string(_uuid) + " stopped because: " + ec.message())
+				WARNING("[Network::WebsocketConnection] Connection: " + std::to_string(_uuid) + " stopped because: " + ec.message())
 				Stop();
 				return;
             }
+            if(ENGINE_NETWORK_VERBOSE_WEBSOCKET) LOG("[Network::WebsocketConnection] Successfully written message on connection (" + std::to_string(_uuid) + ")")
             _writeQueue.pop();
             if(_writeQueue.empty() && _closeAfterWrite) return StopWithoutHandshake();
 

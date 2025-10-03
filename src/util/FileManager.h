@@ -32,7 +32,7 @@ namespace Util {
         template<class T>
         void ReadCacheFile(const std::string cacheID, T* readBuffer, const size_t readBufferSize, const std::ios_base::openmode inputMode = std::ios_base::in) const {
             std::ifstream inputStream = GetCachedFile(cacheID, inputMode);
-            ASSERT(inputStream.fail(), "[FileManager::ReadCacheFile] Failed to open input stream for cacheID '" + cacheID + "'")
+            ASSERT(!inputStream.fail(), "[Util::FileManager] Failed to open input stream for cacheID '" + cacheID + "'")
             inputStream.read(reinterpret_cast<char*>(readBuffer), readBufferSize*sizeof(T));
             inputStream.close();
         }
@@ -57,7 +57,7 @@ namespace Util {
         template<class T>
         void ReadFile(const std::string path, T* readBuffer, const size_t readBufferSize, const std::ios_base::openmode inputMode = std::ios_base::in) const {
             std::ifstream inputStream = GetFile(path, inputMode);
-            ASSERT(inputStream.fail(), "[FileManager::ReadFile] Failed to open input stream for file '" + path + "'")
+            ASSERT(!inputStream.fail(), "[Util::FileManager] Failed to open input stream for file '" + path + "'")
             inputStream.read(reinterpret_cast<char*>(readBuffer), readBufferSize*sizeof(T));
             inputStream.close();
         }

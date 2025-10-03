@@ -16,13 +16,37 @@ namespace HTTP {
 		else if (method == "PATCH")		{ return Method::Patch; }
         return Method::None;
 	}
+    std::string MethodToString(const Method method) {
+		if		(method == Method::Get)		    { return "GET"; }
+		else if (method == Method::Head)		{ return "HEAD"; }
+		else if (method == Method::Post)		{ return "POST"; }
+		else if (method == Method::Put)		    { return "PUT"; }
+		else if (method == Method::Delete)	    { return "DELETE"; }
+		else if (method == Method::Connect)	    { return "CONNECT"; }
+		else if (method == Method::Options)	    { return "OPTIONS"; }
+		else if (method == Method::Trace)		{ return "TRACE"; }
+		else if (method == Method::Patch)		{ return "PATCH"; }
+        return "Illegal-Method";
+	}
 
+    bool IsWhitespace(std::string& str) {
+        for(int index = 0; index < str.length(); index++){
+            if(!std::isspace(str[index]))
+                return false;
+        }
+        return true;
+    }
     void RequestHeader::Parse(std::istream& stream, const size_t size) {
         {// Head
             std::string head; std::getline(stream, head);
+            // Fix for malformed HTTP requests starting with a newline
+            while(IsWhitespace(head)) {
+                ASSERT(!stream.eof(), "[HTTP::RequestHeader] Received a HTTP request consisting of only whitespaces")
+                std::getline(stream, head);
+            }
             const size_t firstSpace = head.find_first_of(' ');
             _method = StringToMethod(head.substr(0, firstSpace));
-            ASSERT(_method==Method::None, "Received a HTTP request with an illegal method")
+            ASSERT(_method!=Method::None, "[HTTP::RequestHeader] Received a HTTP request with an illegal method")
             const size_t secondSpace = head.find_first_of(' ', firstSpace+1);
             _url = head.substr(firstSpace+1, secondSpace-firstSpace-1);
             _version = head.substr(secondSpace+1, head.size()-secondSpace-1);

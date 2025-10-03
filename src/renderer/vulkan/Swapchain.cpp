@@ -82,7 +82,7 @@ namespace Vulkan {
         //_createInfo.oldSwapchain = oldSwapchain;
 
         VkResult result = vkCreateSwapchainKHR(context._device, &_createInfo, nullptr, &_swapChain);
-        ASSERT(result != VK_SUCCESS, "Failed to create vulkan swapchain");
+        ASSERT(result == VK_SUCCESS, "[Vulkan::Swapchain] Failed to create vulkan swapchain");
 
         std::vector<VkImage> images;
         uint32_t imageCount;
@@ -109,7 +109,7 @@ namespace Vulkan {
             createInfo.subresourceRange.layerCount = 1;
 
             result = vkCreateImageView(context._device, &createInfo, nullptr, &_imageViews[i]);
-            ASSERT(result != VK_SUCCESS, "Failed to create vulkan swapchain image view");
+            ASSERT(result == VK_SUCCESS, "[Vulkan::Swapchain] Failed to create vulkan swapchain image view");
 
             VkImageView attachments[] = {
                 _imageViews[i]
@@ -124,7 +124,7 @@ namespace Vulkan {
             framebufferInfo.layers = 1;
 
             result = vkCreateFramebuffer(context._device, &framebufferInfo, nullptr, &_framebuffers[i]);
-            ASSERT(result != VK_SUCCESS, "Failed to create vulkan swapchain framebuffers");
+            ASSERT(result == VK_SUCCESS, "[Vulkan::Swapchain] Failed to create vulkan swapchain framebuffers");
         
         }
     }

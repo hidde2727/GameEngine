@@ -13,8 +13,8 @@ namespace Renderer {
     }
 
     void TextLoader::Init() {
-        ASSERT(!_fileManager->DoesFileExists(_file), "[TextLoader] TextLoader received a file that does not exist '" + _file + "'")
-        ASSERT(!_fileManager->IsFileRegular(_file), "[TextLoader] TextLoader received an invalid file '" + _file + "'")
+        ASSERT(_fileManager->DoesFileExists(_file), "[Renderer::TextLoader] TextLoader received a file that does not exist '" + _file + "'")
+        ASSERT(_fileManager->IsFileRegular(_file), "[Renderer::TextLoader] TextLoader received an invalid file '" + _file + "'")
     }
     size_t TextLoader::GetAmountTextures() {
         return _characters._characterCount * _sizes.size();

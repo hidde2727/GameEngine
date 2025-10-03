@@ -266,14 +266,14 @@ namespace Renderer {
 
     std::shared_ptr<ImageRenderInfo> Window::GetTextureInfo(AssetID asset) {
         if(Util::GetBits<uint32_t>(asset, ENGINE_RENDERER_ASSETID_TEXTUREMAPID_SHIFT_BITS, ENGINE_RENDERER_ASSETTYPE_TEXTUREMAPID_SHIFT_BITS) != ENGINE_RENDERER_ASSETTYPE_TEXTURE) 
-            THROW("Cannot acces an asset that is not a texture with the GetTextureInfo function")
+            THROW("[Renderer::Window] Cannot acces an asset that is not a texture with the GetTextureInfo function")
         return reinterpret_pointer_cast<ImageRenderInfo>(
             _textureMaps[asset >> ENGINE_RENDERER_ASSETID_TEXTUREMAPID_SHIFT_BITS].GetRenderInfo(asset & (0xFFFFFFFF >> ENGINE_RENDERER_ASSETTYPE_TEXTUREMAPID_SHIFT_BITS))
         );
     }
     std::shared_ptr<TextRenderInfo> Window::GetTextInfo(AssetID asset) {
         if(Util::GetBits<uint32_t>(asset, ENGINE_RENDERER_ASSETID_TEXTUREMAPID_SHIFT_BITS, ENGINE_RENDERER_ASSETTYPE_TEXTUREMAPID_SHIFT_BITS) != ENGINE_RENDERER_ASSETTYPE_TEXT) 
-            THROW("Cannot acces an asset that is not text with the GetTextInfo function")
+            THROW("[Renderer::Window] Cannot acces an asset that is not text with the GetTextInfo function")
         return reinterpret_pointer_cast<TextRenderInfo>(
             _textureMaps[asset >> ENGINE_RENDERER_ASSETID_TEXTUREMAPID_SHIFT_BITS].GetRenderInfo(asset & (0xFFFFFFFF >> ENGINE_RENDERER_ASSETTYPE_TEXTUREMAPID_SHIFT_BITS))
         );

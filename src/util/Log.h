@@ -20,6 +20,6 @@ namespace Util {
 #define INFO(message) Engine::Util::Info(message);
 #define WARNING(message) Engine::Util::Error(message);
 #define THROW(message) { Engine::Util::Throw(message); throw std::runtime_error(message); }
-#define ASSERT(check, message) if(check) THROW(message)
+#define ASSERT(check, message) if(!(check)) THROW(message)
 
 #endif

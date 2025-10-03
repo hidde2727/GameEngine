@@ -32,7 +32,7 @@ namespace Component {
 
     Text::Text(Scene* scene, uint32_t assetID, const uint32_t size, std::u32string text) {
         std::shared_ptr<Renderer::TextRenderInfo> info = scene->_window->GetTextInfo(assetID);
-        ASSERT(!(info), "Text size is not loaded, cannot create a text component of a size that is not loaded")
+        ASSERT(info, "[Component::Text] Text size is not loaded, cannot create a text component of a size that is not loaded")
         _renderInfo.reserve(text.size());
         float currentX = 0;
         float currentY = 0;

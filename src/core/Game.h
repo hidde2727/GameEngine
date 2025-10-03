@@ -78,7 +78,7 @@ namespace Engine {
         Scene* _scene;
         Renderer::Window _window;
         Network::WebHandler _webhandler;
-        Physics::Engine _physics;
+        Physics::PhysicsEngine _physics;
     };
 
 }

@@ -50,7 +50,7 @@ namespace Engine{
 		template<class ComponentType>
 		inline void AddComponent(const entt::entity entity, const ComponentType component) {
 #ifdef __DEBUG__
-            ASSERT(_entt.all_of<ComponentType>(entity), "Cannot add a component to an entity that already has that component")
+            ASSERT(!_entt.all_of<ComponentType>(entity), "[Scene] Cannot add a component to an entity that already has that component")
 #endif
             if(IsTextureComponent<ComponentType>()) _textureComponents++;
 			_entt.emplace<ComponentType>(entity, component);
@@ -71,7 +71,7 @@ namespace Engine{
 		template<class ComponentType, class ... Ts>
 		inline void SetComponent(const entt::entity entity, Ts&&...inputs) {
 #ifdef __DEBUG__
-            ASSERT(!HasComponent<ComponentType>(entity), "Cannot set a component to an entity that doesnt't have that component")
+            ASSERT(HasComponent<ComponentType>(entity), "[Scene] Cannot set a component to an entity that doesnt't have that component")
 #endif
 			_entt.replace<ComponentType>(entity, inputs...);
 		}

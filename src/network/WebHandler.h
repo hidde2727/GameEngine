@@ -9,6 +9,20 @@
 
 #include "util/FileManager.h"
 
+#ifndef ENGINE_NETWORK_LAN_POLLING_RATE
+#define ENGINE_NETWORK_LAN_POLLING_RATE std::chrono::seconds(3)
+#endif
+
+#ifndef ENGINE_NETWORK_VERBOSE_HTTP
+#define ENGINE_NETWORK_VERBOSE_HTTP false
+#endif
+
+#ifndef ENGINE_NETWORK_VERBOSE_WEBSOCKET
+#define ENGINE_NETWORK_VERBOSE_WEBSOCKET false
+#endif
+
+#define ENGINE_NETWORK_VERBOSE_HTTP_WEBSOCKET ENGINE_NETWORK_VERBOSE_HTTP || ENGINE_NETWORK_VERBOSE_WEBSOCKET
+
 namespace Engine {
 namespace Network {
 

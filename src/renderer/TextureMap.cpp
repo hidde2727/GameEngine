@@ -17,7 +17,7 @@ namespace Renderer {
     }
 
     void TextureMap::StartLoading() {
-        ASSERT(_amountTextures > 0, "Cannot start loading a second time on a TextureMap object");
+        ASSERT(_amountTextures == 0, "[Renderer::TextureMap] Cannot start loading a second time on a TextureMap object");
     }
     uint32_t TextureMap::AddTextureLoader(std::unique_ptr<AssetLoader> assetLoader) {
         _amountTextures += assetLoader->GetAmountTextures();
@@ -66,7 +66,8 @@ namespace Renderer {
             uint32_t descriptorBinding = (*bindToPipelines.begin())->BindTextureDescriptor(context, _textures[i]);
             // It is ugly but it works
             for(Vulkan::Pipeline* const* p = bindToPipelines.begin()+1; p<bindToPipelines.end(); p++) {
-                if(descriptorBinding!=(*p)->BindTextureDescriptor(context, _textures[i])) THROW("TextureMap::EndLoading should receive pipelines with equal amount of textures and with exclusive acces to the bindings (nothing else should bind textures)")
+                if(descriptorBinding!=(*p)->BindTextureDescriptor(context, _textures[i])) 
+                    THROW("[Renderer::TextureMap] EndLoading should receive pipelines with equal amount of textures and with exclusive acces to the bindings (nothing else should bind textures)")
             }
 
             _textures[i].StartTransferingData(context);

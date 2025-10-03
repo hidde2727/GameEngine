@@ -62,14 +62,14 @@ namespace Renderer {
 		}
 		else if (IsCFF()) {
 			// This is a CCF type font file
-			THROW("Sorry this font file is currently not supported for parsing");
+			THROW("[Renderer::TTFFontParser] Sorry this font file is currently not supported for parsing");
 		}
 		else if (IsOldPostScript()) {
 			// This is a old style PostScript type font file
-			THROW("Sorry this font file is currently not supported for parsing");
+			THROW("[Renderer::TTFFontParser] Sorry this font file is currently not supported for parsing");
 		}
 		else {
-			THROW("Illegal font file given, sfntVersion not known");
+			THROW("[Renderer::TTFFontParser] Illegal font file given, sfntVersion not known");
 		}
 	}
 
@@ -92,12 +92,12 @@ namespace Renderer {
 
 	void TTFFontParser::LoadHEADTable() {
 		if (!GoToTable({ 'h', 'e', 'a', 'd' }))
-			THROW("Illegal font file given, file doesn't contain the 'head' table");
+			THROW("[Renderer::TTFFontParser] Illegal font file given, file doesn't contain the 'head' table");
 
 		uint16_t majorVersion		= GetUint16();
 		uint16_t minorVersion		= GetUint16();
 		if (majorVersion != 1 || minorVersion != 0) {
-			THROW("Illegal font file given, head table version is not supported");
+			THROW("[Renderer::TTFFontParser] Illegal font file given, head table version is not supported");
 		}
 		float    fontRevision		= GetFixed();
 		uint32_t checksumAdjustment = GetUint32();
@@ -118,23 +118,23 @@ namespace Renderer {
 
 		// Just make sure this font file isn't illegaly formatted
 		if (magicNumber != 0x5F0F3CF5) {
-			THROW("Illegal font file given, magic number doesn't comply to standards");
+			THROW("[Renderer::TTFFontParser] Illegal font file given, magic number doesn't comply to standards");
 		}
 		else if (fontDirectionHint != 2 && fontDirectionHint != 1) {
-			THROW("Illegal font file given, font direction hint is deprecated and should always be 2");
+			THROW("[Renderer::TTFFontParser] Illegal font file given, font direction hint is deprecated and should always be 2");
 		}
 		else if (glyphDataFormat) {
-			THROW("Illegal font file given, unknown data format");
+			THROW("[Renderer::TTFFontParser] Illegal font file given, unknown data format");
 		}
 	}
 
 	void TTFFontParser::LoadHHEATable() {
 		if (!GoToTable({ 'h', 'h', 'e', 'a' }))
-			THROW("Illegal font file given, file doesn't contain the 'hhea' table");
+			THROW("[Renderer::TTFFontParser] Illegal font file given, file doesn't contain the 'hhea' table");
 		uint16_t majorVersion		= GetUint16();
 		uint16_t minorVersion		= GetUint16();
 		if (majorVersion != 1 || minorVersion != 0) {
-			THROW("Illegal font file given, hhea table version is not supported");
+			THROW("[Renderer::TTFFontParser] Illegal font file given, hhea table version is not supported");
 		}
 		_hhea._ascender				= GetFWord();
 		_hhea._descender			= GetFWord();
@@ -146,17 +146,17 @@ namespace Renderer {
 		_hhea._caretSlopeRise		= GetInt16();
 		_hhea._caretSlopeRun		= GetInt16();
 		_hhea._caretOffset			= GetInt16();
-		if (GetInt16()) THROW("Illegal font file given, reserved slot is set, this parser is to old to handle that"); // This is a reserved slot
-		if (GetInt16()) THROW("Illegal font file given, reserved slot is set, this parser is to old to handle that"); // This is a reserved slot
-		if (GetInt16()) THROW("Illegal font file given, reserved slot is set, this parser is to old to handle that"); // This is a reserved slot
-		if (GetInt16()) THROW("Illegal font file given, reserved slot is set, this parser is to old to handle that"); // This is a reserved slot
-		if (GetInt16()) THROW("Illegal font file given, this parser only supports format 0") // This format should be 0
+		if (GetInt16()) THROW("[Renderer::TTFFontParser] Illegal font file given, reserved slot is set, this parser is to old to handle that"); // This is a reserved slot
+		if (GetInt16()) THROW("[Renderer::TTFFontParser] Illegal font file given, reserved slot is set, this parser is to old to handle that"); // This is a reserved slot
+		if (GetInt16()) THROW("[Renderer::TTFFontParser] Illegal font file given, reserved slot is set, this parser is to old to handle that"); // This is a reserved slot
+		if (GetInt16()) THROW("[Renderer::TTFFontParser] Illegal font file given, reserved slot is set, this parser is to old to handle that"); // This is a reserved slot
+		if (GetInt16()) THROW("[Renderer::TTFFontParser] Illegal font file given, this parser only supports format 0") // This format should be 0
 		_hhea._numberOfHMetrics = GetUint16();
 	}
 
 	void TTFFontParser::LoadMAXPTable() {
 		if (!GoToTable({ 'm', 'a', 'x', 'p' }))
-			THROW("Illegal font file given, file doesn't contain the 'maxp' table");
+			THROW("[Renderer::TTFFontParser] Illegal font file given, file doesn't contain the 'maxp' table");
 
 		_maxp._version1 = GetVersion16Dot16() == 0x00010000;
 		
@@ -181,7 +181,7 @@ namespace Renderer {
 
 	void TTFFontParser::LoadHMTXTable() {
 		if (!GoToTable({ 'h', 'm', 't', 'x' }))
-			THROW("Illegal font file given, file doesn't contain the 'hmtx' table");
+			THROW("[Renderer::TTFFontParser] Illegal font file given, file doesn't contain the 'hmtx' table");
 
 		_hmtx._hMetrics.resize(_hhea._numberOfHMetrics);
 		_hmtx._leftSideBearings.resize(_maxp._numGlyphs - _hhea._numberOfHMetrics);
@@ -211,7 +211,7 @@ namespace Renderer {
 			return;
 		uint16_t version = GetUint16();
 		if (version != 0)
-			THROW("Illegal font file given, kern table version is not supported");
+			THROW("[Renderer::TTFFontParser] Illegal font file given, kern table version is not supported");
 		uint16_t numTables = GetUint16();
 		for (int i = 0; i < numTables; i++) {
 			uint64_t tableStartOffset = _currentOffset;
@@ -263,25 +263,25 @@ namespace Renderer {
 				}
 			}
 			else if (format == 2) {
-				THROW("Font file, the KERN subtable format hasn't been implemented yet");
+				THROW("[Renderer::TTFFontParser] Font file, the KERN subtable format hasn't been implemented yet");
 				uint16_t rowWidth = GetUint16();
 				uint16_t leftClassOffset = GetOffset16();
 				uint16_t rightClassOffset = GetOffset16();
 				uint16_t kerningArrayOffset = GetOffset16();
 			}
 			else {
-				THROW("Illegal font file given, kern subtable format is not supported")
+				THROW("[Renderer::TTFFontParser] Illegal font file given, kern subtable format is not supported")
 			}
 		}
 	}
 
 	void TTFFontParser::LoadCMAPTable() {
 		if (!GoToTable({ 'c', 'm', 'a', 'p' }))
-			THROW("Illegal font file given, file doesn't contain the 'cmap' table");
+			THROW("[Renderer::TTFFontParser] Illegal font file given, file doesn't contain the 'cmap' table");
 
 		uint16_t version	= GetUint16();
 		if (version) {
-			THROW("Illegal font file given, cmap table version is not supported");
+			THROW("[Renderer::TTFFontParser] Illegal font file given, cmap table version is not supported");
 		}
 		uint16_t numTables	= GetUint16();
 		struct EncodingRecord {
@@ -323,7 +323,7 @@ namespace Renderer {
 					endCodes[i] = GetUint16();
 				}
 
-				if (GetUint16()) THROW("Illegal font file given, reserved slot is set, this parser is to old to handle that"); // This is a reserved slot
+				if (GetUint16()) THROW("[Renderer::TTFFontParser] Illegal font file given, reserved slot is set, this parser is to old to handle that"); // This is a reserved slot
 
 				std::vector<uint16_t> startCodes;
 				startCodes.resize(segCount);
@@ -371,7 +371,7 @@ namespace Renderer {
 				}
 			}
 			else if (format == 6) {
-				WARNING("Font file, this CMAP format type hasn't been tested yet, please proceed with caution");
+				WARNING("[Renderer::TTFFontParser] The CMAP format type hasn't been tested yet, please proceed with caution");
 				uint16_t length		= GetUint16();
 				uint16_t language	= GetUint16();
 				uint16_t firstCode	= GetUint16();
@@ -384,26 +384,26 @@ namespace Renderer {
 				}
 			}
 			else if (format == 8) {
-				WARNING("Font file contains a format not yet implemented");
+				WARNING("[Renderer::TTFFontParser] Font file contains a format not yet implemented");
 			}
 			else if (format == 10) {
-				WARNING("Font file contains a format not yet implemented");
+				WARNING("[Renderer::TTFFontParser] Font file contains a format not yet implemented");
 			}
 			else if (format == 12) {
-				WARNING("Font file contains a format not yet implemented");
+				WARNING("[Renderer::TTFFontParser] Font file contains a format not yet implemented");
 			}
 			else if (format == 13) {
-				WARNING("Font file contains a format not yet implemented");
+				WARNING("[Renderer::TTFFontParser] Font file contains a format not yet implemented");
 			}
 			else if (format == 14) {
-				WARNING("Font file contains a format not yet implemented");
+				WARNING("[Renderer::TTFFontParser] Font file contains a format not yet implemented");
 			}
 		}
 	}
 
 	void TTFFontParser::LoadLOCATable() {
 		if (!GoToTable({ 'l', 'o', 'c', 'a' }))
-			THROW("Illegal font file given, file doesn't contain the 'loca' table but is specified as a TTF file");
+			THROW("[Renderer::TTFFontParser] Illegal font file given, file doesn't contain the 'loca' table but is specified as a TTF file");
 		uint16_t amountGlyphs = _maxp._numGlyphs;
 		if (_head._indexToLocFormat == 0) {
 			for (uint16_t i = 0; i < amountGlyphs; i++) {
@@ -416,7 +416,7 @@ namespace Renderer {
 			}
 		} 
 		else {
-			THROW("Illegal font file given, loca format not supported");
+			THROW("[Renderer::TTFFontParser] Illegal font file given, loca format not supported");
 		}
 	}
 
@@ -431,7 +431,7 @@ namespace Renderer {
 
 	void TTFFontParser::LoadGLYFTable() {
 		if (!GoToTable({ 'g', 'l', 'y', 'f' }))
-			THROW("Illegal font file given, file doesn't contain the 'glyf' table but is specified as a TTF file");
+			THROW("[Renderer::TTFFontParser] Illegal font file given, file doesn't contain the 'glyf' table but is specified as a TTF file");
 		// Go through all the requested characters
 		_glyf._glyphs.clear();
 		for (const char32_t c : _characters) {
@@ -528,10 +528,10 @@ namespace Renderer {
 				}
 			}
 			else if (numberOfContours == -1) {
-				WARNING("Sorry, font files with composite glyphs aren't supported at the moment");
+				WARNING("[Renderer::TTFFontParser] Sorry, font files with composite glyphs aren't supported at the moment");
 			}
 			else {
-				THROW("Illegal font file given, numberOfContours contains an illegal value");
+				THROW("[Renderer::TTFFontParser] Illegal font file given, numberOfContours contains an illegal value");
 			}
 		}
 	}
@@ -567,7 +567,7 @@ namespace Renderer {
 		try {
 			_instructionExecutor.ExecuteStack();
 		} catch(std::exception exc) {
-			WARNING("Failed to execute instructions of the font-program, executor returned the error:\n" + std::string(exc.what()))
+			WARNING("[Renderer::TTFFontParser] Failed to execute instructions of the font-program, executor returned the error:\n" + std::string(exc.what()))
 		}
 	}
 
@@ -590,7 +590,7 @@ namespace Renderer {
 		uint16_t id = _glyphIDs[c];
 		if (id >= _hmtx._hMetrics.size()) {
 			// Only has a left side bearing
-			THROW("Glyph doesn't have an advance");
+			THROW("[Renderer::TTFFontParser] Glyph doesn't have an advance");
 		}
 		else {
 			// Has a left side bearing and an advance
@@ -642,7 +642,7 @@ namespace Renderer {
 		try {
 			executor.ExecuteStack();
 		} catch(std::exception exc) {
-			WARNING("Failed to execute instructions of the PREP, executor returned the error:\n" + std::string(exc.what()))
+			WARNING("[Renderer::TTFFontParser] Failed to execute instructions of the PREP, executor returned the error:\n" + std::string(exc.what()))
 		}
 		executor.StoreGraphicsState();
 
@@ -657,7 +657,7 @@ namespace Renderer {
 			try {
 				executor.ExecuteStack();
 			} catch(std::exception exc) {
-				WARNING("Failed to execute instructions of '" + std::string(1, c) + "', executor returned the error:\n" + std::string(exc.what()))
+				WARNING("[Renderer::TTFFontParser] Failed to execute instructions of '" + std::string(1, c) + "', executor returned the error:\n" + std::string(exc.what()))
 			}
 
 			glyphs[c]._min = Util::Vec2F(info._min.x, info._min.y);

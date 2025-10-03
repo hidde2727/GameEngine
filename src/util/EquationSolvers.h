@@ -152,7 +152,7 @@ namespace Util {
 				if ((fxA < 0 && fxB > 0) || (fxB < 0 && fxA > 0)) break; // Found a bracket
 				xA *= 2;
 				xB *= 2;
-				ASSERT(i++ >= BRACKET_SEARCH_MAX_STEPS, "Failed to find a quintic bracket for the bisection method")
+				ASSERT(i++ < BRACKET_SEARCH_MAX_STEPS, "[Util::EquationSolvers] Failed to find a quintic bracket for the bisection method")
 			}
 			// Use the 'Bisection Method' to find a root
 			// https://en.wikipedia.org/wiki/Bisection_method
@@ -170,7 +170,7 @@ namespace Util {
 			}
 
 			// Check if the bisection method found a root
-			ASSERT(x1 == 100000000., "Failed to find a quintic solution")
+			ASSERT(x1 != 100000000., "[Util::EquationSolvers] Failed to find a quintic solution")
 
 			x[0] = x1;
 		}

@@ -21,10 +21,13 @@ namespace Network {
         ReceiveHeader();
     }
     void WebHandler::HTTPConnection::Stop() {
+        if(ENGINE_NETWORK_VERBOSE_HTTP) LOG("[HTTPConnection] Stopping connection (" + std::to_string(_uuid) + ")")
+        if(_isStopped) return;
         _isStopped = true;
         if(_socket.is_open()) _socket.shutdown(asio::ip::tcp::socket::shutdown_both);
         _timeout.cancel();
         _webhandler->StopHTTPConnection(_uuid);
+        if(ENGINE_NETWORK_VERBOSE_HTTP) LOG("[HTTPConnection] Stopped connection (" + std::to_string(_uuid) + ")")
     }
     void WebHandler::HTTPConnection::ReceiveHeader() {
         ScheduleTimeoutCheck();
@@ -42,8 +45,10 @@ namespace Network {
             std::istream is(&_inputBuffer);
             _header = std::make_shared<HTTP::RequestHeader>();
             _header->Parse(is, bytesTransferred);
+            if(ENGINE_NETWORK_VERBOSE_HTTP) LOG("[HTTPConnection] Connection (" + std::to_string(_uuid) + ") received header: " + _header->GetHead())
 
             if(_header->GetHeader("Connection").find("Upgrade")!=std::string::npos && _header->GetHeader("Upgrade").find("websocket")!=std::string::npos) {
+                if(ENGINE_NETWORK_VERBOSE_HTTP) LOG("[HTTPConnection] Upgrading connection (" + std::to_string(_uuid) + ")")
                 UpgradeConnection();
                 return;
             }
@@ -71,10 +76,12 @@ namespace Network {
         [this, self](const std::error_code& ec, std::size_t bytesTransferred)
         {
             if (ec) {
-				if(ec!=asio::error::eof) WARNING("Connection: " + std::to_string(_uuid) + " stopped because: " + ec.message())
+				if(ec!=asio::error::eof) WARNING("[HTTPConnection] Connection (" + std::to_string(_uuid) + ") stopped because: " + ec.message())
 				Stop();
 				return;
 			}
+            
+            if(ENGINE_NETWORK_VERBOSE_HTTP) LOG("[HTTPConnection] Received body on connection (" + std::to_string(_uuid) + ") with head (" + _header->GetHead() + ")")
 
             HandleRequest();
             ReceiveHeader();
@@ -91,10 +98,11 @@ namespace Network {
         [this, self](const std::error_code& ec, std::size_t bytesTransferred)
         {
             if (ec) {
-				if(ec!=asio::error::eof) WARNING("Connection: " + std::to_string(_uuid) + " stopped because: " + ec.message())
+				if(ec!=asio::error::eof) WARNING("[HTTPConnection] Connection (" + std::to_string(_uuid) + ") stopped because: " + ec.message())
 				Stop();
 				return;
             }
+            if(ENGINE_NETWORK_VERBOSE_HTTP) LOG("[HTTPConnection] Response for connection (" + std::to_string(_uuid) + ") send")
             _writeQueue.pop();
 
             if(!_connectionKeepAlive) return Stop();
@@ -121,6 +129,8 @@ namespace Network {
             }
 
             _webhandler->_httpHandler(*header, *body, *response);
+            if(ENGINE_NETWORK_VERBOSE_HTTP) LOG("[HTTPConnection] Response for connection (" + std::to_string(_uuid) + ") with request (" + header->GetHead() + ") created")
+
             // Post work for the networking thread
             asio::post(_webhandler->_context, [this, self, response]() {
                 _writeQueue.push(response);
@@ -147,25 +157,30 @@ namespace Network {
                     Util::Base64Encode(Util::SHA1(header->GetHeader("Sec-WebSocket-Key") + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
                 );
                 _connectionKeepAlive = true;
+                if(ENGINE_NETWORK_VERBOSE_HTTP_WEBSOCKET) LOG("[HTTPConnection] Allowed to upgrade connection (" + std::to_string(_uuid) + ")")
             } else {
                 response->SetResponseCode(HTTP::ResponseCode::Forbidden);
+                if(ENGINE_NETWORK_VERBOSE_HTTP_WEBSOCKET) LOG("[HTTPConnection] Disallowed to upgrade connection (" + std::to_string(_uuid) + ")")
             }
 
             // Post work for the networking thread
-            asio::post(_webhandler->_context, [this, self, response, header]() {
+            asio::post(_webhandler->_context, [this, self, response, header, allowUpgrade]() {
                 _writeQueue.push(response);
                 if(_writeQueue.size() == 1) Write();
+                if(!allowUpgrade) return;
                 _webhandler->UpgradeHTTPConnection(_uuid, std::move(_socket), *header);
             });
         });
     }
 
     void WebHandler::HTTPConnection::ScheduleTimeoutCheck() {
+        return;
         std::shared_ptr<WebHandler::HTTPConnection> self = shared_from_this();
         
         _timeout.expires_after(std::chrono::seconds(5));
         _timeout.async_wait([this, self](const std::error_code& e) {
             if(e == asio::error::operation_aborted) return;
+            if(ENGINE_NETWORK_VERBOSE_HTTP) LOG("[HTTPConnection] Stopping connection (" + std::to_string(_uuid) + ") because of timeout")
             Stop();
         });
     }
