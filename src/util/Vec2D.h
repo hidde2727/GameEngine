@@ -74,15 +74,15 @@ namespace Util {
 		}
 
 		inline T angleToY() const {
-			ASSERT(x==0&&y==0, "Cannot determine the angle of a vector that is x=0&y=0");
-			if(x<0) return (T)atan(y/x) + (T)2.0*(T)PI;
-			else if(y<0) return (T)atan(y/x) + (T)3.0*(T)PI;
+			ASSERT(x!=0||y!=0, "[Util::Vec2] angleToY() called on zero vector");
+			if(x==0) { return (y<0)? (T)1.5*(T)PI : (T)0.5*(T)PI;}
+			if(x<0) return (T)atan(y/x);
 			else return (T)atan(y/x) + (T)1.0*(T)PI;
 		}
 		inline T angleToX() const {
-			ASSERT(x==0&&y==0, "Cannot determine the angle of a vector that is x=0&y=0");
+			ASSERT(x!=0||y!=0, "[Util::Vec2] angleToX() called on zero vector");
+			if(x==0) { return (y<0)? (T)PI : (T)0;}
 			if(x<0) return (T)atan(y/x) + (T)1.5*(T)PI;
-			else if(y<0) return (T)atan(y/x) + (T)2.5*(T)PI;
 			else return (T)atan(y/x) + (T)0.5*(T)PI;
 		}
 

@@ -30,6 +30,10 @@ engine-menu .menu-button {
     right: 5px;
     font-size: 32px;
 }
+engine-menu .menu {
+    position: relative;
+    z-index: 10000;
+}
 engine-menu .page {
     opacity: 0;
     background-color: rgba(0,0,0,0.25);

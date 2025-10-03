@@ -9,7 +9,7 @@
 namespace Engine {
 namespace Physics {
 
-    class Engine {
+    class PhysicsEngine {
     public:
 
         void Update(entt::registry& registry, float dt);

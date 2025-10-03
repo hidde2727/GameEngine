@@ -44,6 +44,17 @@ namespace Physics {
 
             return result;
         }
+        ClipResult DiscardToHalfspace(const Util::Vec2F normal, const float planeOffset) const {
+            ClipResult result{};
+            for (int i = 0; i < 2; i++) {
+                float separation = (normal*points[i]) - planeOffset;
+                if (separation <= 0) {
+                    result.points[result.numPoints] = points[i];
+                    result.numPoints += 1;
+                }
+            }
+            return result;
+        }
     };
     struct Edge {
         Util::Vec2F a;

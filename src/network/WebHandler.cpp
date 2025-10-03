@@ -37,7 +37,6 @@ namespace Network {
         _acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
         _acceptor.bind(endpoint);
         _acceptor.listen();
-        LOG(_acceptor.local_endpoint().address().to_string() + ":" + std::to_string(_acceptor.local_endpoint().port()) );
 
         AwaitConnection();
         _thread = std::thread([&] { try { _context.run(); } catch (std::exception err) { THROW("[Network::Webhandler] Experienced an error:\n\t\t" + std::string(err.what())); return 1;} return 0; });

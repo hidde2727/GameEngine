@@ -1,10 +1,30 @@
-const socket = new WebSocket("ws://" + window.location.host);
-socket.addEventListener("message", (event) => {
-  console.log("Message from server ", event.data);
-});
+let socket = new WebSocket("ws://" + window.location.host);
+SetupSocket();
 window.addEventListener("beforeunload", function(e){
   socket.close();
 });
+function SetupSocket() {
+  socket.addEventListener("message", (event) => {
+    console.log("Message from server ", event.data);
+  });
+  socket.addEventListener("close", (ev) => {
+    TryReconnect();
+  });
+}
+
+let reconnectTimeout;
+function TryReconnect() {
+  console.log("Trying to reconnect in 5 seconds");
+  reconnectTimeout = setTimeout(() => {
+    TryReconnect();
+    socket = new WebSocket("ws://" + window.location.host);
+    socket.addEventListener("open", () => {
+      console.log("Reconnected");
+      clearTimeout(reconnectTimeout);
+      SetupSocket();
+    });
+  }, 2000);
+}
 
 // Floating point number to a 32 bit fixed point number
 function ToFixedPoint(float, sizeAfterDecimal) {
@@ -102,7 +122,7 @@ customElements.define(
             goToPageButton.className = "page-button";
             goToPageButton.onpointerdown = () => {
               if(menu.children[i].pageName == "fullscreen") {
-                if (!window.screenTop && !window.screenY) document.exitFullscreen();
+                if (document.fullscreenElement != null) document.exitFullscreen();
                 else document.documentElement.requestFullscreen();
                 return;
               }
@@ -227,11 +247,12 @@ customElements.define(
               this.innerCircle.style.top  = (y-0.5*innerCircleOffset.height).toString() + "px";
 
               let maxSize = viewportOffset.width - innerCircleOffset.width;
+              if(socket.readyState != socket.OPEN) return;
               socket.send(GetDataInBigEndian([
                 { value: ToFixedPoint((2*(x-0.5*innerCircleOffset.width)/maxSize-1), 31), type:"setUint32"},// Map the value from -1 till 1
                 { value: ToFixedPoint((2*(y-0.5*innerCircleOffset.width)/maxSize-1), 31), type:"setUint32"} // Map the value from -1 till 1
               ]));
-              console.log("x: " + (2*(x-0.5*innerCircleOffset.width)/maxSize-1) + " - y: " + (2*(y-0.5*innerCircleOffset.width)/maxSize-1) + " - maxSize: " + maxSize);
+              // console.log("x: " + (2*(x-0.5*innerCircleOffset.width)/maxSize-1) + " - y: " + (2*(y-0.5*innerCircleOffset.width)/maxSize-1) + " - maxSize: " + maxSize);
             }
           }
           this.addEventListener("pointermove", pointerMove);
@@ -240,7 +261,9 @@ customElements.define(
               this.removeEventListener("pointermove", pointerMove);
               this.removeEventListener("pointerup", pointerUp);
               this.innerCircle.style.left = "";
-              this.innerCircle.style.top  = "";socket.send(GetDataInBigEndian([
+              this.innerCircle.style.top  = "";
+              if(socket.readyState != socket.OPEN) return;
+              socket.send(GetDataInBigEndian([
                 { value: ToFixedPoint(0, 31), type:"setUint32"},
                 { value: ToFixedPoint(0, 31), type:"setUint32"}
               ]));

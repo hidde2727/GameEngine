@@ -70,14 +70,23 @@ namespace Physics {
         }
 
         Edge incEdge = inc->GetEdgeWithMostOpposedNormal(this->normal);
-        ClipResult clip = incEdge.ClipToHalfspace(this->normal.rotatedL(), refA*this->normal);
-        clip = clip.ClipToHalfspace(this->normal.rotatedR(), refB*this->normal);
+        // ClipResult clip = incEdge.ClipToHalfspace((refA-refB).normalized(), refA*(refA-refB).normalized());
+        ClipResult clip = incEdge.ClipToHalfspace(this->normal.rotatedL(), refA*this->normal.rotatedL());
+        // clip = clip.ClipToHalfspace((refB-refA).normalized(), refB*(refB-refA).normalized());
+        clip = clip.ClipToHalfspace(this->normal.rotatedR(), refB*this->normal.rotatedR());
+
+        ASSERT(clip.numPoints==2, "[Physics::CollisionManifold] Clipping did not result in 2 points");
+        clip = clip.DiscardToHalfspace(this->normal, refA*this->normal);
+        ASSERT(clip.numPoints >= 1, "[Physics::CollisionManifold] Clipping did not result in at least 1 point");
+        
 
         Util::DrawDebugQuad(refA, 5, Util::Vec3F(1,0,0));
         Util::DrawDebugQuad(refB, 5, Util::Vec3F(1,0,0));
         Util::DrawDebugArrow((refA+refB)*0.5, this->normal, 20.f, 5.f, Util::Vec3F(0, 1, 1));
-        Util::DrawDebugQuad(clip.points[0], 5, Util::Vec3F(0,0,1));
-        Util::DrawDebugQuad(clip.points[1], 5, Util::Vec3F(0,0,1));
+        Util::DrawDebugQuad(incEdge.a, 5, Util::Vec3F(0,0,1));
+        Util::DrawDebugQuad(incEdge.b, 5, Util::Vec3F(0,0,1));
+        Util::DrawDebugQuad(clip.points[0], 5, Util::Vec3F(0,1,0));
+        if(clip.numPoints > 1) Util::DrawDebugQuad(clip.points[1], 5, Util::Vec3F(0,1,0));
 
     }
 

@@ -8,6 +8,8 @@ namespace Physics {
         CalculateManifold();
     }
 
+    // CalculateManifold implemented in Collision.cpp
+
     bool CollisionManifold::DoesCollide() {
         return contactCount!=0;
     }

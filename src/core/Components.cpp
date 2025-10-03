@@ -49,7 +49,7 @@ namespace Component {
                     ),
                     charInfo._textureArea,
                     charInfo._boundTexture,
-                    (float)ENGINE_RENDERER_PX_RANGE_FACTOR*sqrt((charInfo._max.x-charInfo._min.x)*(charInfo._max.x-charInfo._min.x)+(charInfo._max.y-charInfo._min.y)*(charInfo._max.y-charInfo._min.y))
+                    (float)ENGINE_RENDERER_PX_RANGE_FACTOR*(float)sqrt((charInfo._max.x-charInfo._min.x)*(charInfo._max.x-charInfo._min.x)+(charInfo._max.y-charInfo._min.y)*(charInfo._max.y-charInfo._min.y))
                 });
             }
             currentX += charInfo._advance;
