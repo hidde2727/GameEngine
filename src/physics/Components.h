@@ -21,29 +21,31 @@ namespace Component {
         Continuos=1,
         NoMove=2,
         NoVelocityChanges=4,
+        Kinematic=8,
 
         Polygon=256,
         Rectangle=512,
         Circle=1024
     };
 
+    struct PhysicsMaterial {
+        float e = 1;
+        float sf = 0.5f;
+        float df = 0.3f;
+
+        PhysicsMaterial() {}
+        PhysicsMaterial(const float e, const float sf, const float df) : e(e), sf(sf), df(df) {}
+
+        static PhysicsMaterial Default() { return PhysicsMaterial(0.5f, 0.5f, 0.3f); }
+        static PhysicsMaterial Bouncy() { return PhysicsMaterial(0.9f, 0.2f, 0.1f); }
+        static PhysicsMaterial UltraBouncy() { return PhysicsMaterial(1.f, 0.f, 0.f); }
+        static PhysicsMaterial Rock() { return PhysicsMaterial(0.3f, 0.6f, 0.4f); }
+    };
+
     struct Collider {
         Collider() {}
-        Collider(const Collider& col) : shape(), flags(col.flags), e(col.e), im(col.im), iL(col.iL) {
-            if(col.flags&ColliderFlags::Polygon) shape.polygon=col.shape.polygon;
-            if(col.flags&ColliderFlags::Rectangle) shape.rectangle=col.shape.rectangle;
-            if(col.flags&ColliderFlags::Circle) shape.circle=col.shape.circle;
-        }
-        Collider& operator=(const Collider& c) {
-            flags = c.flags; 
-            e = c.e;
-            im = c.im; 
-            iL = c.iL;
-            if(c.flags&ColliderFlags::Polygon) shape.polygon=c.shape.polygon;
-            if(c.flags&ColliderFlags::Rectangle) shape.rectangle=c.shape.rectangle;
-            if(c.flags&ColliderFlags::Circle) shape.circle=c.shape.circle;
-            return *this;
-        }
+        Collider(const Collider& col);
+        Collider& operator=(const Collider& c);
 
         struct Empty {};
         union Shape {
@@ -56,36 +58,19 @@ namespace Component {
         uint16_t flags;
         float e = 1;// restitution
         float im = 1;// inverse mass
-        float iL = 1;// inverse inertia
+        float iL = 0.5;// inverse inertia
+        float sf = 0.5f;// static friction coefficient
+        float df = 0.3f;// dynamic friction coefficient
 
-        static Collider StaticRect(const Util::Vec2F size) {
-            Collider col;
-            col.shape.rectangle.size = size;
-            col.flags = ColliderFlags::Rectangle;
-            col.im = 0;
-            col.iL = 0;
-            return col;
-        }
-        static Collider StaticRect(const Util::Vec2F size, const uint16_t flags) {
-            Collider col;
-            col.shape.rectangle.size = size;
-            col.flags = ColliderFlags::Rectangle | flags;
-            col.im = 0;
-            col.iL = 0;
-            return col;
-        }
-        static Collider KinematicRect(const Util::Vec2F size) {
-            Collider col;
-            col.shape.rectangle.size = size;
-            col.flags = ColliderFlags::Rectangle;
-            return col;
-        }
-        static Collider DynamicRect(const Util::Vec2F size) {
-            Collider col;
-            col.shape.rectangle.size = size;
-            col.flags = ColliderFlags::Rectangle;
-            return col;
-        }
+        bool IsStatic() const;
+        bool IsKinematic() const;
+
+        static Collider StaticRect(const Util::Vec2F size, const PhysicsMaterial mat = PhysicsMaterial::Default());
+        static Collider StaticRect(const Util::Vec2F size, const uint16_t flags, const PhysicsMaterial mat = PhysicsMaterial::Default());
+        static Collider KinematicRect(const Util::Vec2F size, const PhysicsMaterial mat = PhysicsMaterial::Default());
+        static Collider DynamicRect(const Util::Vec2F size, const PhysicsMaterial mat = PhysicsMaterial::Default());
+
+        void RecalculateMass(const float density);
     };
 
 }

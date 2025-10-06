@@ -10,6 +10,8 @@
 
 #include "network/WebHandler.h"
 
+#include "physics/Components.h"
+
 namespace Engine{
 
     typedef entt::entity Entity;
@@ -96,8 +98,8 @@ namespace Engine{
         struct BoundingboxID {
             entt::entity e1, e2, e3, e4;
         };
-        BoundingboxID CreateBoundingBox(const Util::Vec2F pos, const float rotation, const Util::Vec2F dimensions);
-        void ModifyBoundingBox(const BoundingboxID id, const Util::Vec2F pos, const float rotation, const Util::Vec2F dimensions);
+        BoundingboxID CreateBoundingBox(const Util::Vec2F pos, const float rotation, const Util::Vec2F dimensions, const Component::PhysicsMaterial mat = Component::PhysicsMaterial::Rock());
+        void ModifyBoundingBox(const BoundingboxID id, const Util::Vec2F pos, const float rotation, const Util::Vec2F dimensions, const Component::PhysicsMaterial mat = Component::PhysicsMaterial::Rock());
         void DeleteBoundingBox(const BoundingboxID id);
 
     private:

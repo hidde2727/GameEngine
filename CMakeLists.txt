@@ -57,12 +57,14 @@ add_library (GameEngine STATIC
 "src/network/websocket/Frame.cpp"
 
 "src/physics/Components.h"
+"src/physics/Components.cpp"
 "src/physics/Engine.h"
 "src/physics/Engine.cpp"
 "src/physics/CollisionManifold.h"
 "src/physics/CollisionManifold.cpp"
 "src/physics/Collision.cpp"
 "src/physics/Shapes.h"
+"src/physics/Shapes.cpp"
 
 "src/util/Log.h"
 "src/util/Log.cpp"

@@ -207,7 +207,7 @@ namespace Util {
 		return Vec2( -a * v.y, a * v.x );
 	}
 	template<class T>
-	inline Vec2<T> Cross(const Vec2<T> a, const Vec2<T> b) {
+	inline T Cross(const Vec2<T> a, const Vec2<T> b) {
 		return a.cross(b);
 	}
 

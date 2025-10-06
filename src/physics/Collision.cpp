@@ -6,8 +6,22 @@ namespace Engine {
 namespace Physics {
     
     void CollisionManifold::CalculateManifold() {
+        if((this->a->flags & Component::ColliderFlags::NoMove) && (this->b->flags & Component::ColliderFlags::NoMove)) return;
+
         if((this->a->flags & Component::ColliderFlags::Rectangle) && (this->b->flags & Component::ColliderFlags::Rectangle))
             RectangleToRectangle();
+        
+        if(bIsRef) {
+            Component::Collider* a = this->a;
+            Component::Position* posA = this->posA;
+            Component::Velocity* velA = this->velA;
+            this->a = this->b;
+            this->posA = this->posB;
+            this->velA = this->velB;
+            this->b = a;
+            this->posB = posA;
+            this->velB = velA;
+        }
     }
     
     void CollisionManifold::RectangleToRectangle() {
@@ -67,6 +81,7 @@ namespace Physics {
         if(flip) {
             ref = &b;
             inc = &a;
+            bIsRef = true;
         }
 
         Edge incEdge = inc->GetEdgeWithMostOpposedNormal(this->normal);
@@ -78,16 +93,10 @@ namespace Physics {
         ASSERT(clip.numPoints==2, "[Physics::CollisionManifold] Clipping did not result in 2 points");
         clip = clip.DiscardToHalfspace(this->normal, refA*this->normal);
         ASSERT(clip.numPoints >= 1, "[Physics::CollisionManifold] Clipping did not result in at least 1 point");
-        
 
-        Util::DrawDebugQuad(refA, 5, Util::Vec3F(1,0,0));
-        Util::DrawDebugQuad(refB, 5, Util::Vec3F(1,0,0));
-        Util::DrawDebugArrow((refA+refB)*0.5, this->normal, 20.f, 5.f, Util::Vec3F(0, 1, 1));
-        Util::DrawDebugQuad(incEdge.a, 5, Util::Vec3F(0,0,1));
-        Util::DrawDebugQuad(incEdge.b, 5, Util::Vec3F(0,0,1));
-        Util::DrawDebugQuad(clip.points[0], 5, Util::Vec3F(0,1,0));
-        if(clip.numPoints > 1) Util::DrawDebugQuad(clip.points[1], 5, Util::Vec3F(0,1,0));
-
+        this->contactCount = clip.numPoints;
+        this->contacts[0] = clip.points[0];
+        this->contacts[1] = clip.points[1];
     }
 
 }
