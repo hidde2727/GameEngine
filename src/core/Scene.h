@@ -10,6 +10,7 @@
 
 #include "network/WebHandler.h"
 
+#include "physics/Engine.h"
 #include "physics/Components.h"
 
 namespace Engine{
@@ -49,6 +50,7 @@ namespace Engine{
             AddComponents(entity, std::forward<Ts>(components)...);
             return entity;
         }
+        // Has template overloaded for Component::Collider
 		template<class ComponentType>
 		inline void AddComponent(const entt::entity entity, const ComponentType component) {
 #ifdef __DEBUG__
@@ -70,17 +72,20 @@ namespace Engine{
             AddComponent<T>(entity, c);
             AddComponents(entity, std::forward<Ts>(others)...);
         }
-		template<class ComponentType, class ... Ts>
-		inline void SetComponent(const entt::entity entity, Ts&&...inputs) {
+        // Has template overloaded for Component::Collider
+		template<class ComponentType>
+		inline void SetComponent(const entt::entity entity, const ComponentType component) {
 #ifdef __DEBUG__
             ASSERT(HasComponent<ComponentType>(entity), "[Scene] Cannot set a component to an entity that doesnt't have that component")
 #endif
-			_entt.replace<ComponentType>(entity, inputs...);
+			_entt.replace<ComponentType>(entity, component);
 		}
+        // Has template overloaded for Component::Collider
         template<class ComponentType>
         inline bool HasComponent(const entt::entity entity) {
             return _entt.all_of<ComponentType>(entity);
         }
+        // Has template overloaded for Component::Collider
 		template<class ComponentType>
 		inline ComponentType& GetComponent(const entt::entity entity) {
 			return _entt.get<ComponentType>(entity);
@@ -89,6 +94,9 @@ namespace Engine{
             if(HasComponent<Component::Texture>(entity)) _textureComponents--;
             if(HasComponent<Component::Text>(entity)) {
                 _textComponents -= (uint32_t)GetComponent<Component::Text>(entity)._renderInfo.size();
+            }
+            if(_physics.HasCollider(_entt, entity)) {
+                _physics.RemoveCollider(_entt, entity);
             }
             _entt.destroy(entity);
         }
@@ -111,13 +119,43 @@ namespace Engine{
 		constexpr bool IsTextureComponent() { return std::is_same<T, Component::Texture>::value; }
         template <typename T>
 		constexpr bool IsTextComponent() { return std::is_same<T, Component::Text>::value; }
+        template <typename T>
+		constexpr bool IsColliderComponent() { return std::is_same<T, Component::Collider>::value; }
 
         entt::registry _entt;
         Game* _game;
         Renderer::Window* _window;
         uint32_t _textureComponents = 0;
         uint32_t _textComponents = 0;
-    };
+        Physics::PhysicsEngine _physics;
+    };    
+    
+    // Template overload
+    template<>
+    inline void Scene::AddComponent<Component::Collider>(const entt::entity entity, const Component::Collider component) {
+#ifdef __DEBUG__
+        ASSERT(!_physics.HasCollider(_entt, entity), "[Scene] Cannot add a component to an entity that already has that component")
+#endif
+        _physics.AddCollider(_entt, entity, component);
+    }
+    // Template overload
+    template<>
+    inline void Scene::SetComponent<Component::Collider>(const entt::entity entity, const Component::Collider component) {
+#ifdef __DEBUG__
+        ASSERT(_physics.HasCollider(_entt, entity), "[Scene] Cannot set a component to an entity that doesnt't have that component")
+#endif
+        _physics.SetCollider(_entt, entity, component);
+    }
+    // Template overload
+    template<>
+    inline bool Scene::HasComponent<Component::Collider>(const entt::entity entity) {
+        return _physics.HasCollider(_entt, entity);
+    }
+    // Template overload
+    template<>
+    inline Component::Collider& Scene::GetComponent<Component::Collider>(const entt::entity entity) {
+        return _physics.GetCollider(_entt, entity);
+    }
 
 }
 

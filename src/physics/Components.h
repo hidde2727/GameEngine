@@ -42,6 +42,13 @@ namespace Component {
         static PhysicsMaterial Rock() { return PhysicsMaterial(0.3f, 0.6f, 0.4f); }
     };
 
+    struct ColliderUUID {
+        ColliderUUID() {}
+        ColliderUUID(const uint64_t uuid) : uuid(uuid) {}
+
+        uint64_t uuid;
+    };
+
     struct Collider {
         Collider() {}
         Collider(const Collider& col);

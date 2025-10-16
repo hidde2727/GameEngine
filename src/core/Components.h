@@ -12,6 +12,7 @@ namespace Engine {
 namespace Component {
 
     struct Position {
+        Position() {}
 		Position(const float value) : _pos(value) {}
 		Position(const float x, const float y) : _pos(x, y) {}
 		Position(const float x, const float y, const float rotation) : _pos(x, y), _rotation(rotation) {}

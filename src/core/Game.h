@@ -10,8 +10,6 @@
 
 #include "network/WebHandler.h"
 
-#include "physics/Engine.h"
-
 #include "util/FileManager.h"
 
 #define ENGINE_GAME_TEXTUREMAP_ID 0
@@ -78,7 +76,6 @@ namespace Engine {
         Scene* _scene;
         Renderer::Window _window;
         Network::WebHandler _webhandler;
-        Physics::PhysicsEngine _physics;
     };
 
 }
