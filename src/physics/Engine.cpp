@@ -8,7 +8,7 @@ namespace Physics {
 
 		int i = 0;
 		for(auto& [uuid, body] : _movingBodies) {
-			Component::Position pos1 = registry.get<Component::Position>(body.entity);
+			Component::Position& pos1 = registry.get<Component::Position>(body.entity);
 			Component::Velocity* vel1 = registry.try_get<Component::Velocity>(body.entity);
 			for(auto& [uuid2, body2] : _staticBodies) {
 				Component::Velocity* vel = registry.try_get<Component::Velocity>(body.entity);
@@ -24,7 +24,7 @@ namespace Physics {
 				if(j <= i) continue;
 				if(body.entity == body2.entity) continue;
 				Component::Velocity* vel2 = registry.try_get<Component::Velocity>(body2.entity);
-				Component::Position pos2 = registry.get<Component::Position>(body2.entity);
+				Component::Position& pos2 = registry.get<Component::Position>(body2.entity);
 				CollisionManifold manifold(
 					&body.col, &pos1, vel1,
 					&body2.col, &pos2, vel2);
