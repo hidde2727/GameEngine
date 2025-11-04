@@ -190,26 +190,25 @@ namespace Physics {
             return true;
         }
         void Query(const NodeID atNode, const AABB& aabb, std::vector<T>& result) const {
-            Node& node = _nodes[atNode];
-            if(!aabb.HasOverlap(node._aabb)) {
+            if(!aabb.HasOverlap(_nodes[atNode]._aabb)) {
                 // If this is the root node, return all the root nodes children
                 if(atNode == 0) {
-                    for(const Data& data : node._children) {
+                    for(const Data& data : _nodes[atNode]._children) {
                         if(data._aabb.HasOverlap(aabb)) result.push_back(data._obj);
                     }
                 }
                 return;
             }
             // Check our children
-            for(const Data& data : node._children) {
+            for(const Data& data : _nodes[atNode]._children) {
                 if(data._aabb.HasOverlap(aabb)) result.push_back(data._obj);
             }
-            if(node._leaf) return;
+            if(_nodes[atNode]._leaf) return;
             // Check our branches
-            Query(node._nodes[0], aabb, result);
-            Query(node._nodes[1], aabb, result);
-            Query(node._nodes[2], aabb, result);
-            Query(node._nodes[3], aabb, result);
+            Query(_nodes[atNode]._nodes[0], aabb, result);
+            Query(_nodes[atNode]._nodes[1], aabb, result);
+            Query(_nodes[atNode]._nodes[2], aabb, result);
+            Query(_nodes[atNode]._nodes[3], aabb, result);
         }
         // TODO, add logic to remove leafs that aren't in use
         bool TryRemove(const NodeID atNode, const ChildID id) {
@@ -226,7 +225,7 @@ namespace Physics {
                 i++;
             }
             if(deleteIndex != -1) {
-                self._children.remove(self._children.begin() + deleteIndex);
+                self._children.erase(self._children.begin() + deleteIndex);
                 return true;
             }
             // Propagate through child nodes (if this isn't a leaf)
@@ -240,7 +239,7 @@ namespace Physics {
 
         T* TryGet(const NodeID atNode, const ChildID id) {
             Node& self = _nodes[atNode];
-            for(const Data& data : self._children) {
+            for(Data& data : self._children) {
                 if(data._uuid == id) {
                     // Found it
                     return &data._obj;
@@ -249,13 +248,13 @@ namespace Physics {
 
             // Propagate through child nodes (if this isn't a leaf)
             if(self._leaf) return nullptr;
-            T* obj = TryGet(self._nodex[0], id);
+            T* obj = TryGet(self._nodes[0], id);
             if(obj) return obj;
-            obj = TryGet(self._nodex[1], id);
+            obj = TryGet(self._nodes[1], id);
             if(obj) return obj;
-            obj = TryGet(self._nodex[2], id);
+            obj = TryGet(self._nodes[2], id);
             if(obj) return obj;
-            obj = TryGet(self._nodex[3], id);
+            obj = TryGet(self._nodes[3], id);
             if(obj) return obj;
             return nullptr;
         }
