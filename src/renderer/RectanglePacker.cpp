@@ -8,7 +8,7 @@ namespace Renderer {
         // Give every rectangle his index
         for(uint32_t i = 0; i < _sizes.size(); i++) {
             _sizes[i].z = i;
-            ASSERT(_sizes[i].x < _maxBinSize.x && _sizes[i].y < _maxBinSize.y, "[Renderer::RectanglePacker] Cannot pack rectangles that are bigger then the maximum bin size");
+            ASSERT(_sizes[i].x <= _maxBinSize.x && _sizes[i].y <= _maxBinSize.y, "[Renderer::RectanglePacker] Cannot pack rectangles that are bigger then the maximum bin size");
         }
         // Sort the rectangles
         switch(_sortingAlgorithm) {
@@ -51,7 +51,7 @@ namespace Renderer {
                 }
             }
             if(rect.y > rowHeight) rowHeight = rect.y;
-            _result[rect.z] = std::pair(bin, Util::AreaU32(x, y, rect.x, rect.y));
+            _result[rect.z] = ResultArea(bin, Util::AreaU32(x, y, rect.x, rect.y), rect.z);
             x += rect.x;
             if(x > binWidth) binWidth = x;
         }

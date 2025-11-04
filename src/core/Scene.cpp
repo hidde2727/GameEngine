@@ -3,6 +3,13 @@
 
 namespace Engine{
 
+    Scene::Scene(Game* game, Renderer::Window* window) : _game(game), _window(window), _physics(GetSceneBounds()) {
+        _fileManager = &game->GetFileManager();
+    }
+    Scene::~Scene() {
+        _entt.clear();
+    }
+
     void Scene::SetAssetCacheName(const std::string name) {
         _window->SetAssetLoadingCacheName(ENGINE_SCENE_TEXTUREMAP_ID, name);
     }

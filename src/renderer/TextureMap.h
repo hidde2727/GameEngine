@@ -18,6 +18,9 @@ namespace Renderer {
 
     class AssetLoader {
     public:
+        virtual ~AssetLoader() {
+            _fileManager = nullptr;
+        }
         // Will be the first function called after intialising this class
         // fileManager will be set
         virtual void Init() {}
@@ -29,12 +32,12 @@ namespace Renderer {
         // If the cache is not used, this function will be the first to be called (you can init your loading utilities here)
         // Garantueed to only be called once
         virtual void SetTextureSizes(Util::Vec3U32* start) = 0;
-        // Should render the textures on the returned texture at the returned areas
+        // Should render the texture with requested id on the requested texture at the requested area
         // ID=n is the nth texture returned in SetTextureSizes
         virtual void RenderTexture(Util::AreaU8* texture, const Util::Vec2U32 textureSize, const Util::AreaU32 area, const size_t id) = 0;
 
         // Called with the area and descriptor binding for the ID
-        // Area is different from render texture that it is normalized
+        // Area is different from the area in the RenderTexture function because this area is normalized (to the size of the texture)
         // ID=n is the nth texture returned in SetTextureSizes
         virtual void SetTextureRenderInfo(const Util::AreaF area, const uint32_t boundTexture, const size_t id) = 0;
 

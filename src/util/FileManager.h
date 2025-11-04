@@ -71,6 +71,17 @@ namespace Util {
             ReadFile(path, readBuffer.data(), readBuffer.size());
         }
 
+        bool GetImageInfo(const std::string path, int *x, int *y, int *comp) const {
+            return stbi_info(GetFileLocation(path).c_str(), x, y, comp);
+        }
+        uint8_t* ReadImageFile(const std::string path, int *x, int *y, int *channelsInFile, int desiredChannels=4) const {
+            uint8_t* data = stbi_load(GetFileLocation(path).c_str(), x, y, channelsInFile, desiredChannels);
+            return data;
+        }
+        std::string GetImageReadError() const {
+            return std::string(stbi_failure_reason());
+        }
+
         // INTERNAL
         std::string GetCacheLocation(const std::string cacheID) const;
         // INTERNAL

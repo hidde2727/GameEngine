@@ -21,10 +21,11 @@ namespace Engine{
     class Scene {
     public:
 
-        Scene(Game* game, Renderer::Window* window) : _game(game), _window(window) {}
+        Scene(Game* game, Renderer::Window* window);
+        ~Scene();
 
         virtual void OnSceneStart() {}
-        virtual void OnFrame() {}
+        virtual void OnFrame(const float dt) {}
         virtual void OnSceneStop() {}
         virtual void LoadAssets() {}
         virtual void OnHTTPRequest(Network::HTTP::RequestHeader& requestHeader, std::vector<uint8_t>& requestBody, Network::HTTP::Response& response) {}
@@ -32,6 +33,7 @@ namespace Engine{
         virtual void OnWebsocketRequest(Network::Websocket::Frame& frame, Network::WebHandler::WebsocketConnection& connection) {}
         virtual void OnWebsocketStart(Network::WebHandler::WebsocketConnection& connection, const size_t uuid, Network::HTTP::RequestHeader& requestHeader) {}
         virtual void OnWebsocketStop(Network::WebHandler::WebsocketConnection& connection, const size_t uuid) {}
+        virtual Physics::AABB GetSceneBounds() const { return Physics::AABB::FromCorners(Util::Vec2F(0,0), Util::Vec2F(1920, 1080)); }
 
         // Should only be called inside the LoadAssets function
         // Set a unique name to be used all the times the exact same assets are loaded
@@ -50,12 +52,11 @@ namespace Engine{
             AddComponents(entity, std::forward<Ts>(components)...);
             return entity;
         }
-        // Has template overloaded for Component::Collider
+        // Has template overloaded for Component::Collider and Component::ImageBasedCollider
 		template<class ComponentType>
 		inline void AddComponent(const entt::entity entity, const ComponentType component) {
-#ifdef __DEBUG__
-            ASSERT(!_entt.all_of<ComponentType>(entity), "[Scene] Cannot add a component to an entity that already has that component")
-#endif
+            ASSERT_IF_DEBUG(!_entt.all_of<ComponentType>(entity), "[Scene] Cannot add a component to an entity that already has that component")
+
             if(IsTextureComponent<ComponentType>()) _textureComponents++;
 			_entt.emplace<ComponentType>(entity, component);
             
@@ -72,20 +73,18 @@ namespace Engine{
             AddComponent<T>(entity, c);
             AddComponents(entity, std::forward<Ts>(others)...);
         }
-        // Has template overloaded for Component::Collider
+        // Has template overloaded for Component::Collider and Component::ImageBasedCollider
 		template<class ComponentType>
 		inline void SetComponent(const entt::entity entity, const ComponentType component) {
-#ifdef __DEBUG__
-            ASSERT(HasComponent<ComponentType>(entity), "[Scene] Cannot set a component to an entity that doesnt't have that component")
-#endif
+            ASSERT_IF_DEBUG(HasComponent<ComponentType>(entity), "[Scene] Cannot set a component to an entity that doesnt't have that component")
 			_entt.replace<ComponentType>(entity, component);
 		}
-        // Has template overloaded for Component::Collider
+        // Has template overloaded for Component::Collider and Component::ImageBasedCollider
         template<class ComponentType>
         inline bool HasComponent(const entt::entity entity) {
             return _entt.all_of<ComponentType>(entity);
         }
-        // Has template overloaded for Component::Collider
+        // Has template overloaded for Component::Collider and Component::ImageBasedCollider
 		template<class ComponentType>
 		inline ComponentType& GetComponent(const entt::entity entity) {
 			return _entt.get<ComponentType>(entity);
@@ -110,6 +109,17 @@ namespace Engine{
         void ModifyBoundingBox(const BoundingboxID id, const Util::Vec2F pos, const float rotation, const Util::Vec2F dimensions, const Component::PhysicsMaterial mat = Component::PhysicsMaterial::Rock());
         void DeleteBoundingBox(const BoundingboxID id);
 
+        // Needs to be called after updating a static collider
+        //      with GetComponent<Component::Collider>
+        void UpdateStaticCollider(const entt::entity entity) {
+            _physics.UpdateCollider(_entt, entity);
+        }
+        // Needs to be called after updating an image collider
+        //      with GetComponent<Component::ImageBasedCollider>
+        void UpdateImageBasedCollider(const entt::entity entity) {
+            _physics.UpdateImageCollider(_entt, entity);
+        }
+
     private:
         friend struct Component::Texture;
         friend struct Component::Text;
@@ -124,26 +134,23 @@ namespace Engine{
 
         entt::registry _entt;
         Game* _game;
+        Util::FileManager* _fileManager = nullptr;
         Renderer::Window* _window;
         uint32_t _textureComponents = 0;
         uint32_t _textComponents = 0;
         Physics::PhysicsEngine _physics;
-    };    
+    };
     
     // Template overload
     template<>
     inline void Scene::AddComponent<Component::Collider>(const entt::entity entity, const Component::Collider component) {
-#ifdef __DEBUG__
-        ASSERT(!_physics.HasCollider(_entt, entity), "[Scene] Cannot add a component to an entity that already has that component")
-#endif
+        ASSERT_IF_DEBUG(!_physics.HasCollider(_entt, entity), "[Scene] Cannot add a component to an entity that already has that component")
         _physics.AddCollider(_entt, entity, component);
     }
     // Template overload
     template<>
     inline void Scene::SetComponent<Component::Collider>(const entt::entity entity, const Component::Collider component) {
-#ifdef __DEBUG__
-        ASSERT(_physics.HasCollider(_entt, entity), "[Scene] Cannot set a component to an entity that doesnt't have that component")
-#endif
+        ASSERT_IF_DEBUG(_physics.HasCollider(_entt, entity), "[Scene] Cannot set a component to an entity that doesnt't have that component")
         _physics.SetCollider(_entt, entity, component);
     }
     // Template overload
@@ -152,9 +159,39 @@ namespace Engine{
         return _physics.HasCollider(_entt, entity);
     }
     // Template overload
+    // !! If you use this function to update a STATIC collider, 
+    //      you need to call UpdateStaticCollider afterwards
+    //      to make your changes get effect !!
     template<>
     inline Component::Collider& Scene::GetComponent<Component::Collider>(const entt::entity entity) {
         return _physics.GetCollider(_entt, entity);
+    }
+
+    
+    // Template overload
+    template<>
+    inline void Scene::AddComponent<Component::ImageBasedCollider>(const entt::entity entity, const Component::ImageBasedCollider component) {
+        ASSERT_IF_DEBUG(!_physics.HasImageCollider(_entt, entity), "[Scene] Cannot add a component to an entity that already has that component")
+        _physics.AddImageCollider(_fileManager, _entt, entity, component);
+    }
+    // Template overload
+    template<>
+    inline void Scene::SetComponent<Component::ImageBasedCollider>(const entt::entity entity, const Component::ImageBasedCollider component) {
+        ASSERT_IF_DEBUG(_physics.HasImageCollider(_entt, entity), "[Scene] Cannot set a component to an entity that doesnt't have that component")
+        _physics.SetImageCollider(_fileManager, _entt, entity, component);
+    }
+    // Template overload
+    template<>
+    inline bool Scene::HasComponent<Component::ImageBasedCollider>(const entt::entity entity) {
+        return _physics.HasImageCollider(_entt, entity);
+    }
+    // Template overload
+    // !! If you use this function to update an image collider, 
+    //      you need to call UpdateImageBasedCollider afterwards
+    //      to make your changes get effect !!
+    template<>
+    inline Component::ImageBasedCollider& Scene::GetComponent<Component::ImageBasedCollider>(const entt::entity entity) {
+        return _physics.GetImageCollider(_entt, entity);
     }
 
 }

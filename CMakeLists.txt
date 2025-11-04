@@ -62,9 +62,10 @@ add_library (GameEngine STATIC
 "src/physics/Engine.cpp"
 "src/physics/CollisionManifold.h"
 "src/physics/CollisionManifold.cpp"
-"src/physics/Collision.cpp"
 "src/physics/Shapes.h"
 "src/physics/Shapes.cpp"
+"src/physics/QuadTree.h"
+"src/physics/AABB.h"
 
 "src/util/Log.h"
 "src/util/Log.cpp"
@@ -88,6 +89,10 @@ add_library (GameEngine STATIC
 )
 target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_precompile_headers(GameEngine PUBLIC "src/core/PCH.h")
+
+# IF(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_BUILD_TYPE MATCHES Debug)
+#     target_link_libraries(GameEngine PRIVATE -fsanitize=address)
+# ENDIF()
 
 # Vulkan
 find_package(Vulkan REQUIRED)

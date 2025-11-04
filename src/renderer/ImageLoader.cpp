@@ -16,15 +16,15 @@ namespace Renderer {
     }
     void ImageLoader::SetTextureSizes(Util::Vec3U32* start) {
         int x, y, n;
-        bool success = stbi_info(_fileManager->GetFileLocation(_file).c_str(), &x, &y, &n);
-        ASSERT(success, "[Renderer::ImageLoader] Failed to load image info with the stbi_info function:\n" + std::string(stbi_failure_reason()))
+        bool success = _fileManager->GetImageInfo(_file, &x, &y, &n);
+        ASSERT(success, "[Renderer::ImageLoader] Failed to load image info with the stbi_info function:\n" + _fileManager->GetImageReadError())
 
         *start = Util::Vec3U32(x, y, 0);
     }
     void ImageLoader::RenderTexture(Util::AreaU8* texture, const Util::Vec2U32 textureSize, const Util::AreaU32 area, const size_t id) {
         _area = area;
         int width, height, channels;
-        uint8_t* imageData = stbi_load(_fileManager->GetFileLocation(_file).c_str(), &width, &height, &channels, 4);
+        uint8_t* imageData = _fileManager->ReadImageFile(_file, &width, &height, &channels, 4);
         for(int y = 0; y < height; y++) {
             Util::AreaU8* row = texture + (area.y+y)*textureSize.x + area.x;
             for(int x = 0; x < width; x++) {

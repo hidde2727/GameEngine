@@ -47,12 +47,17 @@ namespace Engine {
             _window.EndAssetLoading(ENGINE_GAME_TEXTUREMAP_ID);
             OnStart();
 
-
+            _previousFrame = std::chrono::steady_clock::now();
             while(!_window.ShouldClose()) {
                 ASSERT(_scene!=nullptr, "[Game] No scene bound, there should always be a scene bound")
                 _webhandler.HandleRequests();
-                _scene->OnFrame();
-                _scene->_physics.Update(_scene->_entt, 1/60.f);
+
+                auto now = std::chrono::steady_clock::now();
+                float dt = (float)(((double)std::chrono::nanoseconds(now - _previousFrame).count()) / 1000000000);
+                _previousFrame = now;
+                
+                _scene->OnFrame(dt);
+                _scene->_physics.Update(_scene->_entt, dt);
                 _window.Update();
                 _window.Draw(_scene->_entt, _scene->_textureComponents, _scene->_textComponents);
             }

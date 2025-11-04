@@ -70,12 +70,16 @@ namespace Engine {
 
         void DebugLine(const Util::Vec2F start, const Util::Vec2F end, const Util::Vec3F color);
 
+        Util::FileManager& GetFileManager() { return _fileManager; }
+
     private:
         Util::FileManager _fileManager;
 
         Scene* _scene;
         Renderer::Window _window;
         Network::WebHandler _webhandler;
+
+        std::chrono::steady_clock::time_point _previousFrame;
     };
 
 }

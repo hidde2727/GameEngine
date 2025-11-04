@@ -86,6 +86,25 @@ namespace Util {
 			else return (T)atan(y/x) + (T)0.5*(T)PI;
 		}
 
+		inline Vec2<T> mirroredX() {
+			return Vec2<T>(-x, y);
+		}
+		inline Vec2<T> mirroredY() {
+			return Vec2<T>(x, -y);
+		}
+		inline Vec2<T> mirroredXAndY() {
+			return Vec2<T>(-x, -y);
+		}
+		inline Vec2<T> mirroredX(const T aroundX) {
+			return Vec2<T>(-(x - aroundX) + aroundX, y);
+		}
+		inline Vec2<T> mirroredY(const float aroundY) {
+			return Vec2<T>(x, -(y - aroundY) + aroundY);
+		}
+		inline Vec2<T> mirroredXAndY(const float aroundX, const float aroundY) {
+			return Vec2<T>(-(x - aroundX) + aroundX, -(y - aroundY) + aroundY);
+		}
+
 		inline Vec2<T>& operator=(const Vec2<T>& v) {
 			this->x = v.x;
 			this->y = v.y;

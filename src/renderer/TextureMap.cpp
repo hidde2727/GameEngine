@@ -28,14 +28,12 @@ namespace Renderer {
         _cacheName = name;
     }
     void TextureMap::EndLoading(Vulkan::Context& context, std::initializer_list<Vulkan::Pipeline*> bindToPipelines, const Util::FileManager& fileManager) {
-        if(_amountTextures == 0) return;
-        // Check if the cache is usable
-        
+        if(_amountTextures == 0) return;        
         // Retrieve needed texture sizes
         RectanglePacker packer;
         packer.SetMaximumBinSize(Util::Vec2U32(1920, 1080));
         packer.SetAmountRectangles(_amountTextures);
-        Util::Vec3U32* inputPtr = packer.GetRectangleInputPtr();
+        Util::Vec3U32* inputPtr = packer.GetRectangleInputPtr();// Get the location where the input should go
         size_t currentTexture = 0;
         for(const auto& assetLoader : _assetLoaders) {
             // Set all the variables
@@ -52,6 +50,7 @@ namespace Renderer {
 
         // Pack
         packer.SetPackingAlgorithm(RectanglePacker::PackingAlgorithm::Shelf);
+        packer.SetSortingAlgorithm(RectanglePacker::SortingAlgorithm::BigHeightFirst);
         packer.Pack();
 
         // Create and render the textures
@@ -61,10 +60,10 @@ namespace Renderer {
         Vulkan::CommandBuffer commandBuffer;
         Vulkan::QueueType queueType = context.GetQueue(Vulkan::QueueType::TransferQueue)==VK_NULL_HANDLE? Vulkan::QueueType::GraphicsQueue : Vulkan::QueueType::TransferQueue;
         commandBuffer.Init(context, queueType, 1);
-        for(size_t i = 0; i < _textures.size(); i++) {
+        for(size_t i = 0; i < _textures.size(); i++) {// i = current packed bin/current texture
             _textures[i].Init(context, *binSizePtr, VK_FORMAT_R8G8B8A8_SRGB);
+            // Make sure all the pipelines when binding this descriptor return the same DescriptorBindingID
             uint32_t descriptorBinding = (*bindToPipelines.begin())->BindTextureDescriptor(context, _textures[i]);
-            // It is ugly but it works
             for(Vulkan::Pipeline* const* p = bindToPipelines.begin()+1; p<bindToPipelines.end(); p++) {
                 if(descriptorBinding!=(*p)->BindTextureDescriptor(context, _textures[i])) 
                     THROW("[Renderer::TextureMap] EndLoading should receive pipelines with equal amount of textures and with exclusive acces to the bindings (nothing else should bind textures)")
@@ -73,19 +72,26 @@ namespace Renderer {
             _textures[i].StartTransferingData(context);
             // Go through all the textures and render the once with this bin
             // Going through them one-by-one to not overload the amount of transfer memory needed
-            std::pair<uint32_t, Util::AreaU32>* resultPtr = packer.GetResults();
-            size_t currentAssetLoader = 0;
+            RectanglePacker::ResultArea* resultPtr = packer.GetResults();
             Util::AreaU8* texturePtr = reinterpret_cast<Util::AreaU8*>(_textures[i].GetTransferLocation());
             for(size_t j = 0; j < _amountTextures; j++) {
-                if(resultPtr->first != i) continue;
-                _assetLoaders[currentAssetLoader]->RenderTexture(texturePtr, *binSizePtr, resultPtr->second, j-_assetLoaders[currentAssetLoader]->_firstTexture);
-                _assetLoaders[currentAssetLoader]->SetTextureRenderInfo(
-                    Util::AreaF((float)resultPtr->second.x/binSizePtr->x, (float)resultPtr->second.y/binSizePtr->y, (float)resultPtr->second.w/binSizePtr->x, (float)resultPtr->second.h/binSizePtr->y), 
+                // Check if this rectangle should be rendered on texture with ID=i
+                if(resultPtr->_bin != i) { resultPtr++; continue; }
+                // Get the asset loader the area belongs to
+                size_t assetLoader;
+                for(assetLoader = 0; assetLoader < _assetLoaders.size(); assetLoader++) {
+                    if(_assetLoaders[assetLoader]->_firstTexture <= resultPtr->_origID &&
+                    _assetLoaders[assetLoader]->_lastTexture >= resultPtr->_origID) break;
+                }
+                ASSERT(assetLoader < _assetLoaders.size(), "[TextureMap::EndLoading] Failed to find the asset loader associated with a packed texture")
+                // Render the texture with the asset loader
+                _assetLoaders[assetLoader]->RenderTexture(texturePtr, *binSizePtr, resultPtr->_area, j-_assetLoaders[assetLoader]->_firstTexture);
+                _assetLoaders[assetLoader]->SetTextureRenderInfo(
+                    Util::AreaF((float)resultPtr->_area.x/binSizePtr->x, (float)resultPtr->_area.y/binSizePtr->y, (float)resultPtr->_area.w/binSizePtr->x, (float)resultPtr->_area.h/binSizePtr->y), 
                     descriptorBinding, 
-                    j-_assetLoaders[currentAssetLoader]->_firstTexture
+                    j-_assetLoaders[assetLoader]->_firstTexture
                 );
 
-                if(_assetLoaders[currentAssetLoader]->_lastTexture == j) currentAssetLoader++;
                 resultPtr++;
             }
             binSizePtr++;
@@ -106,8 +112,6 @@ namespace Renderer {
         for(size_t i = 0; i < _assetLoaders.size(); i++) {
             _renderInfos[i] = _assetLoaders[i]->GetRenderInfo();
         }
-
-        // Create the cache
 
         // Remove the loaders
         _assetLoaders.clear();

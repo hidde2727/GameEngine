@@ -4,6 +4,7 @@
 #include "core/PCH.h"
 #include "util/Vec2D.h"
 #include "core/Components.h"
+#include "physics/AABB.h"
 
 namespace Engine {
 namespace Physics {
@@ -44,10 +45,25 @@ namespace Physics {
 
         Projection GetProjectionOnNormal(const Util::Vec2F normal) const;
         Edge GetEdgeWithMostOpposedNormal(const Util::Vec2F normal) const;
+
+        AABB GetAABB() const {
+            Util::Vec2F min(std::numeric_limits<float>::infinity());
+            Util::Vec2F max(-std::numeric_limits<float>::infinity());
+            for(int i = 0; i < numPoints; i++) {
+                min.x = Util::min(points[i].x, min.x);
+                min.y = Util::min(points[i].y, min.y);
+                max.x = Util::max(points[i].x, max.x);
+                max.y = Util::max(points[i].y, max.y);
+            }
+            return AABB::FromCorners(min, max);
+        }
     };
     struct Polygon {
 
         PrecalculatedPolygon GetPointsWorldSpace(Component::Position pos) const;
+        inline AABB GetAABB(const Component::Position& pos) const {
+            return GetPointsWorldSpace(pos).GetAABB();
+        }
 
         Util::Vec2F points[ENGINE_PHYSICS_MAX_POLYGON_SIZE];
         int numPoints = 0;
@@ -59,6 +75,9 @@ namespace Physics {
     struct Rectangle {
 
         PrecalculatedPolygon GetPointsWorldSpace(Component::Position pos) const;
+        inline AABB GetAABB(const Component::Position& pos) const {
+            return GetPointsWorldSpace(pos).GetAABB();
+        }
 
         Util::Vec2F size;
     };
@@ -67,6 +86,9 @@ namespace Physics {
 
 
     struct Circle {
+        inline AABB GetAABB(const Component::Position& pos) const {
+            return AABB::FromCorners(pos._pos - Util::Vec2F(radius), pos._pos + Util::Vec2F(radius));
+        }
         float radius;
     };
 

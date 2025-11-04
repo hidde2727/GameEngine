@@ -1,6 +1,9 @@
 #ifndef ENGINE_UTIL_MATH_H
 #define ENGINE_UTIL_MATH_H
 
+#include "util/Vec2D.h"
+#include "util/Vec3D.h"
+
 namespace Engine {
 namespace Util {
 
@@ -18,6 +21,14 @@ namespace Util {
     inline T abs(const T a) {
         if(a < 0) return a*-1;
         else return a;
+    }
+    template<class T>
+    inline Util::Vec2<T> abs(const Util::Vec2<T> a) {
+        return Util::Vec2<T>(abs(a.x), abs(a.y));
+    }
+    template<class T>
+    inline Util::Vec3<T> abs(const Util::Vec3<T> a) {
+        return Util::Vec3<T>(abs(a.x), abs(a.y), abs(a.z));
     }
     template<class T>
     inline T sqr(const T a) {

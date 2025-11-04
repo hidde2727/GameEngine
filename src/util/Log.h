@@ -22,4 +22,10 @@ namespace Util {
 #define THROW(message) { Engine::Util::Throw(message); throw std::runtime_error(message); }
 #define ASSERT(check, message) if(!(check)) THROW(message)
 
+#ifdef __DEBUG__
+    #define ASSERT_IF_DEBUG(check, message) if(!(check)) THROW(message)
+#else
+    #define ASSERT_IF_DEBUG(check, message)
+#endif
+
 #endif
