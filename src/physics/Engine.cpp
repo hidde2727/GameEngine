@@ -1,5 +1,15 @@
 #include "physics/Engine.h"
 
+// UUIDS:
+
+// Static UUID has the first bit set to 0
+#define NEW_STATIC_UUID(baseUUID) (uint64_t)0x7FFFFFFFFFFFFFFF & baseUUID
+#define IS_STATIC(uuid) !(((uint64_t)1<<63) & uuid)
+// Moving UUID has the first bit set to 1
+#define NEW_MOVING_UUID ((uint64_t)1<<63) | _nextMovingID
+#define IS_MOVING(uuid) ((uint64_t)1<<63) & uuid
+
+
 namespace Engine {
 namespace Physics {
 
@@ -48,6 +58,19 @@ namespace Physics {
 		{
 		auto group = registry.group<Component::Velocity>(entt::get<Component::Position>);
 		for (const auto [entity, vel, pos] : group.each()) {
+			if(vel.divisionFactor != 0) {
+				vel.v = vel.newV / vel.divisionFactor;
+				vel.w = vel.newW / vel.divisionFactor;
+
+				vel.divisionFactor = 0;
+				vel.newV = Util::Vec2F(0);
+				vel.newW = 0;
+			}
+			Component::ColliderUUID* col = registry.try_get<Component::ColliderUUID>(entity);
+			if(col && IS_MOVING(col->uuid)) {
+				vel.v += _gravity * _movingBodies[col->uuid].col.gravityFactor * dt;
+			}
+
 			pos._pos += vel.v * dt;
 			pos._rotation += vel.w * dt;
 		}
@@ -57,13 +80,11 @@ namespace Physics {
 			manifold.PositionalCorrection();
 		}
     }
+	
+    void PhysicsEngine::SetGravity(const Util::Vec2F gravity) {
+		_gravity = gravity;
+	}
 
-	// Static UUID has the first bit set to 0
-	#define NEW_STATIC_UUID(baseUUID) (uint64_t)0x7FFFFFFFFFFFFFFF & baseUUID
-	#define IS_STATIC(uuid) !(((uint64_t)1<<63) & uuid)
-	// Moving UUID has the first bit set to 1
-	#define NEW_MOVING_UUID ((uint64_t)1<<63) | _nextMovingID
-	#define IS_MOVING(uuid) ((uint64_t)1<<63) & uuid
 	void PhysicsEngine::AddCollider(entt::registry& registry, const entt::entity entity, const Component::Collider collider) {
 		if(collider.IsStatic()) {
 			ASSERT(registry.all_of<Component::Position>(entity), "[PhysicsEngine::AddCollider] Cannot add a static collider to an entity without a position")
@@ -143,8 +164,10 @@ namespace Physics {
 		id.firstStaticBody = _staticBodies.GetNextChildID();
         int width, height, channels;
 		uint8_t* imageData = fileManager->ReadImageFile(collider._file, &width, &height, &channels, 1);
-		float offsetX = pos._pos.x - width/2.f;
-		float offsetY = pos._pos.y - height/2.f;
+		float scaleX = collider._forcedSize == 0 ? 1.f : collider._forcedSize.x / (float)width;
+		float scaleY = collider._forcedSize == 0 ? 1.f : collider._forcedSize.y / (float)height;
+		float offsetX = pos._pos.x - (width/2.f)*scaleX;
+		float offsetY = pos._pos.y - (height/2.f)*scaleY;
 
         for(int y = 0; y < height; y++) {
 			int xStart = 0;
@@ -155,8 +178,8 @@ namespace Physics {
 					if(x-xStart == 0) { xStart = x+1; continue; }
 					
 					StaticBody body = StaticBody(
-						Component::Position((xStart+x)*0.5f+offsetX, y+0.5f+offsetY),
-						Component::Collider::StaticRect(Util::Vec2F(x-xStart,1), collider._material)
+						Component::Position((xStart+x)*0.5f*scaleX+offsetX, (y+0.5f)*scaleY+offsetY),
+						Component::Collider::StaticRect(Util::Vec2F((x-xStart)*scaleX,scaleY), collider._material)
 					);
  					_staticBodies.Insert(body, body.GetAABB());
 					xStart = x+1;
@@ -164,8 +187,8 @@ namespace Physics {
             }
 			if(xStart != width) {
 				StaticBody body = StaticBody(
-					Component::Position((xStart+width)*0.5f+offsetX, y+0.5f+offsetY),
-					Component::Collider::StaticRect(Util::Vec2F(width-xStart,1),  collider._material)
+					Component::Position((xStart+width)*0.5f*scaleX+offsetX, (y+0.5f)*scaleY+offsetY),
+					Component::Collider::StaticRect(Util::Vec2F((width-xStart)*scaleX,scaleY),  collider._material)
 				);
 				_staticBodies.Insert(body, body.GetAABB());
 			}

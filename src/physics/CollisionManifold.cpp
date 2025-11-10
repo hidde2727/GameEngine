@@ -64,8 +64,6 @@ namespace Physics {
         float df = std::sqrt(_a->df * _b->df);
 
         // resA and resB are used to take an average of the new velocities of both contactPoints
-        Component::Velocity resA;
-        Component::Velocity resB;
         for(int i = 0; i < _contactCount; i++) {
             Component::Velocity velCopyA = *velAnnul;
             Component::Velocity velCopyB = *velBnnul;
@@ -84,7 +82,6 @@ namespace Physics {
                 Util::sqr(rb.cross(_normal)) * _b->iL;
             float j = -(1 + e) * vRel.dot(_normal);
             j /= denominator;
-            // j /= (float)contactCount;
 
             velCopyA.v -= _normal * (j * _a->im);
             velCopyA.w -= Cross(ra, _normal) * j * _a->iL;
@@ -99,7 +96,6 @@ namespace Physics {
 
             float jt = -vRel.dot(t);
             jt /= denominator;
-            // jt /= (float)contactCount;
 
             if(std::abs(jt) < 0.0001f) return;
 
@@ -112,15 +108,14 @@ namespace Physics {
             velCopyB.v += t * (jt * _b->im);
             velCopyB.w += Cross(rb, t) * jt * _b->iL;
 
-            resA += velCopyA;
-            resB += velCopyB;
+            float importance = _penetration/_contactCount;
+            velAnnul->newV += velCopyA.v * importance;
+            velAnnul->newW += velCopyA.w * importance;
+            velAnnul->divisionFactor += importance;
+            velBnnul->newV += velCopyB.v * importance;
+            velBnnul->newW += velCopyB.w * importance;
+            velBnnul->divisionFactor += importance;
         }
-
-        resA /= _contactCount;
-        resB /= _contactCount;
-
-        *velAnnul = resA;
-        *velBnnul = resB;
     }
 
     void CollisionManifold::PositionalCorrection() {

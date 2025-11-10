@@ -30,6 +30,11 @@ namespace Component {
             w /= a;
             return *this;
         }
+
+        // Internal:
+        Util::Vec2F newV = Util::Vec2F(0);
+        float newW = 0;
+        float divisionFactor = 0;
     };
 
     enum ColliderFlags {
@@ -88,6 +93,7 @@ namespace Component {
         float iL = 0.5;// inverse inertia
         float sf = 0.5f;// static friction coefficient
         float df = 0.3f;// dynamic friction coefficient
+        float gravityFactor = 1;// multiplied with gravity and then added to the velocity
 
         bool IsStatic() const;
         bool IsKinematic() const;
@@ -109,13 +115,15 @@ namespace Component {
     };
     struct ImageBasedCollider {
         ImageBasedCollider() {}
-        ImageBasedCollider(const std::string file, const PhysicsMaterial mat = PhysicsMaterial::Default()) {
+        ImageBasedCollider(const std::string file, const Util::Vec2F forcedSize = Util::Vec2F(0), const PhysicsMaterial mat = PhysicsMaterial::Default()) {
             _file = file;
             _material = mat;
+            _forcedSize = forcedSize;
         }
         std::string _file;
         PhysicsMaterial _material;
-        uint8_t _colliderColor = 0;
+        Util::Vec2F _forcedSize = Util::Vec2F(0);
+        uint8_t _colliderColor = 0;// The color in the image that should be converted to become a collider (image is first converted to black and white)
     };
 
 }

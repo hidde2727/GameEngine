@@ -79,7 +79,8 @@ namespace Vulkan {
         
         ContextCreationInfo();
         void SetExtensions(const std::initializer_list<const char*> extensions, const bool glfw);
-        void SetValidationLayers(const std::initializer_list<const char*> layer, ENGINE_RENDERER_VULKAN_DEBUG_CALLBACK);
+        void SetValidationLayers(const std::initializer_list<const char*> layer);
+        void SetDebugCallback(ENGINE_RENDERER_VULKAN_DEBUG_CALLBACK);
 
         void SetNeccesaryQueues(const std::initializer_list<QueueType> queues);
         void SetDeviceFeatures(const VkPhysicalDeviceFeatures deviceFeatures);

@@ -54,6 +54,11 @@ namespace Engine {
 
                 auto now = std::chrono::steady_clock::now();
                 float dt = (float)(((double)std::chrono::nanoseconds(now - _previousFrame).count()) / 1000000000);
+                // TODO: Use the framerate of the device to skip frames
+                if(dt > (1/30.f)) {
+                    dt = 1/30.f;
+                    INFO("[Game] Skipping frames, previous took too long")
+                }
                 _previousFrame = now;
                 
                 _scene->OnFrame(dt);
@@ -108,6 +113,9 @@ namespace Engine {
         return _window.AddAsset(ENGINE_GAME_TEXTUREMAP_ID, std::make_unique<Renderer::TextLoader>(file, characters, sizes), ENGINE_RENDERER_ASSETTYPE_TEXT);
     }
 
+    void Game::SetCameraPosition(const Util::Vec2F pos) {
+        _window.SetCameraPosition(pos);
+    }
     
     void Game::DebugLine(const Util::Vec2F start, const Util::Vec2F end, const Util::Vec3F color) {
         _window.AddDebugLine(start, end, color);

@@ -7,6 +7,9 @@ namespace Renderer {
     void Window::Init(const uint32_t textureMapSlots, const Util::FileManager& fileManager) {
         _fileManager = &fileManager;
 
+        glfwSetErrorCallback([](int errorCode, const char* error) {
+            WARNING("[Renderer::Window] GLFW error: '" + std::string(error) + "'")
+        });
         glfwInit();
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -16,7 +19,10 @@ namespace Renderer {
 
         Vulkan::ContextCreationInfo contextInfo;
         contextInfo.SetExtensions({}, true);
-        contextInfo.SetValidationLayers({"VK_LAYER_KHRONOS_validation"}, &DebugCallback);
+        #ifdef __DEBUG__
+        contextInfo.SetValidationLayers({"VK_LAYER_KHRONOS_validation"});
+        #endif
+        contextInfo.SetDebugCallback(&DebugCallback);
         contextInfo.SetNeccesaryQueues({
             Vulkan::QueueType::GraphicsQueue,
             Vulkan::QueueType::KHRPresentQueue
@@ -43,7 +49,7 @@ namespace Renderer {
         rectPipelineInfo.SetVertexInput({Vulkan::Vertex::UInt }, { Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec3, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::UInt });
         rectPipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
         rectPipelineInfo.SetDescriptorInfo(2, 16, 2, 0);
-        rectPipelineInfo.SetPushConstantInput({ Vulkan::Vertex::Vec2 }, VK_SHADER_STAGE_VERTEX_BIT);
+        rectPipelineInfo.SetPushConstantInput({ Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2 }, VK_SHADER_STAGE_VERTEX_BIT);
         rectPipelineInfo.EnableAlphaBlending();
         _vkRectPipeline.Init(rectPipelineInfo, _vkContext, _vkRenderPass, 0);
 
@@ -53,7 +59,7 @@ namespace Renderer {
         textPipelineInfo.SetVertexInput({Vulkan::Vertex::Vec2 }, { Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec3, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::UInt, Vulkan::Vertex::Float });
         textPipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
         textPipelineInfo.SetDescriptorInfo(2, 16, 2, 0);
-        textPipelineInfo.SetPushConstantInput({ Vulkan::Vertex::Vec2 }, VK_SHADER_STAGE_VERTEX_BIT);
+        textPipelineInfo.SetPushConstantInput({ Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2 }, VK_SHADER_STAGE_VERTEX_BIT);
         textPipelineInfo.EnableAlphaBlending();
         _vkTextPipeline.Init(textPipelineInfo, _vkContext, _vkRenderPass, 1);
 
@@ -96,7 +102,7 @@ namespace Renderer {
         debugPipelineInfo.SetVertexInput({ Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec3 });
         debugPipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
         debugPipelineInfo.SetDescriptorInfo(2, 0, 0, 0);
-        debugPipelineInfo.SetPushConstantInput({ Vulkan::Vertex::Vec2 }, VK_SHADER_STAGE_VERTEX_BIT);
+        debugPipelineInfo.SetPushConstantInput({ Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2 }, VK_SHADER_STAGE_VERTEX_BIT);
         debugPipelineInfo.SetInputAssembly(VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_LINE_LIST, 0);
         debugPipelineInfo.EnableAlphaBlending();
         _vkDebugPipeline.Init(debugPipelineInfo, _vkContext, _vkRenderPass, 2);
@@ -199,8 +205,13 @@ namespace Renderer {
         _vkCommandBuffer.StartRecording(_vkContext);
         _vkCommandBuffer.BeginRenderPass(_vkRenderPass, _vkSwapchain, {{{0,0,0,1.f}}}, true);
 
+        struct PushConstants {
+            Util::Vec2F _framebufferSize;
+            Util::Vec2F _cameraPos;// Top left corner
+        } pushConstants{_framebufferSize, _cameraPosition - (_framebufferSize*0.5f)};
+
         _vkCommandBuffer.BindGraphicsPipeline(_vkRectPipeline);
-        _vkCommandBuffer.SetPushConstantData(_vkRectPipeline, _framebufferSize, VK_SHADER_STAGE_VERTEX_BIT);
+        _vkCommandBuffer.SetPushConstantData(_vkRectPipeline, pushConstants, VK_SHADER_STAGE_VERTEX_BIT);
         _vkCommandBuffer.BindDescriptorSet(_vkRectPipeline);
         _vkCommandBuffer.BindVertexBuffer(_vkRectPerVertexBuffer, 0);
         _vkCommandBuffer.BindVertexBuffer(_vkRectVertexBuffer, 1);
@@ -210,7 +221,7 @@ namespace Renderer {
         _vkCommandBuffer.NextSubPass();
 
         _vkCommandBuffer.BindGraphicsPipeline(_vkTextPipeline);
-        _vkCommandBuffer.SetPushConstantData(_vkTextPipeline, _framebufferSize, VK_SHADER_STAGE_VERTEX_BIT);
+        _vkCommandBuffer.SetPushConstantData(_vkTextPipeline, pushConstants, VK_SHADER_STAGE_VERTEX_BIT);
         _vkCommandBuffer.BindDescriptorSet(_vkTextPipeline);
         _vkCommandBuffer.BindVertexBuffer(_vkTextPerVertexBuffer, 0);
         _vkCommandBuffer.BindVertexBuffer(_vkTextVertexBuffer, 1);
@@ -224,7 +235,7 @@ namespace Renderer {
         _vkCommandBuffer.NextSubPass();
 
         _vkCommandBuffer.BindGraphicsPipeline(_vkDebugPipeline);
-        _vkCommandBuffer.SetPushConstantData(_vkDebugPipeline, _framebufferSize, VK_SHADER_STAGE_VERTEX_BIT);
+        _vkCommandBuffer.SetPushConstantData(_vkDebugPipeline, pushConstants, VK_SHADER_STAGE_VERTEX_BIT);
         _vkCommandBuffer.BindVertexBuffer(_vkDebugVertexBuffer, 0);
         _vkCommandBuffer.Draw((int)_debugLines.size()*2, 1);
         _debugLines.clear();
@@ -262,6 +273,10 @@ namespace Renderer {
     }
     void Window::CleanupAssets(const size_t textureMapID) {
         _textureMaps[textureMapID].Cleanup(_vkContext, { &_vkRectPipeline, &_vkTextPipeline });
+    }
+    
+    void Window::SetCameraPosition(const Util::Vec2F pos) {
+        _cameraPosition = pos;
     }
 
     std::shared_ptr<ImageRenderInfo> Window::GetTextureInfo(AssetID asset) {
@@ -398,13 +413,13 @@ namespace Renderer {
         void* pUserData) {
     
         if(messageSeverity==VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
-            //LOG(pCallbackData->pMessage);
+            // LOG("[Renderer::Window] Vulkan log '" + std::string(pCallbackData->pMessage) + "'");
         } else if(messageSeverity==VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-            INFO(pCallbackData->pMessage);
+            INFO("[Renderer::Window] Vulkan info '" + std::string(pCallbackData->pMessage) + "'");
         } else if(messageSeverity==VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-            WARNING(pCallbackData->pMessage);
+            WARNING("[Renderer::Window] Vulkan warning '" + std::string(pCallbackData->pMessage) + "'");
         } else if(messageSeverity==VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-            WARNING(pCallbackData->pMessage);
+            WARNING("[Renderer::Window] Vulkan error '" + std::string(pCallbackData->pMessage) + "'");
         }
     
         return VK_FALSE;

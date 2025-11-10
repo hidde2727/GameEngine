@@ -2,6 +2,7 @@
 
 layout(push_constant) uniform constants {
     vec2 framebufferSize;
+    vec2 cameraPos;
 } PushConstants;
 
 // Per vertex
@@ -22,8 +23,8 @@ layout(location = 3)      out float _pxRange;
 
 void main() {
     gl_Position = vec4(
-        ( (_inPosition.x+_edge.x*_dimensions.x) /PushConstants.framebufferSize.x)*2-1, 
-        ( (_inPosition.y+_edge.y*_dimensions.y) /PushConstants.framebufferSize.y)*2-1, 
+        ( (_inPosition.x+_edge.x*_dimensions.x - PushConstants.cameraPos.x) /PushConstants.framebufferSize.x)*2-1, 
+        ( (_inPosition.y+_edge.y*_dimensions.y - PushConstants.cameraPos.y) /PushConstants.framebufferSize.y)*2-1, 
         0.0,
         1.0
     );

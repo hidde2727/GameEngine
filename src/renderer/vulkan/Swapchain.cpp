@@ -5,6 +5,7 @@ namespace Renderer {
 namespace Vulkan {
 
     void Swapchain::Init(Context& context, const uint32_t width, const uint32_t height) {
+        // Select the format
         uint32_t formatCount;
         vkGetPhysicalDeviceSurfaceFormatsKHR(context._physicalDevice, context._surfaceKHR, &formatCount, nullptr);
         std::vector<VkSurfaceFormatKHR> formats(formatCount);
@@ -17,8 +18,18 @@ namespace Vulkan {
         }
         if(selectedFormat.format == VK_FORMAT_UNDEFINED) selectedFormat = formats[0];
 
-        // Garantueed to be available
-        VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
+        // Select the present mode
+        VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;// Garantueed to be available
+        uint32_t presentCount;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(context._physicalDevice, context._surfaceKHR, &presentCount, nullptr);
+        std::vector<VkPresentModeKHR> presentModes(presentCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(context._physicalDevice, context._surfaceKHR, &presentCount, presentModes.data());
+        for (const auto& availablePresentMode : presentModes) {
+            if (availablePresentMode == VK_PRESENT_MODE_FIFO_RELAXED_KHR) {
+                presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;// Does not randomly stall the apllication for multiple seconds every once in a while
+                break;
+            }
+        }
 
         VkSurfaceCapabilitiesKHR capabilities;
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context._physicalDevice, context._surfaceKHR, &capabilities);

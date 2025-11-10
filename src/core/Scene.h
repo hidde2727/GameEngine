@@ -100,6 +100,7 @@ namespace Engine{
             _entt.destroy(entity);
         }
         
+        void SetCameraPosition(const Util::Vec2F pos);
         void DebugLine(const Util::Vec2F start, const Util::Vec2F end, const Util::Vec3F color);
 
         struct BoundingboxID {
@@ -108,6 +109,10 @@ namespace Engine{
         BoundingboxID CreateBoundingBox(const Util::Vec2F pos, const float rotation, const Util::Vec2F dimensions, const Component::PhysicsMaterial mat = Component::PhysicsMaterial::Rock());
         void ModifyBoundingBox(const BoundingboxID id, const Util::Vec2F pos, const float rotation, const Util::Vec2F dimensions, const Component::PhysicsMaterial mat = Component::PhysicsMaterial::Rock());
         void DeleteBoundingBox(const BoundingboxID id);
+
+        void SetGravity(const Util::Vec2F gravity = Util::Vec2F(0, 90)) {
+            _physics.SetGravity(gravity);
+        }
 
         // Needs to be called after updating a static collider
         //      with GetComponent<Component::Collider>

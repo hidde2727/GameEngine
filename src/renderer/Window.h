@@ -90,6 +90,8 @@ namespace Renderer {
         void EndAssetLoading(const size_t textureMapID);
         void CleanupAssets(const size_t textureMapID);
 
+        void SetCameraPosition(const Util::Vec2F pos);
+
         std::shared_ptr<ImageRenderInfo> GetTextureInfo(AssetID asset);
         std::shared_ptr<TextRenderInfo> GetTextInfo(AssetID asset);
 
@@ -131,6 +133,7 @@ namespace Renderer {
 
         bool _framebufferResized;
         Util::Vec2F _framebufferSize;
+        Util::Vec2F _cameraPosition = Util::Vec2F(0);
 
         std::vector<TextureMap> _textureMaps;
 

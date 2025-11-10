@@ -22,6 +22,8 @@ namespace Physics {
         PhysicsEngine(const AABB worldBounds) : _staticBodies(worldBounds) {}
 
         void Update(entt::registry& registry, float dt);
+
+        void SetGravity(const Util::Vec2F gravity);
         
         // All these functions are to make it easier to store only the uuid of the collider in the ECS
         // We store only the UUID so we can organize the colliders any way we want
@@ -44,6 +46,8 @@ namespace Physics {
         void RemoveImageCollider(entt::registry& registry, const entt::entity entity);
 
     private:
+        Util::Vec2F _gravity = Util::Vec2F(0);
+
         struct StaticBody {
             StaticBody() {}
             StaticBody(const Component::Position& pos, const Component::Collider& col) : pos(pos), col(col) {}

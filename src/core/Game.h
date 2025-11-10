@@ -33,7 +33,7 @@ namespace Engine {
         virtual std::vector<std::string> GetResourceDirectories() { return { "resources/engine/" }; }
         // Should return the directories where the chache should be located
         // Will by default choose to create a /cache/ directory in the first resource directory
-        virtual std::string GetCacheDirectory() { return *GetResourceDirectories().begin() + "/engine/cache/"; }
+        virtual std::string GetCacheDirectory() { return *GetResourceDirectories().begin() + "./cache/"; }
         virtual void OnStart() {}
         virtual void OnSceneStart() {}
         virtual void LoadAssets() {}
@@ -68,6 +68,7 @@ namespace Engine {
         // Should only be called inside the LoadAssets function
         AssetID LoadTextFile(const std::string file, const Renderer::Characters characters, const std::initializer_list<uint32_t> sizes);
 
+        void SetCameraPosition(const Util::Vec2F pos);
         void DebugLine(const Util::Vec2F start, const Util::Vec2F end, const Util::Vec3F color);
 
         Util::FileManager& GetFileManager() { return _fileManager; }

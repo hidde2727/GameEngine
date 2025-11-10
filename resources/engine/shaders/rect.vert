@@ -2,6 +2,7 @@
 
 layout(push_constant) uniform constants {
     vec2 framebufferSize;
+    vec2 cameraPos;
 } PushConstants;
 
 // Per vertex
@@ -24,32 +25,32 @@ void main() {
     _textureID = _inTextureID;
     if(_edge == 0) {
         gl_Position = vec4(
-            ( (_inTopLeft.x                           ) /PushConstants.framebufferSize.x)*2-1, 
-            ( (_inTopLeft.y                           ) /PushConstants.framebufferSize.y)*2-1, 
+            ( (_inTopLeft.x                           - PushConstants.cameraPos.x ) /PushConstants.framebufferSize.x)*2-1, 
+            ( (_inTopLeft.y                           - PushConstants.cameraPos.y ) /PushConstants.framebufferSize.y)*2-1, 
             0.0,
             1.0
         );
         _texturePos = _inTexturePos.xy;
     } else if(_edge == 1) {
         gl_Position = vec4(
-            ( (_inTopLeft.x + _inDeltaPosition.x      ) /PushConstants.framebufferSize.x)*2-1, 
-            ( (_inTopLeft.y + _inDeltaPosition.y      ) /PushConstants.framebufferSize.y)*2-1, 
+            ( (_inTopLeft.x + _inDeltaPosition.x      - PushConstants.cameraPos.x ) /PushConstants.framebufferSize.x)*2-1, 
+            ( (_inTopLeft.y + _inDeltaPosition.y      - PushConstants.cameraPos.y ) /PushConstants.framebufferSize.y)*2-1, 
             0.0,
             1.0
         );
         _texturePos = vec2(_inTexturePos.x + _inTextureDimensions.x, _inTexturePos.y);
     } else if(_edge == 2) {
         gl_Position = vec4(
-            ( (_inBottomRight.x - _inDeltaPosition.x ) /PushConstants.framebufferSize.x)*2-1, 
-            ( (_inBottomRight.y - _inDeltaPosition.y ) /PushConstants.framebufferSize.y)*2-1, 
+            ( (_inBottomRight.x - _inDeltaPosition.x - PushConstants.cameraPos.x ) /PushConstants.framebufferSize.x)*2-1, 
+            ( (_inBottomRight.y - _inDeltaPosition.y - PushConstants.cameraPos.y ) /PushConstants.framebufferSize.y)*2-1, 
             0.0,
             1.0
         );
         _texturePos = vec2(_inTexturePos.x, _inTexturePos.y + _inTextureDimensions.y);
     } else if(_edge == 3) {
         gl_Position = vec4(
-            ( (_inBottomRight.x                      ) /PushConstants.framebufferSize.x)*2-1, 
-            ( (_inBottomRight.y                      ) /PushConstants.framebufferSize.y)*2-1, 
+            ( (_inBottomRight.x                      - PushConstants.cameraPos.x ) /PushConstants.framebufferSize.x)*2-1, 
+            ( (_inBottomRight.y                      - PushConstants.cameraPos.y ) /PushConstants.framebufferSize.y)*2-1, 
             0.0,
             1.0
         );

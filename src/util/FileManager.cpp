@@ -9,16 +9,26 @@ namespace Util {
             _folders.push_back(std::filesystem::path(folder));
         }
         _cacheFolder = cacheFolder;
-        LOG("[Util::FileManager] Create cache directory at '" + std::filesystem::path(_cacheFolder).string() + "'")
-        std::filesystem::create_directory(_cacheFolder);
+        if(std::filesystem::exists(_cacheFolder)) return;
+        try {
+            std::filesystem::create_directory(_cacheFolder);
+        } catch(std::filesystem::filesystem_error exc) {
+            WARNING("[Util::FileManager] Failed to create the cache directory (" + std::string(exc.what()) + ")")
+        }
+        LOG("[Util::FileManager] Created cache directory at '" + std::filesystem::absolute(std::filesystem::path(_cacheFolder)).string() + "'")
     }
     void FileManager::Init(const std::vector<std::string>& folders, const std::string cacheFolder) {
         for(std::string folder : folders) {
             _folders.push_back(std::filesystem::path(folder));
         }
         _cacheFolder = cacheFolder;
-        LOG("[Util::FileManager] Create cache directory at '" + std::filesystem::path(_cacheFolder).string() + "'")
-        std::filesystem::create_directory(_cacheFolder);
+        if(std::filesystem::exists(_cacheFolder)) return;
+        try {
+            std::filesystem::create_directory(_cacheFolder);
+        } catch(std::filesystem::filesystem_error exc) {
+            WARNING("[Util::FileManager] Failed to create the cache directory (" + std::string(exc.what()) + ")")
+        }
+        LOG("[Util::FileManager] Created cache directory at '" + std::filesystem::absolute(std::filesystem::path(_cacheFolder)).string() + "'")
     }
     
     bool FileManager::DoesCacheFileExist(const std::string cacheID) const {

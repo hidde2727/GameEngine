@@ -43,12 +43,18 @@ namespace Vulkan{
         vkEnumeratePhysicalDevices(_instance, &deviceCount, physicalDevices.data());
 
         // Pick the best one
-        std::multimap<int, VkPhysicalDevice> candidates;
+        std::multimap<int, VkPhysicalDevice> candidates;// Is sorted from lowest, to highest key
         for(const VkPhysicalDevice device : physicalDevices) {
-            candidates.insert(std::pair<int, VkPhysicalDevice>(RateDevice(device, info), device));
+            int rating = RateDevice(device, info);
+            candidates.insert(std::pair<int, VkPhysicalDevice>(rating, device));
+            VkPhysicalDeviceProperties properties{};
+            vkGetPhysicalDeviceProperties(device, &properties);
         }
         ASSERT(candidates.rbegin()->first > 0, "[Vulkan::Context] No fitting vulkan physical device found");
         _physicalDevice = candidates.rbegin()->second;
+        VkPhysicalDeviceProperties properties{};
+        vkGetPhysicalDeviceProperties(_physicalDevice, &properties);
+        INFO("[Vulkan::Context] Selected '" + std::string(properties.deviceName) + "'");
 
         // Create the logical device
         std::set<uint32_t> uniqueQueueFamilies;
@@ -308,6 +314,8 @@ namespace Vulkan{
             uint32_t glfwExtensionCount = 0;
             const char** glfwExtensions;
             glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+            ASSERT(glfwExtensions, "[Vulkan::ContextCreationInfo] No set of extensions available that allow for rendering to a window (with GLFW)")
+            // TODO, make sure we do not add duplicates
             _extensions.insert(_extensions.end(), glfwExtensions, glfwExtensions+glfwExtensionCount);
         }
 
@@ -315,7 +323,7 @@ namespace Vulkan{
         _instanceInfo.ppEnabledExtensionNames = _extensions.data();
     }
 
-    void ContextCreationInfo::SetValidationLayers(const std::initializer_list<const char*> layer, ENGINE_RENDERER_VULKAN_DEBUG_CALLBACK) {
+    void ContextCreationInfo::SetValidationLayers(const std::initializer_list<const char*> layer) {
         _validationLayers = layer;
 
         uint32_t layerCount;
@@ -337,16 +345,15 @@ namespace Vulkan{
         _instanceInfo.ppEnabledLayerNames = _validationLayers.data();
         _deviceInfo.enabledLayerCount = (uint32_t)_validationLayers.size();
         _deviceInfo.ppEnabledLayerNames = _validationLayers.data();
-
+    }
+    void ContextCreationInfo::SetDebugCallback(ENGINE_RENDERER_VULKAN_DEBUG_CALLBACK) {
         _debugMessengerInfo.pfnUserCallback = debugCallback;
+        _instanceInfo.pNext = &_debugMessengerInfo;
 
         // Add to extensions
         _extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         _instanceInfo.enabledExtensionCount = (uint32_t)_extensions.size();
         _instanceInfo.ppEnabledExtensionNames = _extensions.data();
-
-        // Debug callbacks from instance creation
-        _instanceInfo.pNext = &_debugMessengerInfo;
     }
 
     void ContextCreationInfo::SetDeviceFeatures(const VkPhysicalDeviceFeatures deviceFeatures) {
