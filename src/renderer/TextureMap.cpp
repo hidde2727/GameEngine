@@ -14,30 +14,34 @@ namespace Renderer {
             }
             texture.Cleanup(context);
         }
+        _textures.clear();
+        _assetLoaders.clear();
+        _renderInfos.clear();
+        _amountTextures = 0;
+        _cacheName.clear();
     }
 
     void TextureMap::StartLoading() {
         ASSERT(_amountTextures == 0, "[Renderer::TextureMap] Cannot start loading a second time on a TextureMap object");
     }
-    uint32_t TextureMap::AddTextureLoader(std::unique_ptr<AssetLoader> assetLoader) {
+    uint32_t TextureMap::AddTextureLoader(std::shared_ptr<AssetLoader> assetLoader) {
         _amountTextures += assetLoader->GetAmountTextures();
-        _assetLoaders.push_back(std::move(assetLoader));
+        _assetLoaders.push_back(assetLoader);
         return (uint32_t)(_assetLoaders.size() - 1);
     }
     void TextureMap::SetCacheName(const std::string name) {
         _cacheName = name;
     }
-    void TextureMap::EndLoading(Vulkan::Context& context, std::initializer_list<Vulkan::Pipeline*> bindToPipelines, const Util::FileManager& fileManager) {
+    void TextureMap::EndLoading(Vulkan::Context& context, std::initializer_list<Vulkan::Pipeline*> bindToPipelines) {
         if(_amountTextures == 0) return;        
         // Retrieve needed texture sizes
         RectanglePacker packer;
-        packer.SetMaximumBinSize(Util::Vec2U32(1920, 1080));
+        packer.SetMaximumBinSize(ENGINE_RENDERER_MAX_IMAGE_SIZE);
         packer.SetAmountRectangles(_amountTextures);
         Util::Vec3U32* inputPtr = packer.GetRectangleInputPtr();// Get the location where the input should go
         size_t currentTexture = 0;
         for(const auto& assetLoader : _assetLoaders) {
             // Set all the variables
-            assetLoader->_fileManager = &fileManager;
             assetLoader->_firstTexture = currentTexture;
             currentTexture += assetLoader->GetAmountTextures();
             assetLoader->_lastTexture = currentTexture-1;

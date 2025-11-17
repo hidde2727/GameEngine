@@ -8,23 +8,25 @@ namespace Renderer {
     }
     
     void ImageLoader::Init() {
-        ASSERT(_fileManager->DoesFileExists(_file), "[Renderer::ImageLoader] Received an image that does not exist (" + _file + ")")
-        ASSERT(_fileManager->IsFileRegular(_file), "[Renderer::ImageLoader] Received an invalid file (" + _file + ")")
+        ASSERT(Util::FileManager::DoesFileExists(_file), "[Renderer::ImageLoader] Received an image that does not exist (" + _file + ")")
+        ASSERT(Util::FileManager::IsFileRegular(_file), "[Renderer::ImageLoader] Received an invalid file (" + _file + ")")
     }
     size_t ImageLoader::GetAmountTextures() {
         return 1;
     }
     void ImageLoader::SetTextureSizes(Util::Vec3U32* start) {
         int x, y, n;
-        bool success = _fileManager->GetImageInfo(_file, &x, &y, &n);
-        ASSERT(success, "[Renderer::ImageLoader] Failed to load image info with the stbi_info function:\n" + _fileManager->GetImageReadError())
+        bool success = Util::FileManager::GetImageInfo(_file, &x, &y, &n);
+        ASSERT(success, "[Renderer::ImageLoader] Failed to load image info with the stbi_info function:\n" + Util::FileManager::GetImageReadError())
 
         *start = Util::Vec3U32(x, y, 0);
     }
     void ImageLoader::RenderTexture(Util::AreaU8* texture, const Util::Vec2U32 textureSize, const Util::AreaU32 area, const size_t id) {
         _area = area;
         int width, height, channels;
-        uint8_t* imageData = _fileManager->ReadImageFile(_file, &width, &height, &channels, 4);
+        std::shared_ptr<uint8_t> imageDataPtr = Util::FileManager::ReadImageFile(_file, &width, &height, &channels, 4);
+        uint8_t* imageData = imageDataPtr.get();
+
         for(int y = 0; y < height; y++) {
             Util::AreaU8* row = texture + (area.y+y)*textureSize.x + area.x;
             for(int x = 0; x < width; x++) {

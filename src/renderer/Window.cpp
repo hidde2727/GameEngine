@@ -4,9 +4,7 @@
 namespace Engine {
 namespace Renderer {
     
-    void Window::Init(const uint32_t textureMapSlots, const Util::FileManager& fileManager) {
-        _fileManager = &fileManager;
-
+    void Window::Init(const uint32_t textureMapSlots) {
         glfwSetErrorCallback([](int errorCode, const char* error) {
             WARNING("[Renderer::Window] GLFW error: '" + std::string(error) + "'")
         });
@@ -45,7 +43,7 @@ namespace Renderer {
 
         // Rect pipeline
         Vulkan::PipelineCreator rectPipelineInfo;
-        rectPipelineInfo.SetShaders({ "engine/shaders/rect.vert", "engine/shaders/rect.frag" }, *_fileManager);
+        rectPipelineInfo.SetShaders({ "engine/shaders/rect.vert", "engine/shaders/rect.frag" });
         rectPipelineInfo.SetVertexInput({Vulkan::Vertex::UInt }, { Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec3, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::UInt });
         rectPipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
         rectPipelineInfo.SetDescriptorInfo(2, 16, 2, 0);
@@ -55,7 +53,7 @@ namespace Renderer {
 
         // Text pipeline
         Vulkan::PipelineCreator textPipelineInfo;
-        textPipelineInfo.SetShaders({ "engine/shaders/text.vert", "engine/shaders/text.frag" }, *_fileManager);
+        textPipelineInfo.SetShaders({ "engine/shaders/text.vert", "engine/shaders/text.frag" });
         textPipelineInfo.SetVertexInput({Vulkan::Vertex::Vec2 }, { Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec3, Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec2, Vulkan::Vertex::UInt, Vulkan::Vertex::Float });
         textPipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
         textPipelineInfo.SetDescriptorInfo(2, 16, 2, 0);
@@ -98,7 +96,7 @@ namespace Renderer {
         // Debug pipeline
 #if ENGINE_ENABLE_DEBUG_GRAPHICS
         Vulkan::PipelineCreator debugPipelineInfo;
-        debugPipelineInfo.SetShaders({ "engine/shaders/debug.vert", "engine/shaders/debug.frag" }, *_fileManager);
+        debugPipelineInfo.SetShaders({ "engine/shaders/debug.vert", "engine/shaders/debug.frag" });
         debugPipelineInfo.SetVertexInput({ Vulkan::Vertex::Vec2, Vulkan::Vertex::Vec3 });
         debugPipelineInfo.SetDynamicState({ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
         debugPipelineInfo.SetDescriptorInfo(2, 0, 0, 0);
@@ -143,6 +141,9 @@ namespace Renderer {
 
     bool Window::ShouldClose() {
         return glfwWindowShouldClose(_window);
+    }
+    bool Window::IsMinimized() {
+        return _framebufferSize.x == 0 || _framebufferSize.y == 0;
     }
     void Window::Update() {
         glfwPollEvents();
@@ -261,15 +262,15 @@ namespace Renderer {
     void Window::SetAssetLoadingCacheName(const size_t textureMapID, const std::string cacheName) {
         _textureMaps[textureMapID].SetCacheName(cacheName);
     }
-    AssetID Window::AddAsset(const size_t textureMapID, std::unique_ptr<AssetLoader> assetLoader, const uint32_t assetTypeID) {
+    AssetID Window::AddAsset(const size_t textureMapID, std::shared_ptr<AssetLoader> assetLoader, const uint32_t assetTypeID) {
         return (AssetID)(
             (textureMapID << ENGINE_RENDERER_ASSETID_TEXTUREMAPID_SHIFT_BITS) | 
             (assetTypeID << ENGINE_RENDERER_ASSETTYPE_TEXTUREMAPID_SHIFT_BITS) | 
-            _textureMaps[textureMapID].AddTextureLoader(std::move(assetLoader))
+            _textureMaps[textureMapID].AddTextureLoader(assetLoader)
         );
     }
     void Window::EndAssetLoading(const size_t textureMapID) {
-        _textureMaps[textureMapID].EndLoading(_vkContext, { &_vkRectPipeline, &_vkTextPipeline }, *_fileManager);
+        _textureMaps[textureMapID].EndLoading(_vkContext, { &_vkRectPipeline, &_vkTextPipeline });
     }
     void Window::CleanupAssets(const size_t textureMapID) {
         _textureMaps[textureMapID].Cleanup(_vkContext, { &_vkRectPipeline, &_vkTextPipeline });

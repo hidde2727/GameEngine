@@ -13,6 +13,7 @@ add_library (GameEngine STATIC
 "src/core/Scene.cpp"
 "src/core/Components.h"
 "src/core/Components.cpp"
+"src/core/System.h"
 
 "src/renderer/Window.h"
 "src/renderer/Window.cpp"
@@ -47,10 +48,16 @@ add_library (GameEngine STATIC
 
 "src/network/WebHandler.h"
 "src/network/WebHandler.cpp"
+"src/network/HTTPConnection.h"
 "src/network/HTTPConnection.cpp"
+"src/network/HTTPRouter.h"
+"src/network/HTTPRouter.cpp"
+"src/network/WebsocketConnection.h"
 "src/network/WebsocketConnection.cpp"
-"src/network/HTTP/RequestHeader.h"
-"src/network/HTTP/RequestHeader.cpp"
+"src/network/WebsocketHandler.h"
+"src/network/WebsocketRouter.h"
+"src/network/HTTP/Request.h"
+"src/network/HTTP/Request.cpp"
 "src/network/HTTP/Response.h"
 "src/network/HTTP/Response.cpp"
 "src/network/websocket/Frame.h"
@@ -84,15 +91,16 @@ add_library (GameEngine STATIC
 "src/util/Math.h"
 "src/util/FileManager.h"
 "src/util/FileManager.cpp"
+"src/util/WeirdPointer.h"
 
 "lib/glslang/glslang/ResourceLimits/ResourceLimits.cpp"
 )
 target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_precompile_headers(GameEngine PUBLIC "src/core/PCH.h")
 
-# IF(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_BUILD_TYPE MATCHES Debug)
-#     target_link_libraries(GameEngine PRIVATE -fsanitize=address)
-# ENDIF()
+IF(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_BUILD_TYPE MATCHES Debug)
+    target_link_libraries(GameEngine PRIVATE -fsanitize=address)
+ENDIF()
 
 # Vulkan
 find_package(Vulkan REQUIRED)
@@ -131,3 +139,18 @@ target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lib/st
 
 # VMA
 target_link_libraries(GameEngine PUBLIC GPUOpen::VulkanMemoryAllocator)
+
+# Documentation with Doxygen
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+  configure_file(Doxyfile.in Doxyfile)
+  doxygen_add_docs(
+    documentation
+    ALL
+    USE_STAMP_FILE
+    COMMENT "Generating project documentation with custom Doxyfile"
+    CONFIG_FILE ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+  )
+else(DOXYGEN_FOUND)
+
+endif(DOXYGEN_FOUND)

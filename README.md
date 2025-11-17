@@ -14,11 +14,11 @@ Then you can compile this gameengine with CMake
 - Impulse based physics
 
 ### Libraries used
-- asio
-- entt
-- glfw
-- glslang
-- stb-images
+- asio          (async tcp sockets)
+- entt          (entity component system)
+- glfw          (multi platform window creation)
+- glslang       (glsl shader compilation)
+- stb-images    (image loading)
 
 ### Example dependency install command for Fedora
 ```shell

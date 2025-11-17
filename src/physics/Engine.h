@@ -37,8 +37,8 @@ namespace Physics {
 
         // All these functions are to make it easier to store only the uuid of the ImageBaseCollider in the ECS
         // We store only the UUID so we can organize the colliders any way we want
-        void AddImageCollider(const Util::FileManager* fileManager, entt::registry& registry, const entt::entity entity, const Component::ImageBasedCollider collider);
-        void SetImageCollider(const Util::FileManager* fileManager, entt::registry& registry, const entt::entity entity, const Component::ImageBasedCollider collider);
+        void AddImageCollider(entt::registry& registry, const entt::entity entity, const Component::ImageBasedCollider collider);
+        void SetImageCollider(entt::registry& registry, const entt::entity entity, const Component::ImageBasedCollider collider);
         bool HasImageCollider(entt::registry& registry, const entt::entity entity);
         Component::ImageBasedCollider& GetImageCollider(entt::registry& registry, const entt::entity entity);
         // Should be called after retrieving a collider and modifying it

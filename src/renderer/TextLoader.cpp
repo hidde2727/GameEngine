@@ -13,14 +13,14 @@ namespace Renderer {
     }
 
     void TextLoader::Init() {
-        ASSERT(_fileManager->DoesFileExists(_file), "[Renderer::TextLoader] TextLoader received a file that does not exist '" + _file + "'")
-        ASSERT(_fileManager->IsFileRegular(_file), "[Renderer::TextLoader] TextLoader received an invalid file '" + _file + "'")
+        ASSERT(Util::FileManager::DoesFileExists(_file), "[Renderer::TextLoader] TextLoader received a file that does not exist '" + _file + "'")
+        ASSERT(Util::FileManager::IsFileRegular(_file), "[Renderer::TextLoader] TextLoader received an invalid file '" + _file + "'")
     }
     size_t TextLoader::GetAmountTextures() {
         return _characters._characterCount * _sizes.size();
     }
     void TextLoader::SetTextureSizes(Util::Vec3U32* start) {
-        TTFFontParser fontParser = TTFFontParser(_fileManager->GetFileLocation(_file), _characters);
+        TTFFontParser fontParser = TTFFontParser(Util::FileManager::GetFileLocation(_file), _characters);
         size_t i = 0;
         _fontData.resize(_sizes.size());
         _textureAreas.resize(_sizes.size()*_characters._characterCount);

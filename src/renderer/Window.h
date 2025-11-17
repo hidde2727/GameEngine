@@ -74,10 +74,11 @@ namespace Renderer {
     class Window {
     public:
 
-        void Init(const uint32_t textureMapSlots, const Util::FileManager& fileManager);
+        void Init(const uint32_t textureMapSlots);
         void Cleanup();
 
         bool ShouldClose();
+        bool IsMinimized();
         void Update();
         void Draw(entt::registry& registry, const uint32_t amountRectangles, const uint32_t amountText);
 
@@ -86,7 +87,7 @@ namespace Renderer {
 
         void StartAssetLoading(const size_t textureMapID);
         void SetAssetLoadingCacheName(const size_t textureMapID, const std::string cacheName);
-        AssetID AddAsset(const size_t textureMapID, std::unique_ptr<AssetLoader> textureLoader, const uint32_t assetTypeID);
+        AssetID AddAsset(const size_t textureMapID, std::shared_ptr<AssetLoader> textureLoader, const uint32_t assetTypeID);
         void EndAssetLoading(const size_t textureMapID);
         void CleanupAssets(const size_t textureMapID);
 
@@ -108,8 +109,6 @@ namespace Renderer {
 #endif
 
     private:
-        Util::FileManager const* _fileManager = nullptr;
-
         GLFWwindow* _window = nullptr;
         Vulkan::Context _vkContext;
         Vulkan::RenderPass _vkRenderPass;

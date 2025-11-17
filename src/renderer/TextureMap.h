@@ -13,14 +13,15 @@
 #include "util/Area.h"
 #include "util/FileManager.h"
 
+#ifndef ENGINE_RENDERER_MAX_IMAGE_SIZE
+#define ENGINE_RENDERER_MAX_IMAGE_SIZE Util::Vec2U32(1920, 1080)
+#endif
+
 namespace Engine {
 namespace Renderer {
 
     class AssetLoader {
     public:
-        virtual ~AssetLoader() {
-            _fileManager = nullptr;
-        }
         // Will be the first function called after intialising this class
         // fileManager will be set
         virtual void Init() {}
@@ -44,9 +45,7 @@ namespace Renderer {
         // Called after every texture has been called to render
         // Needs to return the information neccesary to render the assets
         virtual std::shared_ptr<uint8_t> GetRenderInfo() = 0;
-
-    protected:
-        Util::FileManager const* _fileManager = nullptr;        
+    
     private:
         friend class TextureMap;
         size_t _firstTexture = 0;
@@ -60,15 +59,15 @@ namespace Renderer {
         void Cleanup(Vulkan::Context& context, std::initializer_list<Vulkan::Pipeline*> boundToPipelines);
 
         void StartLoading();
-        uint32_t AddTextureLoader(std::unique_ptr<AssetLoader> textureLoader);
+        uint32_t AddTextureLoader(std::shared_ptr<AssetLoader> textureLoader);
         void SetCacheName(const std::string name);
-        void EndLoading(Vulkan::Context& context, std::initializer_list<Vulkan::Pipeline*> bindToPipelines, const Util::FileManager& fileManager);
+        void EndLoading(Vulkan::Context& context, std::initializer_list<Vulkan::Pipeline*> bindToPipelines);
 
         std::shared_ptr<uint8_t> GetRenderInfo(const uint32_t id);
 
     private:
     
-        std::vector<std::unique_ptr<AssetLoader>> _assetLoaders;
+        std::vector<std::shared_ptr<AssetLoader>> _assetLoaders;
         std::vector<std::shared_ptr<uint8_t>> _renderInfos;// Reinterpret casted pointers
         size_t _amountTextures;
         std::string _cacheName;

@@ -1,0 +1,7 @@
+INPUT                  = "@CMAKE_CURRENT_SOURCE_DIR@/src/"
+RECURSIVE              = YES
+OUTPUT_DIRECTORY       = "@CMAKE_CURRENT_SOURCE_DIR@/docs"
+EXTRACT_ALL            = YES
+JAVADOC_BANNER         = YES
+
+GENERATE_LATEX         = NO

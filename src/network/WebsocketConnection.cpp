@@ -1,39 +1,49 @@
+#include "network/WebsocketConnection.h"
+
+#include "network/WebsocketHandler.h"
 #include "network/WebHandler.h"
 
 namespace Engine {
 namespace Network {
     
-    WebHandler::WebsocketConnection::WebsocketConnection(WebHandler* webhandler, asio::ip::tcp::socket&& socket) :
+    WebsocketConnection::WebsocketConnection(std::weak_ptr<WebHandler> webhandler, asio::ip::tcp::socket&& socket, Util::WeirdPointer<WebsocketHandler> handler) :
     _webhandler(webhandler),
     _socket(std::move(socket)),
     _receivingFrame(std::make_shared<Websocket::Frame>()),
-    _timeout(webhandler->_context)
+    _timeout(webhandler.lock()->_context),
+    _websocketHandler(handler)
     {
     }
-    WebHandler::WebsocketConnection::~WebsocketConnection() {
+    WebsocketConnection::~WebsocketConnection() {
         if(!_isStopped) Stop();
     }
-    void WebHandler::WebsocketConnection::Start(const size_t uuid) {
+    void WebsocketConnection::Start(const size_t uuid) {
         _uuid = uuid;
         ReceiveFirstPartHeader();
     }
-    void WebHandler::WebsocketConnection::Stop() {
+    void WebsocketConnection::Stop() {
         if(ENGINE_NETWORK_VERBOSE_WEBSOCKET) LOG("[Network::WebsocketConnection] Stopping connection (" + std::to_string(_uuid) + ")")
         if(_isStopped || _closeAfterRead) return;
         _closeAfterRead = true;
         std::shared_ptr<Websocket::Frame> stopFrame = std::make_shared<Websocket::Frame>();
         stopFrame->SetClosingHandshake();
     }
-    void WebHandler::WebsocketConnection::StopWithoutHandshake() {
+    void WebsocketConnection::StopWithoutHandshake() {
         if(ENGINE_NETWORK_VERBOSE_WEBSOCKET) LOG("[Network::WebsocketConnection] Stopping connection (" + std::to_string(_uuid) + ") without handshake")
         if(_isStopped) return;
         _isStopped = true;
         _timeout.cancel();
         if(_socket.is_open()) _socket.shutdown(asio::ip::tcp::socket::shutdown_both);
-        _webhandler->StopWebsocketConnection(_uuid);
+        _webhandler.lock()->StopWebsocketConnection(_uuid);
+
+        // Post work for the main thread
+        std::shared_ptr<WebsocketConnection> self = shared_from_this();
+        asio::post(_webhandler.lock()->_requestHandler, [this, self]() {
+            _websocketHandler->OnWebsocketStop(self.get());
+        });
     }
-    void WebHandler::WebsocketConnection::ReceiveFirstPartHeader() {
-        std::shared_ptr<WebHandler::WebsocketConnection> self = shared_from_this();
+    void WebsocketConnection::ReceiveFirstPartHeader() {
+        std::shared_ptr<WebsocketConnection> self = shared_from_this();
 
         asio::async_read(_socket, _receivingFrame->GetHeaderBuffer(), [this, self](const std::error_code& ec, size_t bytesTransfered) {
             if (ec) {
@@ -47,8 +57,8 @@ namespace Network {
             ReceiveSecondPartHeader();
         });
     }
-    void WebHandler::WebsocketConnection::ReceiveSecondPartHeader() {
-        std::shared_ptr<WebHandler::WebsocketConnection> self = shared_from_this();
+    void WebsocketConnection::ReceiveSecondPartHeader() {
+        std::shared_ptr<WebsocketConnection> self = shared_from_this();
 
         asio::async_read(_socket, _receivingFrame->GetSecondHeaderBuffer(), [this, self](const std::error_code& ec, size_t bytesTransfered) {
             if (ec) {
@@ -62,8 +72,8 @@ namespace Network {
             ReceiveBody();
         });
     }
-    void WebHandler::WebsocketConnection::ReceiveBody() {
-        std::shared_ptr<WebHandler::WebsocketConnection> self = shared_from_this();
+    void WebsocketConnection::ReceiveBody() {
+        std::shared_ptr<WebsocketConnection> self = shared_from_this();
 
         asio::async_read(_socket, _receivingFrame->GetBodyBuffer(), [this, self](const std::error_code& ec, size_t bytesTransfered) {
             if (ec) {
@@ -82,8 +92,8 @@ namespace Network {
         });
 
     }
-    void WebHandler::WebsocketConnection::HandleReceive() {
-        std::shared_ptr<WebHandler::WebsocketConnection> self = shared_from_this();
+    void WebsocketConnection::HandleReceive() {
+        std::shared_ptr<WebsocketConnection> self = shared_from_this();
 
         if(_receivingFrame->HasMandatoryResponse()) {
             _receivingFrame->SetMandatoryResponse();
@@ -104,16 +114,16 @@ namespace Network {
         std::shared_ptr<Websocket::Frame> frame = _receivingFrame;
         _receivingFrame = std::make_shared<Websocket::Frame>();
         // Post work for the main thread
-        asio::post(_webhandler->_requestHandler, [this, self, frame]() {
-            _webhandler->_websocketHandler(*frame, *this);
+        asio::post(_webhandler.lock()->_requestHandler, [this, self, frame]() {
+            _websocketHandler->OnWebsocketMessage(self.get(), *frame);
         });
     }
 
-    void WebHandler::WebsocketConnection::SendData(std::shared_ptr<Websocket::Frame> data) {
-        std::shared_ptr<WebHandler::WebsocketConnection> self = shared_from_this();
+    void WebsocketConnection::SendData(std::shared_ptr<Websocket::Frame> data) {
+        std::shared_ptr<WebsocketConnection> self = shared_from_this();
 
         // Post work for the networking thread
-        asio::post(_webhandler->_context, [this, self, data]() {
+        asio::post(_webhandler.lock()->_context, [this, self, data]() {
             if(_closeAfterWrite) return;
             if(ENGINE_NETWORK_VERBOSE_WEBSOCKET) LOG("[Network::WebsocketConnection] Added frame to writing queue of connection (" + std::to_string(_uuid) + ")")
             _writeQueue.push(data);
@@ -121,10 +131,10 @@ namespace Network {
         });
     }
 
-    void WebHandler::WebsocketConnection::Write() {
+    void WebsocketConnection::Write() {
 		if (_writeQueue.empty()) return;
 
-        std::shared_ptr<WebHandler::WebsocketConnection> self = shared_from_this();
+        std::shared_ptr<WebsocketConnection> self = shared_from_this();
 
         asio::async_write(_socket, _writeQueue.front()->GetWriteBuffers(),
         [this, self](const std::error_code& ec, std::size_t bytesTransferred)

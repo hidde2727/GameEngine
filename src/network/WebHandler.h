@@ -3,11 +3,14 @@
 
 #include "core/PCH.h"
 
-#include "network/HTTP/RequestHeader.h"
+#include "network/HTTP/Request.h"
 #include "network/HTTP/Response.h"
-#include "network/websocket/Frame.h"
+#include "network/HTTPConnection.h"
+#include "network/HTTPRouter.h"
 
-#include "util/FileManager.h"
+#include "network/websocket/Frame.h"
+#include "network/WebsocketConnection.h"
+#include "network/WebsocketHandler.h"
 
 #ifndef ENGINE_NETWORK_LAN_POLLING_RATE
 #define ENGINE_NETWORK_LAN_POLLING_RATE std::chrono::seconds(3)
@@ -26,127 +29,59 @@
 namespace Engine {
 namespace Network {
 
-    #define ENGINE_NETWORK_HTTPHANDLER_FUNCTION std::function<void(HTTP::RequestHeader& requestHeader, std::vector<uint8_t>& requestBody, HTTP::Response& response)>
-    #define ENGINE_NETWORK_UPGRADEHANDLER_FUNCTION std::function<bool(HTTP::RequestHeader& requestHeader)>
-    #define ENGINE_NETWORK_WEBSOCKETHANDLER_FUNCTION std::function<void(Websocket::Frame& frame, WebHandler::WebsocketConnection& connection)>
-    #define ENGINE_NETWORK_ONWEBSOCKETSTART_FUNCTION std::function<void(WebHandler::WebsocketConnection& connection, const size_t uuid, HTTP::RequestHeader& requestHeader)>
-    #define ENGINE_NETWORK_ONWEBSOCKETSTOP_FUNCTION std::function<void(WebHandler::WebsocketConnection& connection, const size_t uuid)>
-
-    class WebHandler {
+    /// Create using the WebHandler::Create() function
+    class WebHandler : public std::enable_shared_from_this<WebHandler>, public HTTPRouter {
+    private:
+        struct Private{ explicit Private() = default; };
     public:
-        class WebsocketConnection;
-        WebHandler();
 
-        void Start(
-            const Util::FileManager* fileManager,
-            ENGINE_NETWORK_HTTPHANDLER_FUNCTION httpHandler, 
-            ENGINE_NETWORK_UPGRADEHANDLER_FUNCTION upgradeHandler, 
-            ENGINE_NETWORK_WEBSOCKETHANDLER_FUNCTION websocketHandler,
-            ENGINE_NETWORK_ONWEBSOCKETSTART_FUNCTION onWebsocketStart,
-            ENGINE_NETWORK_ONWEBSOCKETSTOP_FUNCTION onWebsocketStop
-        );
-        void Start(const Util::FileManager* fileManager);
-        // Will run the handeling functions on the thread the function is called
-        // Makes sure no resources are accessed by the networking thread that are used by the main thread
-        void HandleRequests();
+        /// Is private to make sure you can only create this as a shared_ptr
+        WebHandler(Private);
+
+        /// Factory function to force shared_ptr usage
+        static std::shared_ptr<WebHandler> Create() {
+            return std::make_shared<WebHandler>(Private());
+        }
+
+        void Start();
+        /**
+         * Used for thread safety, should be called on the main thread.
+         * This functions makes it possible for the WebHandler to execute code on the main thread (and not the network thread).
+         * This makes it possible to access resources not accessible in the networking thread.
+         */
+        void Update();
         void Stop();
 
         std::string GetLocalAdress();
 
-        void StopHTTPConnection(const size_t uuid);
-        void StopWebsocketConnection(const size_t uuid);
-        void UpgradeHTTPConnection(const size_t uuid, asio::ip::tcp::socket&& socket, HTTP::RequestHeader& requestHeader);
-
     private:
-        friend class HTTPConnection;// Only acesses both io_context's and the handler functions
-        friend class WebsocketConnection;// Only acesses both io_context's and the handler functions
+        friend class HTTPConnection;/// Acesses both io_context's and HTTPRouter class
+        friend class WebsocketConnection;/// Acesses both io_context's
+
+        /// Used to expose the same method from HTTPRouter to the HTTPConnection class
+        inline HTTPResponse HandleRequestInternal(std::shared_ptr<HTTPRequest> request) {
+            return HTTPRouter::HandleRequestInternal(request);
+        }
+
+        /// Used by the HTTPConnection class
+        void StopHTTPConnection(const size_t uuid);
+        /// Used by the WebsocketConnection class
+        void StopWebsocketConnection(const size_t uuid);
+        /// Used by the HTTPConnection class
+        void UpgradeHTTPConnection(const size_t uuid, asio::ip::tcp::socket&& socket, HTTP::Request& request, HTTP::Response& response);
 
         void AwaitConnection();
 
-        const Util::FileManager* _fileManager;
-        // Used to make sure the request are handeled on the main thread
+        /// Used to make sure the request are handeled on the main thread
         asio::io_context _requestHandler;
 
         asio::io_context _context;
         std::thread _thread;
         std::string _localAddress;
         asio::ip::tcp::acceptor _acceptor;
+        bool _running = false;
 
-        ENGINE_NETWORK_HTTPHANDLER_FUNCTION _httpHandler;
-        ENGINE_NETWORK_UPGRADEHANDLER_FUNCTION _upgradeHandler;
-        ENGINE_NETWORK_WEBSOCKETHANDLER_FUNCTION _websocketHandler;
-        ENGINE_NETWORK_ONWEBSOCKETSTART_FUNCTION _onWebsocketStart;
-        ENGINE_NETWORK_ONWEBSOCKETSTOP_FUNCTION _onWebsocketStop;
-
-    public:
-        class HTTPConnection : public std::enable_shared_from_this<HTTPConnection> {
-        public:
-
-            HTTPConnection(WebHandler* webhandler, asio::ip::tcp::socket&& socket);
-            ~HTTPConnection();
-
-            void Start(const size_t uuid);
-            void Stop();
-
-        private:
-            void ReceiveHeader();
-            void ReceiveBody(const size_t size);
-            void Write();
-            void HandleRequest();
-            void UpgradeConnection();
-            void ScheduleTimeoutCheck();
-
-            WebHandler* _webhandler;
-            asio::ip::tcp::socket _socket;
-            asio::system_timer _timeout;
-            size_t _uuid;
-
-            asio::streambuf _inputBuffer;
-            std::shared_ptr<HTTP::RequestHeader> _header;
-            std::shared_ptr<std::vector<uint8_t>> _body;
-
-            std::queue<std::shared_ptr<HTTP::Response>> _writeQueue;
-            bool _connectionKeepAlive = false;
-            bool _isStopped = false;
-        };
-    private:
         std::map<size_t, std::shared_ptr<HTTPConnection>> _httpConnections;
-    public:
-        class WebsocketConnection : public std::enable_shared_from_this<WebsocketConnection> {
-        public:
-
-            WebsocketConnection(WebHandler* webhandler, asio::ip::tcp::socket&& socket);
-            ~WebsocketConnection();
-
-            void Start(const size_t uuid);
-            void Stop();
-
-            // Safe to call from the main thread
-            void SendData(std::shared_ptr<Websocket::Frame> data);
-
-        private:
-            void ReceiveFirstPartHeader();
-            void ReceiveSecondPartHeader();
-            void ReceiveBody();
-            void HandleReceive();
-            void Write();
-            void StopWithoutHandshake();
-
-            WebHandler* _webhandler;
-            asio::ip::tcp::socket _socket;
-            asio::system_timer _timeout;// The timeout is only used to make sure we close after a closing frame
-            size_t _uuid;
-
-            asio::streambuf _inputBuffer;
-            
-            bool _isStopped = false;
-
-            std::shared_ptr<Websocket::Frame> _receivingFrame;
-            bool _closeAfterWrite = false;
-            bool _closeAfterRead = false;
-            std::queue<std::shared_ptr<Websocket::Frame>> _writeQueue;
-        };
-    private:
         std::map<size_t, std::shared_ptr<WebsocketConnection>> _websocketConnections;
 
     };

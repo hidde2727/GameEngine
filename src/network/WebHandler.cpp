@@ -3,27 +3,10 @@
 namespace Engine {
 namespace Network {
     
-    WebHandler::WebHandler() : _acceptor(_context) {
+    WebHandler::WebHandler(Private) : _acceptor(_context) {
     }
 
-    void WebHandler::Start(
-        const Util::FileManager* fileManager,
-        ENGINE_NETWORK_HTTPHANDLER_FUNCTION httpHandler, 
-        ENGINE_NETWORK_UPGRADEHANDLER_FUNCTION upgradeHandler, 
-        ENGINE_NETWORK_WEBSOCKETHANDLER_FUNCTION websocketHandler,
-        ENGINE_NETWORK_ONWEBSOCKETSTART_FUNCTION onWebsocketStart,
-        ENGINE_NETWORK_ONWEBSOCKETSTOP_FUNCTION onWebsocketStop
-    ) {
-        _httpHandler = httpHandler;
-        _upgradeHandler = upgradeHandler;
-        _websocketHandler = websocketHandler;
-        _onWebsocketStart = onWebsocketStart;
-        _onWebsocketStop = onWebsocketStop;
-
-        Start(fileManager);
-    }
-    void WebHandler::Start(const Util::FileManager* fileManager) {
-        _fileManager = fileManager;
+    void WebHandler::Start() {
         try {
             _localAddress = GetLocalAdress();
             LOG("[Network::WebHandler] Opening for web requests on 'http://" + _localAddress + ":8000'")
@@ -38,15 +21,28 @@ namespace Network {
         _acceptor.bind(endpoint);
         _acceptor.listen();
 
+        _running = true;
+
         AwaitConnection();
         _thread = std::thread([&] { try { _context.run(); } catch (std::exception err) { THROW("[Network::Webhandler] Experienced an error:\n\t\t" + std::string(err.what())); return 1;} return 0; });
     }
     void WebHandler::Stop() {
+        _running = false;
+        
+        for(const auto[uuid, connection] : _httpConnections) {
+            connection->Stop();
+        }
+        _httpConnections.clear();
+        for(const auto[uuid, connection] : _websocketConnections) {
+            connection->Stop();
+        }
+        _websocketConnections.clear();
+        
         _context.stop();
         if(_thread.joinable()) _thread.join();
     }
     
-    void WebHandler::HandleRequests() {
+    void WebHandler::Update() {
         auto count = _requestHandler.poll();
         if(_requestHandler.stopped()) _requestHandler.restart();
     }
@@ -59,7 +55,7 @@ namespace Network {
             {
                 AwaitConnection();
                 if (!ec) {
-                    std::shared_ptr<HTTPConnection>newConnection = std::make_shared<HTTPConnection>(this, std::move(socket));
+                    std::shared_ptr<HTTPConnection>newConnection = std::make_shared<HTTPConnection>(shared_from_this(), std::move(socket));
                     size_t uuid = reinterpret_cast<size_t>(newConnection.get());// Using the memory adress as the uuid (lifetime of the uuid and the unique_ptr are the same, thus the uuid is unique)
                     if(ENGINE_NETWORK_VERBOSE_HTTP) LOG("[Network::WebHandler] Starting a connection with id: '" + std::to_string(uuid) + "'")
                     newConnection->Start(uuid);
@@ -70,28 +66,27 @@ namespace Network {
         );
         asio::detail::event event;
     }
-    
+
     void WebHandler::StopHTTPConnection(const size_t uuid) {
+        if(!_running) return;
         _httpConnections.erase(uuid);
     }
     void WebHandler::StopWebsocketConnection(const size_t uuid) {
-        // Post work for the main thread
-        std::shared_ptr<WebsocketConnection> connection = _websocketConnections[uuid];
-        asio::post(_requestHandler, [this, connection, uuid]() {
-            _onWebsocketStop(*connection, uuid);
-        });
+        if(!_running) return;
         _websocketConnections.erase(uuid);
     }
-    void WebHandler::UpgradeHTTPConnection(const size_t olduuid, asio::ip::tcp::socket&& socket, HTTP::RequestHeader& requestHeader) {
+    void WebHandler::UpgradeHTTPConnection(const size_t olduuid, asio::ip::tcp::socket&& socket, HTTP::Request& request, HTTP::Response& response) {
         _httpConnections.erase(olduuid);
-        std::shared_ptr<WebsocketConnection>newConnection = std::make_shared<WebsocketConnection>(this, std::move(socket));
+        Util::WeirdPointer<WebsocketHandler> handler = response.GetUserData();
+        std::shared_ptr<WebsocketConnection> newConnection = std::make_shared<WebsocketConnection>(shared_from_this(), std::move(socket), handler);
+
         size_t uuid = reinterpret_cast<size_t>(newConnection.get());// Using the memory adress as the uuid (lifetime of the uuid and the unique_ptr are the same, thus the uuid is unique)
         newConnection->Start(uuid);
         _websocketConnections[uuid] = std::move(newConnection);
         if(ENGINE_NETWORK_VERBOSE_HTTP_WEBSOCKET) LOG("[Network::WebHandler] Upgraded connection (" + std::to_string(uuid) + ")")
         // Post work for the main thread
-        asio::post(_requestHandler, [this, &newConnection, uuid, &requestHeader]() {
-            _onWebsocketStart(*newConnection.get(), uuid, requestHeader);
+        asio::post(_requestHandler, [this, &newConnection, &request, handler]() {
+            handler->OnWebsocketStart(newConnection.get(), request);
         });
     }
 

@@ -1,4 +1,4 @@
-#include "network/HTTP/RequestHeader.h"
+#include "network/HTTP/Request.h"
 
 namespace Engine {
 namespace Network {
@@ -36,7 +36,7 @@ namespace HTTP {
         }
         return true;
     }
-    void RequestHeader::Parse(std::istream& stream, const size_t size) {
+    void Request::ParseHeader(std::istream& stream, const size_t size) {
         {// Head
             std::string head; std::getline(stream, head);
             // Fix for malformed HTTP requests starting with a newline

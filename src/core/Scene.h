@@ -8,7 +8,7 @@
 #include "renderer/ImageLoader.h"
 #include "renderer/TextLoader.h"
 
-#include "network/WebHandler.h"
+#include "network/HTTPRouter.h"
 
 #include "physics/Engine.h"
 #include "physics/Components.h"
@@ -18,7 +18,7 @@ namespace Engine{
     typedef entt::entity Entity;
 
     class Game;
-    class Scene {
+    class Scene : public Network::HTTPRouter {
     public:
 
         Scene(Game* game, Renderer::Window* window);
@@ -28,11 +28,6 @@ namespace Engine{
         virtual void OnFrame(const float dt) {}
         virtual void OnSceneStop() {}
         virtual void LoadAssets() {}
-        virtual void OnHTTPRequest(Network::HTTP::RequestHeader& requestHeader, std::vector<uint8_t>& requestBody, Network::HTTP::Response& response) {}
-        virtual bool AllowWebsocketConnection(Network::HTTP::RequestHeader& requestHeader) { return true; }
-        virtual void OnWebsocketRequest(Network::Websocket::Frame& frame, Network::WebHandler::WebsocketConnection& connection) {}
-        virtual void OnWebsocketStart(Network::WebHandler::WebsocketConnection& connection, const size_t uuid, Network::HTTP::RequestHeader& requestHeader) {}
-        virtual void OnWebsocketStop(Network::WebHandler::WebsocketConnection& connection, const size_t uuid) {}
         virtual Physics::AABB GetSceneBounds() const { return Physics::AABB::FromCorners(Util::Vec2F(0,0), Util::Vec2F(1920, 1080)); }
 
         // Should only be called inside the LoadAssets function
@@ -139,7 +134,6 @@ namespace Engine{
 
         entt::registry _entt;
         Game* _game;
-        Util::FileManager* _fileManager = nullptr;
         Renderer::Window* _window;
         uint32_t _textureComponents = 0;
         uint32_t _textComponents = 0;
@@ -177,13 +171,13 @@ namespace Engine{
     template<>
     inline void Scene::AddComponent<Component::ImageBasedCollider>(const entt::entity entity, const Component::ImageBasedCollider component) {
         ASSERT_IF_DEBUG(!_physics.HasImageCollider(_entt, entity), "[Scene] Cannot add a component to an entity that already has that component")
-        _physics.AddImageCollider(_fileManager, _entt, entity, component);
+        _physics.AddImageCollider(_entt, entity, component);
     }
     // Template overload
     template<>
     inline void Scene::SetComponent<Component::ImageBasedCollider>(const entt::entity entity, const Component::ImageBasedCollider component) {
         ASSERT_IF_DEBUG(_physics.HasImageCollider(_entt, entity), "[Scene] Cannot set a component to an entity that doesnt't have that component")
-        _physics.SetImageCollider(_fileManager, _entt, entity, component);
+        _physics.SetImageCollider(_entt, entity, component);
     }
     // Template overload
     template<>

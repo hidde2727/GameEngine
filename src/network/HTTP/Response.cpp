@@ -4,10 +4,6 @@ namespace Engine {
 namespace Network {
 namespace HTTP {
 
-    Response::Response(Util::FileManager const* fileManager) {
-        _fileManager = fileManager;
-    }
-
     void Response::SetHTTPVersion(const std::string version) {
         _version = version;
     }
@@ -74,7 +70,7 @@ namespace HTTP {
     bool Response::SetBodyToFile(const std::string fileName, const bool ifNotFound404) {
         try {
             ASSERT(fileName.find("..")==std::string::npos, "[HTTP::Response::SetBodyToFile] Received a file with .., this is unsafe behavior")
-            _fileManager->ReadFile(fileName, _body);
+            Util::FileManager::ReadFile(fileName, _body);
         }
         catch (std::exception ex) {
             if(!ifNotFound404) THROW("[HTTP::Response::SetBodyToFile] Failed to load file '" + fileName + "':\n" + std::string(ex.what()))
@@ -119,6 +115,21 @@ namespace HTTP {
         memcpy(_body.data(), str.data(), str.size());
     }
     
+    
+    void Response::SetUserData(Util::WeirdPointer<void> data) {
+        _userData = data;
+    }
+    Util::WeirdPointer<void> Response::GetUserData() {
+        return _userData;
+    }
+
+    
+    bool Response::IsWebsocketUpgrade() {
+        return _code == "101 Switching Protocols" && _headers["Connection"] == "Upgrade" && _headers["Upgrade"] == "websocket";
+    }
+    std::string Response::GetHeader(const std::string name) {
+        return _headers[name];
+    }
 
     std::vector<asio::const_buffer> Response::ToBuffers() {
         ConstructHead();

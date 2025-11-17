@@ -3,6 +3,7 @@
 
 #include "core/PCH.h"
 #include "util/FileManager.h"
+#include "util/WeirdPointer.h"
 
 namespace Engine {
 namespace Network {
@@ -13,6 +14,7 @@ namespace HTTP {
         SwitchingProtocols= 101,
         Processing= 102,
         EarlyHints= 103,
+        
         OK= 200,
         Created= 201,
         Accepted= 202,
@@ -23,6 +25,7 @@ namespace HTTP {
         MultiStatus= 207,
         AlreadyReported= 208,
         IMUsed= 226,
+
         MultipleChoices= 300,
         MovedPermanently= 301,
         Found= 302,
@@ -32,6 +35,7 @@ namespace HTTP {
         SwitchProxy= 306,
         TemporaryRedirect= 307,
         PermanentRedirect= 308,
+
         BadRequest= 400,
         Unauthorized= 401,
         PaymentRequired= 402,
@@ -61,29 +65,53 @@ namespace HTTP {
         TooManyRequests= 429,
         RequestHeaderFieldsTooLarge= 431,
         UnavailableForLegalReasons= 451,
+
+        InternalServerError= 500,
+        NotImplemented= 501,
+        BadGateway= 502,
+        ServiceUnavailable= 503,
+        GatewayTimeout= 504,
+        HTTPVersionNotSupported= 505,
+        VariantAlsoNegotiates= 506,
+        InsufficientStorageWebDAVf= 507,
+        LoopDetectedWebDAV= 508,
+        NotExtended= 510,
+        NetworkAuthenticationRequired= 511
     };
 
     class Response {
     public:
 
-        Response(Util::FileManager const* fileManager);
-
+        /// Example: "HTTP/1.1"
         void SetHTTPVersion(const std::string version);
         void SetResponseCode(const ResponseCode code);
         void SetHeader(const std::string name, const std::string value);
         void SetCookie(const std::string name, const std::string value);
 
-        // Also sets the Content-Type header
-        // Sets the response code to 404 if the file is not found (only when ifNotFound404==true, if it equals false it will throw an exception)
+        /**
+         * Also sets the Content-Type header
+         * Sets the response code to 404 if the file is not found (if ifNotFound404==true)
+         * @throws std::exception if the file is not found and ifNotFound404==false
+         * @returns true if succesfull, else false
+         */
         bool SetBodyToFile(const std::string fileName, const bool ifNotFound404=true);
+        /// @warning Does not set the Content-Type header
         void SetBodyToString(const std::string str);
 
-        // Keep this object alive until you are done using the buffers
+        /**
+         * Can be used to attach custom data to this request.
+         * This is used internally for websocket requests.
+         */
+        void SetUserData(Util::WeirdPointer<void> data);
+        Util::WeirdPointer<void> GetUserData();
+
+        bool IsWebsocketUpgrade();
+        std::string GetHeader(const std::string name);
+
+        /// @warning Keep this object alive until you are done using the buffers
 		std::vector<asio::const_buffer> ToBuffers();
 
     private:
-        Util::FileManager const* _fileManager;
-
         std::string _version = "HTTP/1.1";
         std::string _code = "200 OK";
         std::map<std::string, std::string> _headers;
@@ -91,6 +119,8 @@ namespace HTTP {
         std::vector<char> _body;
 
         std::string _constructedHead;
+
+        Util::WeirdPointer<void> _userData;
 
         void ConstructHead();
     };

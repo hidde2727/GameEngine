@@ -137,13 +137,13 @@ namespace Physics {
 	}
 
 	
-	void PhysicsEngine::AddImageCollider(const Util::FileManager* fileManager, entt::registry& registry, const entt::entity entity, const Component::ImageBasedCollider collider) {
+	void PhysicsEngine::AddImageCollider(entt::registry& registry, const entt::entity entity, const Component::ImageBasedCollider collider) {
 		ASSERT(registry.all_of<Component::Position>(entity), "[PhysicsEngine::AddImageCollider] Cannot add an image collider on an entity without a position")
 		registry.emplace<Component::ImageBasedColliderID>(entity, _nextImageColliderID);
 		_nextImageColliderID++;
-		SetImageCollider(fileManager, registry, entity, collider);
+		SetImageCollider(registry, entity, collider);
 	}
-	void PhysicsEngine::SetImageCollider(const Util::FileManager* fileManager, entt::registry& registry, const entt::entity entity, const Component::ImageBasedCollider collider) {
+	void PhysicsEngine::SetImageCollider(entt::registry& registry, const entt::entity entity, const Component::ImageBasedCollider collider) {
 		ASSERT(registry.all_of<Component::Position>(entity), "[PhysicsEngine::SetImageCollider] Cannot set an image collider on an entity without a position")
 		Component::ImageBasedColliderID& id = registry.get<Component::ImageBasedColliderID>(entity);
 		Component::Position& pos = registry.get<Component::Position>(entity);
@@ -163,7 +163,8 @@ namespace Physics {
 
 		id.firstStaticBody = _staticBodies.GetNextChildID();
         int width, height, channels;
-		uint8_t* imageData = fileManager->ReadImageFile(collider._file, &width, &height, &channels, 1);
+		std::shared_ptr<uint8_t> imageDataPtr = Util::FileManager::ReadImageFile(collider._file, &width, &height, &channels, 1);
+		uint8_t* imageData = imageDataPtr.get();
 		float scaleX = collider._forcedSize == 0 ? 1.f : collider._forcedSize.x / (float)width;
 		float scaleY = collider._forcedSize == 0 ? 1.f : collider._forcedSize.y / (float)height;
 		float offsetX = pos._pos.x - (width/2.f)*scaleX;

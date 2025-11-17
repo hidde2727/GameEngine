@@ -5,6 +5,7 @@
 
 namespace Engine {
 namespace Network {
+    class HTTPRouter;
 namespace HTTP {
     
     enum class Method {
@@ -23,18 +24,24 @@ namespace HTTP {
     Method StringToMethod(std::string);
     std::string MethodToString(Method);
 
-    class RequestHeader {
+    class Request {
     public:
-        void Parse(std::istream& stream, const size_t size);
+
+        /// @warning Internal
+        void ParseHeader(std::istream& stream, const size_t size);
 
         Method GetMethod() const { return _method; }
         std::string GetURL() const { return _url; }
         std::string GetVersion() const { return _version; }
         std::string GetHeader(const std::string name) { return _headers[name]; }
+        bool HasHeader(const std::string name) { return _headers.count(name) == 1; }
         std::string GetCookie(const std::string name) { return _cookies[name]; }
         std::string GetHead() const { return MethodToString(_method) + " " + _url + " " + _version; }
 
+        std::vector<uint8_t> _body;
     private:
+        friend class Network::HTTPRouter;
+
         Method _method;
         std::string _url;
         std::string _version;

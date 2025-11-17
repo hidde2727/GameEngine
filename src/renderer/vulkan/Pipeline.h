@@ -67,7 +67,7 @@ namespace Vulkan {
 
         PipelineCreator();
 
-        void SetShaders(const std::initializer_list<std::string> fileLocations, const Util::FileManager& fileManager);
+        void SetShaders(const std::initializer_list<std::string> fileLocations);
         void SetDynamicState(const std::initializer_list<VkDynamicState> dynamicState);
         // Will create a vertex binding on 0 for the perVertex data and on 1 for the perInstance data
         void SetVertexInput(const std::initializer_list<Vertex::Attribute> perVertex, const std::initializer_list<Vertex::Attribute> perInstance={});

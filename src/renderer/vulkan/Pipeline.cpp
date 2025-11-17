@@ -190,7 +190,7 @@ namespace Vulkan {
         _pipelineInfo.basePipelineIndex = -1;
     }
 
-    void PipelineCreator::SetShaders(const std::initializer_list<std::string> fileLocations, const Util::FileManager& fileManager) {
+    void PipelineCreator::SetShaders(const std::initializer_list<std::string> fileLocations) {
         _shaders.resize(fileLocations.size());
         _shaderInfos.resize(fileLocations.size());
         _shaderStageInfos.resize(fileLocations.size());
@@ -198,7 +198,7 @@ namespace Vulkan {
         // Check if we can use the cache
         bool cannotUseCache = false;
         for(std::string fileLocation : fileLocations) {
-            if(!fileManager.CanUseCache(fileLocation + ".spiv", { fileLocation })) { 
+            if(!Util::FileManager::CanUseCache(fileLocation + ".spiv", { fileLocation })) { 
                 cannotUseCache = true; break; 
             }
         }
@@ -215,7 +215,7 @@ namespace Vulkan {
                 else if(filetype == ".comp") stageType = VK_SHADER_STAGE_COMPUTE_BIT;
                 else if(filetype == ".geom") stageType = VK_SHADER_STAGE_GEOMETRY_BIT;
 
-                fileManager.ReadCacheFile(cacheID, _shaders[i]);
+                Util::FileManager::ReadCacheFile(cacheID, _shaders[i]);
 
                 _shaderInfos[i].sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
                 _shaderInfos[i].codeSize = _shaders[i].size()*sizeof(uint32_t);
@@ -247,7 +247,7 @@ namespace Vulkan {
             INFO("[Vulkan::PipelineCreator] Compiling vulkan shader - " + fileLocation);
 
             std::string shaderCode;
-            fileManager.ReadFile(fileLocation, shaderCode);
+            Util::FileManager::ReadFile(fileLocation, shaderCode);
 
             shaders[i] = std::make_unique<glslang::TShader>(languageType);
             const char* sources[1] = { shaderCode.c_str() };
@@ -312,7 +312,7 @@ namespace Vulkan {
 
             // Write the generated program to the cache
             std::string cacheID = *(fileLocations.begin() + i) + ".spiv";
-            std::ofstream outputStream = fileManager.AddCachedFile(cacheID, std::ios::trunc | std::ios::binary);
+            std::ofstream outputStream = Util::FileManager::AddCachedFile(cacheID, std::ios::trunc | std::ios::binary);
             outputStream.write(reinterpret_cast<char*>(_shaders[i].data()), _shaders[i].size()*sizeof(uint32_t));
             outputStream.close();
         }
