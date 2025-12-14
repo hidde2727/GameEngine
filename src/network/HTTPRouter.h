@@ -5,6 +5,7 @@
 #include "network/HTTP/Request.h"
 #include "network/HTTP/Response.h"
 #include "network/WebsocketHandler.h"
+#include "network/SessionStorage.h"
 
 #include "util/TemplateConcepts.h"
 #include "util/WeirdPointer.h"
@@ -17,6 +18,13 @@ namespace Network {
 
     class HTTPRouter {
     public:
+
+        /// @brief Create with an empty session storage
+        HTTPRouter();
+        /// @brief Create from a cache file
+        HTTPRouter(const std::string sessionCacheID);
+        /// @brief Create with a session storage
+        HTTPRouter(std::shared_ptr<SessionStorage> sessions);
 
         /** 
          * Override this method to implement custom HTTP responses.
@@ -141,15 +149,19 @@ namespace Network {
         ///@}
 
         /// Create a HTTPResponse from a HTTPRequest
+        /// @warning cannot be used inside the HandlerRequest() function
         HTTPResponse NotFound(std::shared_ptr<HTTPRequest> request, const std::string message = " ");
 
     protected:
         HTTPResponse HandleRequestInternal(std::shared_ptr<HTTPRequest> request);
     private:
-
         std::map<std::string, Util::WeirdPointer<HTTPRouter>> _routes;
         Util::WeirdPointer<HTTPRouter> _defaultTo = nullptr;
+
+        // State while handeling a request
         std::shared_ptr<HTTPRequest> _currentRequest = nullptr;
+
+        std::shared_ptr<SessionStorage> _sessions = nullptr;
     };
 
 }

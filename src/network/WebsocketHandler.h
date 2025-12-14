@@ -33,10 +33,13 @@ namespace Network {
          */
         virtual void OnWebsocketMessage(WebsocketConnection* connection, Websocket::Frame& message) {}
     private:
-        // friend class WebsocketConnection;
-        // void OnWebsocketStartInternal(WebsocketConnection* connection, HTTP::Request& request);
-        // void OnWebsocketStopInternal(WebsocketConnection* connection);
-        // void OnWebsocketMessageInternal(WebsocketConnection* connection, Websocket::Frame& message);
+        friend class WebsocketConnection;// For accesing the internal message and stop function
+        friend class WebHandler;// For accesing the internal start function
+        void OnWebsocketStartInternal(WebsocketConnection* connection, HTTP::Request& request);
+        void OnWebsocketStopInternal(WebsocketConnection* connection);
+        void OnWebsocketMessageInternal(WebsocketConnection* connection, Websocket::Frame& message);
+
+        
     };
 
 }

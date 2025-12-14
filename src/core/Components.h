@@ -2,8 +2,6 @@
 #define ENGINE_CORE_COMPONENTS_H
 
 #include "core/PCH.h"
-#include "util/Vec2D.h"
-#include "util/Area.h"
 
 namespace Engine {
 

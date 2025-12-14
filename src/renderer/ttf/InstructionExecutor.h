@@ -7,7 +7,6 @@
 // The FreeType project was used to find undocumented parts of the spec
 
 #include "core/PCH.h"
-#include "util/Vec2D.h"
 
 namespace Engine {
 namespace Renderer {

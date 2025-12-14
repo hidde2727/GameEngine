@@ -1,25 +1,45 @@
 #include "Game.h"
 
 #include "util/DebugGraphics.h"
+#include "util/serialization/Binary.h"
 
 namespace Engine {
 
     Game::Game() { }
 
+    void Game::Start() {
+        Util::FileManager::Init(GetResourceDirectories(), GetCacheDirectory());
+        Util::SetDebugGraphicsTargetIfNull(this);
+        Util::BinarySerializer serializer;
+        struct Test {
+            std::string f = "hello world";
+            struct Nested {
+                double a = 1;
+                std::map<int, std::string> m = {{0, "hello"}, {2, "world"}};
+            }n;
+        }t;
+        std::vector<char> serialized;
+        serializer.Serialize(t, serialized, Util::BinarySerializer::OutputFlag::IncludeTypeInfo);
+        t.f = "";
+        t.n.a = 0;
+        t.n.m[0] = "world";
+        t.n.m[1] = "hello";
+        Util::BinaryDeserializer deserializer;
+        deserializer.Deserialize(t, serialized);
+
+        _webhandler = Network::WebHandler::Create();
+        _webhandler->Route("/", this);// Router all requests to this
+        _webhandler->Start();
+        _window.Init(2);
+
+        _window.StartAssetLoading(ENGINE_GAME_TEXTUREMAP_ID);
+        LoadAssets();
+        _window.EndAssetLoading(ENGINE_GAME_TEXTUREMAP_ID);
+        OnStart();
+    }
     int Game::Run() {
         try {
-            Util::FileManager::Init(GetResourceDirectories(), GetCacheDirectory());
-            Util::SetDebugGraphicsTargetIfNull(this);
-            
-            _webhandler = Network::WebHandler::Create();
-            _webhandler->Route("/", this);// Router all requests to this
-            _webhandler->Start();
-            _window.Init(2);
-
-            _window.StartAssetLoading(ENGINE_GAME_TEXTUREMAP_ID);
-            LoadAssets();
-            _window.EndAssetLoading(ENGINE_GAME_TEXTUREMAP_ID);
-            OnStart();
+            Start();
 
             _previousFrame = std::chrono::steady_clock::now();
             while(!_window.ShouldClose()) {
@@ -40,29 +60,34 @@ namespace Engine {
                 _scene->_physics.Update(_scene->_entt, dt);
                 _window.Draw(_scene->_entt, _scene->_textureComponents, _scene->_textComponents);
             }
-            
-            StopScene();
-            _webhandler->Stop();
-            _webhandler = nullptr;
-            _window.Cleanup();
+        } catch(std::runtime_error exc) {
+            OnError("[Game] Caught std::runtime_error '" + std::string(exc.what()) + "'");
         } catch(std::exception exc) {
-#ifndef __DEBUG__
-            WARNING(exc.what())
-            try {
-                INFO(_window.GetVulkanDeviceLimits())
-            } catch(std::exception exc) {}
-#endif
-            WARNING(exc.what())
-            StopScene();
-            _webhandler->Stop();
-            _webhandler = nullptr;
-            _window.Cleanup();
-
-            LOG("Press any key to continue . . .")
-            std::cin.get();
+            OnError("[Game] Caught std::exception '" + std::string(exc.what()) + "'");
+        } catch(...) {
+            OnError("[Game] Caught unknown exception without a message");
         }
+        Cleanup();
 
         return 0;
+    }
+
+    void Game::OnError(const std::string& message) {
+#ifndef __DEBUG__
+        try {
+            INFO(_window.GetVulkanDeviceLimits())
+        } catch(std::exception exc) {}
+#endif
+        WARNING(message)
+
+        LOG("Press any key to continue . . .")
+        std::cin.get();
+    }
+    void Game::Cleanup() {
+        StopScene();
+        _webhandler->Stop();
+        _webhandler = nullptr;
+        _window.Cleanup();
     }
 
     void Game::StopScene() {

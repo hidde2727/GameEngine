@@ -74,6 +74,10 @@ namespace Engine {
         void DebugLine(const Util::Vec2F start, const Util::Vec2F end, const Util::Vec3F color);
 
     private:
+        void Start();
+        void Cleanup();
+        void OnError(const std::string& message);
+
         std::shared_ptr<Scene> _scene;
         Renderer::Window _window;
         std::shared_ptr<Network::WebHandler> _webhandler;

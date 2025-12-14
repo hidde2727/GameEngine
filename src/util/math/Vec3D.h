@@ -1,7 +1,8 @@
 #ifndef ENGINE_UTILS_VEC3D_H
 #define ENGINE_UTILS_VEC3D_H
 
-#include "core/PCH.h"
+#include <cmath>
+
 #include "util/TemplateConcepts.h"
 
 namespace Engine {

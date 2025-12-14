@@ -1,7 +1,6 @@
 #ifndef ENGINE_UTILS_AREA_H
 #define ENGINE_UTILS_AREA_H
 
-#include "core/PCH.h"
 #include "util/TemplateConcepts.h"
 
 namespace Engine {
@@ -99,7 +98,7 @@ namespace Util {
 
 		template<FundamentalType OT>
 		inline Area<T> operator*(const OT a) const {
-			return Area<T>(this->x * a, this->y * a, this->w * a, this.h * a);
+			return Area<T>(this->x * a, this->y * a, this->w * a, this->h * a);
 		}
 
 		

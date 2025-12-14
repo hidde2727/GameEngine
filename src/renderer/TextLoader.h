@@ -7,7 +7,6 @@
 #include "renderer/TextureMap.h"
 #include "renderer/ttf/FontParser.h"
 
-#include "util/EquationSolvers.h"
 
 namespace Engine {
 namespace Renderer {

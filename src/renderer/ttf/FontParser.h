@@ -5,7 +5,6 @@
 // and https://developer.apple.com/fonts/TrueType-Reference-Manual/ for all the information about .ttf files
 
 #include "core/PCH.h"
-#include "util/Vec2D.h"
 
 #include "renderer/ttf/InstructionExecutor.h"
 

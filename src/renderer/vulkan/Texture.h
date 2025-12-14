@@ -6,7 +6,6 @@
 #include "renderer/vulkan/Context.h"
 #include "renderer/vulkan/Buffers.h"
 
-#include "util/Vec2D.h"
 
 namespace Engine {
 namespace Renderer {

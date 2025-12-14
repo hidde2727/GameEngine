@@ -2,7 +2,6 @@
 #define ENGINE_PHYSICS_QUADTREE_H
 
 #include "core/PCH.h"
-#include "util/Vec2D.h"
 #include "physics/AABB.h"
 
 namespace Engine {
@@ -93,7 +92,7 @@ namespace Physics {
 
             Node() = default;
             Node(const AABB aabb, const NodeID nodes[4], const std::vector<Data>& children, bool leaf = true)
-                    : _aabb(aabb), _nodes(nodes), _children(children), _leaf(leaf) {}
+                    : _aabb(aabb), _nodes{nodes[0], nodes[1], nodes[2], nodes[3]}, _children(children), _leaf(leaf) {}
             Node(const Node&) = default;
             Node(Node&&) noexcept = default;
             Node& operator=(const Node&) = default;

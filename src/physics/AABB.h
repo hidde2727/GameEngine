@@ -2,7 +2,6 @@
 #define ENGINE_PHYSICS_AABB_H
 
 #include "core/PCH.h"
-#include "util/Vec2D.h"
 
 namespace Engine {
 namespace Physics {

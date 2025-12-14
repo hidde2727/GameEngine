@@ -52,9 +52,12 @@ add_library (GameEngine STATIC
 "src/network/HTTPConnection.cpp"
 "src/network/HTTPRouter.h"
 "src/network/HTTPRouter.cpp"
+"src/network/SessionStorage.h"
+"src/network/SessionStorage.cpp"
 "src/network/WebsocketConnection.h"
 "src/network/WebsocketConnection.cpp"
 "src/network/WebsocketHandler.h"
+"src/network/WebsocketHandler.cpp"
 "src/network/WebsocketRouter.h"
 "src/network/HTTP/Request.h"
 "src/network/HTTP/Request.cpp"
@@ -79,28 +82,33 @@ add_library (GameEngine STATIC
 "src/util/Hashing.h"
 "src/util/Hashing.cpp"
 "src/util/TemplateConcepts.h"
-"src/util/Vec2D.h"
-"src/util/Vec3D.h"
-"src/util/Area.h"
-"src/util/EquationSolvers.h"
 "src/util/BitMask.h"
 "src/util/Endianess.h"
 "src/util/Endianess.cpp"
 "src/util/DebugGraphics.h"
 "src/util/DebugGraphics.cpp"
-"src/util/Math.h"
 "src/util/FileManager.h"
 "src/util/FileManager.cpp"
 "src/util/WeirdPointer.h"
+"src/util/VectorStreamBuffer.h"
+
+"src/util/math/Vec2D.h"
+"src/util/math/Vec3D.h"
+"src/util/math/Area.h"
+"src/util/math/EquationSolvers.h"
+"src/util/math/Math.h"
+"src/util/math/PI.h"
+"src/util/math/Matrix.h"
+
+"src/util/serialization/Serialization.h"
+"src/util/serialization/JSON.h"
+"src/util/serialization/Binary.h"
+"src/util/serialization/Print.h"
 
 "lib/glslang/glslang/ResourceLimits/ResourceLimits.cpp"
 )
 target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_precompile_headers(GameEngine PUBLIC "src/core/PCH.h")
-
-IF(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_BUILD_TYPE MATCHES Debug)
-    target_link_libraries(GameEngine PRIVATE -fsanitize=address)
-ENDIF()
 
 # Vulkan
 find_package(Vulkan REQUIRED)
@@ -116,7 +124,6 @@ target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lib/gl
 # GLSL compiler
 target_link_libraries(GameEngine PRIVATE glslang)
 target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lib/glslang")
-
 
 # Asio
 add_library(asio INTERFACE)

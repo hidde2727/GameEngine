@@ -7,6 +7,7 @@ namespace Util {
     std::filesystem::path FileManager::_cacheFolder;
 
     void FileManager::Init(const std::initializer_list<std::string> searchPaths, const std::string cacheFolder) {
+        INFO("[Util::FileManager] Running in directory '" + std::filesystem::current_path().filename().generic_string() + "'")
         for(std::string path : searchPaths) {
             _searchPaths.push_back(std::filesystem::path(path));
         }
@@ -20,6 +21,7 @@ namespace Util {
         LOG("[Util::FileManager] Created cache directory at '" + std::filesystem::absolute(std::filesystem::path(_cacheFolder)).string() + "'")
     }
     void FileManager::Init(const std::vector<std::string>& searchPaths, const std::string cacheFolder) {
+        INFO("[Util::FileManager] Running in directory '" + std::filesystem::current_path().filename().generic_string() + "'")
         for(std::string path : searchPaths) {
             _searchPaths.push_back(std::filesystem::path(path));
         }

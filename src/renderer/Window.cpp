@@ -27,7 +27,6 @@ namespace Renderer {
         });
         contextInfo.SetDeviceExtensions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME });
         _vkContext.Init(contextInfo, _window);
-        
 
         int width, height;
         glfwGetFramebufferSize(_window, &width, &height);

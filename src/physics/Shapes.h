@@ -2,7 +2,6 @@
 #define ENGINE_PHYSICS_SHAPES_RECTANGLE_H
 
 #include "core/PCH.h"
-#include "util/Vec2D.h"
 #include "core/Components.h"
 #include "physics/AABB.h"
 

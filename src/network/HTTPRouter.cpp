@@ -4,6 +4,17 @@
 namespace Engine {
 namespace Network {
 
+    HTTPRouter::HTTPRouter() {
+        _sessions = std::make_shared<SessionStorage>();
+    }
+    HTTPRouter::HTTPRouter(const std::string sessionCacheID) {
+        _sessions = std::make_shared<SessionStorage>();
+        _sessions->LoadFromCache(sessionCacheID);
+    }
+    HTTPRouter::HTTPRouter(std::shared_ptr<SessionStorage> sessions) {
+        _sessions = sessions;
+    }
+
     void HTTPRouter::Route(const std::string subpath, std::shared_ptr<HTTPRouter> router) {
         if(router == nullptr) _routes.erase(subpath);
         else _routes[subpath] = router;

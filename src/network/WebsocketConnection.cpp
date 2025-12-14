@@ -39,7 +39,7 @@ namespace Network {
         // Post work for the main thread
         std::shared_ptr<WebsocketConnection> self = shared_from_this();
         asio::post(_webhandler.lock()->_requestHandler, [this, self]() {
-            _websocketHandler->OnWebsocketStop(self.get());
+            _websocketHandler->OnWebsocketStopInternal(self.get());
         });
     }
     void WebsocketConnection::ReceiveFirstPartHeader() {
@@ -115,7 +115,7 @@ namespace Network {
         _receivingFrame = std::make_shared<Websocket::Frame>();
         // Post work for the main thread
         asio::post(_webhandler.lock()->_requestHandler, [this, self, frame]() {
-            _websocketHandler->OnWebsocketMessage(self.get(), *frame);
+            _websocketHandler->OnWebsocketMessageInternal(self.get(), *frame);
         });
     }
 

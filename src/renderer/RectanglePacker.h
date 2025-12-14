@@ -2,9 +2,6 @@
 #define ENGINE_RENDERER_RECTANGLE_PACKER_H
 
 #include "core/PCH.h"
-#include "util/Vec2D.h"
-#include "util/Vec3D.h"
-#include "util/Area.h"
 
 namespace Engine {
 namespace Renderer {

@@ -8,9 +8,6 @@
 #include "renderer/vulkan/CommandBuffer.h"
 #include "renderer/RectanglePacker.h"
 
-#include "util/Vec2D.h"
-#include "util/Vec3D.h"
-#include "util/Area.h"
 #include "util/FileManager.h"
 
 #ifndef ENGINE_RENDERER_MAX_IMAGE_SIZE

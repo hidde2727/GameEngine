@@ -86,7 +86,7 @@ namespace Network {
         if(ENGINE_NETWORK_VERBOSE_HTTP_WEBSOCKET) LOG("[Network::WebHandler] Upgraded connection (" + std::to_string(uuid) + ")")
         // Post work for the main thread
         asio::post(_requestHandler, [this, &newConnection, &request, handler]() {
-            handler->OnWebsocketStart(newConnection.get(), request);
+            handler->OnWebsocketStartInternal(newConnection.get(), request);
         });
     }
 
@@ -107,7 +107,7 @@ namespace Network {
 
             ++iter;
         }
-        return 0;
+        return "";
     }
 
 }

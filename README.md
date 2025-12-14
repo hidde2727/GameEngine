@@ -6,12 +6,21 @@ All you need to run is the update_glslang_sources.py from the glslang library (/
 (And you need to install the dependencies for the libraries that were used, see below)
 Then you can compile this gameengine with CMake
 
+!!!! This project is using c++26 features !!!!
+These can be enabled as followed (in CMakeLists.txt):
+```
+set(CMAKE_CXX_STANDARD 26)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+```
+(Right now only Clang supports the required features)
+
 ### Features
 - Vulkan renderer
 - TTF binary parser + TTF font program executor
 - SDF maker for the text
 - HTTP and Websocket server
 - Impulse based physics
+- Serialization
 
 ### Libraries used
 - asio          (async tcp sockets)

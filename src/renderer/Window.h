@@ -15,8 +15,6 @@
 #include "renderer/ImageLoader.h"
 #include "renderer/TextLoader.h"
 
-#include "util/Vec2D.h"
-#include "util/Vec3D.h"
 #include "util/BitMask.h"
 #include "util/FileManager.h"
 
