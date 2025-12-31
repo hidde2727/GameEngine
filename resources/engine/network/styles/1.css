@@ -22,6 +22,36 @@ engine-body {
 }
 
 /*-----------------------------------------------------------------------------------+
+| Websocket Disconnect                                                               |
++-----------------------------------------------------------------------------------*/
+#websocketjs-disconnect-screen {
+    display: none;
+    position:fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0,0,0,0.3);
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+#websocketjs-disconnect-screen i {
+    font-size: min(15vh, 15vw);
+}
+#websocketjs-disconnect-screen h2 {
+    font-size: min(10vh, 10vw);
+    margin: min(5vw,5vh) 0 0 0;
+    text-align: center;
+}
+#websocketjs-disconnect-screen p {
+    font-size: min(5vh, 5vw);
+    margin: min(5vw,5vh) 0 0 0;
+    text-align: center; 
+}
+
+
+/*-----------------------------------------------------------------------------------+
 | Menu                                                                               |
 +-----------------------------------------------------------------------------------*/
 engine-menu .menu-button {

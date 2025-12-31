@@ -8,7 +8,7 @@
 #include "renderer/ImageLoader.h"
 #include "renderer/TextLoader.h"
 
-#include "network/HTTPRouter.h"
+#include "network/HTTP/Router.h"
 
 #include "physics/Engine.h"
 #include "physics/Components.h"
@@ -18,7 +18,7 @@ namespace Engine{
     typedef entt::entity Entity;
 
     class Game;
-    class Scene : public Network::HTTPRouter {
+    class Scene : public Network::HTTP::Router {
     public:
 
         Scene(Game* game, Renderer::Window* window);

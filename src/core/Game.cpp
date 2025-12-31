@@ -1,7 +1,7 @@
 #include "Game.h"
 
 #include "util/DebugGraphics.h"
-#include "util/serialization/Binary.h"
+#include "util/serialization/JSON.h"
 
 namespace Engine {
 
@@ -10,22 +10,6 @@ namespace Engine {
     void Game::Start() {
         Util::FileManager::Init(GetResourceDirectories(), GetCacheDirectory());
         Util::SetDebugGraphicsTargetIfNull(this);
-        Util::BinarySerializer serializer;
-        struct Test {
-            std::string f = "hello world";
-            struct Nested {
-                double a = 1;
-                std::map<int, std::string> m = {{0, "hello"}, {2, "world"}};
-            }n;
-        }t;
-        std::vector<char> serialized;
-        serializer.Serialize(t, serialized, Util::BinarySerializer::OutputFlag::IncludeTypeInfo);
-        t.f = "";
-        t.n.a = 0;
-        t.n.m[0] = "world";
-        t.n.m[1] = "hello";
-        Util::BinaryDeserializer deserializer;
-        deserializer.Deserialize(t, serialized);
 
         _webhandler = Network::WebHandler::Create();
         _webhandler->Route("/", this);// Router all requests to this

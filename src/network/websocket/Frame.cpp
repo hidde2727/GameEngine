@@ -66,19 +66,21 @@ namespace Websocket {
 
     std::vector<asio::const_buffer> Frame::GetWriteBuffers() {
         _buffer.clear();
-        _buffer.push_back(0b10000001);
+        _buffer.push_back(0b10000010);// Binary frame
         if(_body.size() < 126) {
             _buffer.push_back((uint8_t)_body.size());
         } else if(_body.size() <= 0xFFFF) {
             uint16_t size = (uint16_t)_body.size();
             size = Util::ToBigEndian(size);
             uint8_t* sizePtr = reinterpret_cast<uint8_t*>(&size);
+            _buffer.push_back(126);
             _buffer.push_back(*sizePtr);
             _buffer.push_back(*(sizePtr+1));
         } else if(_body.size() <= 0xFFFFFFFF) {
             uint32_t size = (uint32_t)_body.size();
             size = Util::ToBigEndian(size);
             uint8_t* sizePtr = reinterpret_cast<uint8_t*>(&size);
+            _buffer.push_back(127);
             _buffer.push_back(*sizePtr);
             _buffer.push_back(*(sizePtr+1));
             _buffer.push_back(*(sizePtr+2));
@@ -95,7 +97,7 @@ namespace Websocket {
         if(_code == Opcode::Close || _errorOccured) {
             _code = Opcode::Close;
             _body.resize(2);
-            uint16_t errorCode = Util::ToBigEndian(static_cast<uint16_t>(_code));
+            uint16_t errorCode = Util::ToBigEndian(static_cast<uint16_t>(_errorCode));
             uint8_t* errorCodePtr = reinterpret_cast<uint8_t*>(&errorCode);
             _body[0] = *errorCodePtr;
             _body[1] = *(errorCodePtr+1);

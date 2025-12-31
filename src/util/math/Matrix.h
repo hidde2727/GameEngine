@@ -10,40 +10,24 @@
 namespace Engine {
 namespace Util {
 
-    template<unsigned int x, unsigned int y, unsigned int max>
-    concept MultiplicationLessThen = x*y < max;
-
-    template<FundamentalType T, unsigned int Rows, unsigned int Cols>
-    class Matrix {};
-
-    // Stack version
-    template<FundamentalType T, unsigned int Rows, unsigned int Cols> requires MultiplicationLessThen<Rows, Cols, 0>
-    class Matrix<T, Rows, Cols> {
-    public:
-
-        
-
-    private:
-        std::array<T, Rows*Cols> _matrix;
-    };
-    
     // Heap version
-    template<FundamentalType T, unsigned int Rows, unsigned int Cols> requires (!MultiplicationLessThen<Rows, Cols, 0>)
-    class Matrix<T, Rows, Cols> {
+    template<FundamentalType T, unsigned int Rows, unsigned int Cols>
+    class Matrix {
+        static constexpr bool IS_BIG_MATRIX = Rows*Cols > 100;
     public:
         /**
          * @brief Construct a new Matrix object
          * @warning Does not initialize the matrix, the matrix will be random
          */
         Matrix() {
-            _matrix.resize(Rows*Cols);
+            if constexpr(IS_BIG_MATRIX) _matrix.resize(Rows*Cols);
         }
         /**
          * @brief Construct a new Matrix object
          * @param initializer Sets all entries in the matrix to this number
          */
         Matrix(const T initializer) {
-            _matrix.resize(Rows*Cols);
+            if constexpr(IS_BIG_MATRIX) _matrix.resize(Rows*Cols);
             std::fill(_matrix.begin(), _matrix.end(), initializer);
         }
         /**
@@ -51,7 +35,10 @@ namespace Util {
          * @param m Array
          */
         Matrix(std::array<T, Rows*Cols>& m) {
-            _matrix = std::move(m);
+            if constexpr(IS_BIG_MATRIX) 
+                _matrix = std::move(std::vector<T>(std::make_move_iterator(m.begin()), std::make_move_iterator(m.end())));
+            else
+                _matrix = std::move(m);
         }
         /**
          * @brief Construct a new Matrix object
@@ -213,12 +200,12 @@ namespace Util {
             //     }
             // }
             // V4
-            // Just use the c++26 (when available) feature for this
+            // Just use the c++26 feature for this (when available)
             return ret;
 		}
 
 		template<FundamentalType OT>
-		inline Matrix<T, Rows, Cols> operator/(const Matrix<OT, Rows, Cols>& v) const {
+		inline Matrix<T, Rows, Cols> operator/(const OT v) const {
             Matrix<T, Rows, Cols> ret;
 			for(size_t i = 0; i < Rows*Cols; i++) {
                 ret[i] = _matrix[i] / (T)v;
@@ -238,14 +225,37 @@ namespace Util {
 			return !this->operator==(v);
 		}
 
+        /**
+         * @brief A pointer inside the matrix at a certain x-position
+         * 
+         * @warning Do not store, this is only used to give a nicer looking way to access a matrix 
+         */
         struct ArrayPointer {
-            T& operator[](const size_t i) {
-                return _pointer[i];
+            T& operator[](const size_t y) {
+                ASSERT(y < Cols, "[Util::Matrix] Cannot retrieve a position outside of the matrix")
+                return _pointer[y*Rows];// _pointer is at the correct x-pos, set it to the correct y pos
             }
             T* _pointer;
         };
-        ArrayPointer operator[](const size_t i) {
-            return ArrayPointer{&_matrix[i*Rows]};
+        /**
+         * @brief A nice looking way of accessing the matrix
+         * When the matrix is one dimensional, you can access it like it is one dimensional:
+         * ```
+         * Matrix<float, 1, 3> m;
+         * m[1] = 1.0f;
+         * // But with 2 dimensions:
+         * Matrix<float, 2, 2> M;
+         * int x=1, y=0;
+         * M[x][y] = 1.0f;
+         * ```
+         * 
+         * @param x The coordinate you want to access
+         * @return ArrayPointer (when matrix is 2-dimensional) or T& (when matrix is 1-dimensional)
+         */
+        std::conditional<Rows==1 || Cols==1, T&, ArrayPointer> operator[](const size_t x) {
+            ASSERT(x < Rows, "[Util::Matrix] Cannot retrieve a position outside of the matrix")
+            if constexpr(Rows==1 || Cols==1) return _matrix[x];
+            else return ArrayPointer{&_matrix[x]};// Matrix at the correct x pos
         }
 
 		template<FundamentalType OT>
@@ -283,7 +293,7 @@ namespace Util {
         }
 
     private:
-        std::vector<T> _matrix;
+        std::conditional<IS_BIG_MATRIX, std::array<T, Rows*Cols>, std::vector<T>> _matrix;
     };
 
     /**

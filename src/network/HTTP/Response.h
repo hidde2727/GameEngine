@@ -4,6 +4,7 @@
 #include "core/PCH.h"
 #include "util/FileManager.h"
 #include "util/WeirdPointer.h"
+#include "util/TemplateConcepts.h"
 
 namespace Engine {
 namespace Network {
@@ -79,6 +80,40 @@ namespace HTTP {
         NetworkAuthenticationRequired= 511
     };
 
+    /**
+     * @brief HTTP cookie same-site
+     * 
+     */
+    enum class SameSite {
+        NotDefined,
+        None,
+        Lax,
+        Strict
+    };
+    /**
+     * @brief A helper class for sending cookies
+     * See https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie for more information about these properties
+     * 
+     */
+    struct Cookie {
+        /// The actual value
+        std::string _value;
+        /// A specific subdomain for which the cookie will be set
+        std::string _domain;
+        /// A path that must be in the URI for the browser to send this cookie to the server
+        std::string _path;
+        /// The maximum time the browser will keep this cookie for
+        uint32_t _maxAge = UINT32_MAX;
+        /// If the browser should send these cookies to servers of a different domain/subdomain
+        SameSite _sameSite = SameSite::NotDefined;
+        /// Should only be send to the server over a HTTPS connection
+        bool _secure;
+        /// Forbid JS from accesing the cookie
+        bool _httpOnly;
+        /// Must be stored in the partitioned storage of the browser
+        bool _partitioned;
+    };
+
     class Response {
     public:
 
@@ -86,7 +121,12 @@ namespace HTTP {
         void SetHTTPVersion(const std::string version);
         void SetResponseCode(const ResponseCode code);
         void SetHeader(const std::string name, const std::string value);
+        void SetCookie(const std::string name, const Cookie cookie);
         void SetCookie(const std::string name, const std::string value);
+        template<Util::FundamentalType T>
+        void SetCookie(const std::string name, const T value) {
+            SetCookie(name, std::to_string(value));
+        }
 
         /**
          * Also sets the Content-Type header
@@ -115,7 +155,7 @@ namespace HTTP {
         std::string _version = "HTTP/1.1";
         std::string _code = "200 OK";
         std::map<std::string, std::string> _headers;
-        std::map<std::string, std::string> _cookies;
+        std::map<std::string, Cookie> _cookies;
         std::vector<char> _body;
 
         std::string _constructedHead;

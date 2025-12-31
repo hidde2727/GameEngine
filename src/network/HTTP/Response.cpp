@@ -64,8 +64,52 @@ namespace HTTP {
     void Response::SetHeader(const std::string name, const std::string value) {
         _headers[name] = value;
     }
+    void Response::SetCookie(const std::string name, const Cookie cookie) {
+#ifdef __DEBUG__
+        // Check the name (no control values, seperator and no ( ) < > @ , ; : \ " / [ ] ? = { })
+        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie
+        for(const char c : name) {
+            if((c>=0 && c<=31) || c==127 || c==' ' || c=='\t'
+                || c=='(' || c==')' || c=='<' || c=='>' || c=='@' || 
+                c==',' || c==';' || c==':' || c=='\\' || c=='"' || 
+                c=='/' || c=='[' || c==']' || c=='?' || c=='{' || c=='}') {
+                THROW("[HTTP::Response] Trying to set a cookie name with illegal character (" + std::string(&c, 1) + ")")
+            }
+        }
+        // Check the value (no control value, whitespaces and no " , ; \")
+        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie
+        for(const char c : cookie._value) {
+            if((c>=0 && c<=31) || c==127 || c==' ' || c=='\t' || c=='\n'
+                || c=='"' || c==',' || c==';' || c=='\\') {
+                THROW("[HTTP::Response] Trying to set a cookie value with illegal characters (" + std::string(&c, 1) + ")")
+            }
+        }
+        // Check the domain (can only contain a-z, A-z, 0-9 and -)
+        // https://en.wikipedia.org/wiki/Hostname#Syntax
+        int currentLabelLength = 0;
+        for(const char c : cookie._domain) {
+            if(!((c>='a' && c<='z')||(c>='A' && c<='Z')||(c>='0' && c<='9') || c=='-')) {
+                THROW("[HTTP::Response] Trying to set a cookie value with illegal characters (" + std::string(&c, 1) + ")")
+            }
+            if(c == '.') currentLabelLength = 0;
+            else currentLabelLength++;
+            ASSERT(currentLabelLength <= 63, "[HTTP::Response] A domain cannot contain labels longer than 63 characters (sections between . cannot be longer than 63 characters)")
+        }
+        ASSERT(cookie._domain.size() < 255, "[HTTP::Response] A domain cannot be longer than 255 characters")
+        // Check the path (no control values, ? and #)
+        // https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Path
+        for(const char c : cookie._path) {
+            if((c>=0 && c<=31) || c==127 || c=='?' || c=='#') {
+                THROW("[HTTP::Response] Trying to set a cookie value with illegal characters (" + std::string(&c, 1) + ")")
+            }
+        }
+#endif
+        _cookies[name] = cookie;
+    }
     void Response::SetCookie(const std::string name, const std::string value) {
-        _cookies[name] = value;
+        Cookie cookie{};
+        cookie._value = value;
+        SetCookie(name, cookie);
     }
     bool Response::SetBodyToFile(const std::string fileName, const bool ifNotFound404) {
         try {
@@ -145,8 +189,20 @@ namespace HTTP {
 		for (auto const& [name, value] : _headers){
 			_constructedHead += name + ": " + value + "\r\n";
 		}
-		for (auto const& [name, value] : _cookies) {
-			_constructedHead += "Set-Cookie: " + name + "=" + value + "\r\n";
+		for (auto const& [name, cookie] : _cookies) {
+			_constructedHead += "Set-Cookie: " + name + "=" + cookie._value;
+
+            if(cookie._domain.size()) _constructedHead += "; Domain=" + cookie._domain;
+            if(cookie._path.size()) _constructedHead += "; Path=" + cookie._path;
+            if(cookie._maxAge != UINT32_MAX) _constructedHead += "; Max-Age=" + std::to_string(cookie._maxAge);
+            if(cookie._sameSite == SameSite::None) _constructedHead += "; SameSite=None";
+            else if(cookie._sameSite == SameSite::Lax) _constructedHead += "; SameSite=Lax";
+            else if(cookie._sameSite == SameSite::Strict) _constructedHead += "; SameSite=Strict";
+            if(cookie._secure) _constructedHead += "; Secure";
+            if(cookie._httpOnly) _constructedHead += "; HttpOnly";
+            if(cookie._secure && cookie._partitioned) _constructedHead += "; Partitioned";
+            
+            _constructedHead += "\r\n";
 		}
 		_constructedHead += "\r\n";
     }

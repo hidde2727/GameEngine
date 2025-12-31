@@ -9,8 +9,8 @@ namespace Util {
     
     /**
      * @brief Will serialize a class into valid JSON
-     * Because c++ does not support reflection the names of variables will be a number counting upwards
      * 
+     * @warning This class cannot magically access private members, if you want private members serialized, you need to add ```friend class Util::Serializer```
      */
     class JSONSerializer : public Serializer {
     public:
@@ -27,8 +27,8 @@ namespace Util {
             Serializer::Serialize(t);
         }
 
-        inline void StartClass(const size_t amountMembers) override {
-            if(_state.size()) StartVariable();
+        inline void StartClass(const size_t amountMembers, const std::string_view name="") override {
+            if(_state.size()) StartVariable(name);
             AddString("{");
             _state.push_back({0, false});
         }
@@ -38,15 +38,15 @@ namespace Util {
             if(_state.size()) EndVariable();
         }
 
-        inline void StartPair() override {
+        inline void StartPair(const std::string_view name="") override {
             StartArray(2);
         }
         inline void EndPair() override {
             EndArray();
         }
 
-        inline void StartArray(const size_t amountElements) override {
-            StartVariable();
+        inline void StartArray(const size_t amountElements, const std::string_view name="") override {
+            StartVariable(name);
             AddString("[");
             _state.push_back({0, true});
         }
@@ -55,62 +55,75 @@ namespace Util {
             _state.pop_back();
             EndVariable();
         }
-
-        inline void AddVariable(const int8_t v) override {
-            StartVariable();
-            AddString(std::to_string(v));
-            EndVariable();
+        
+        inline void StartMap(const size_t amountElements, const std::string_view name="") override {
+            StartArray(amountElements, name);
         }
-        inline void AddVariable(const int16_t v) override {
-            StartVariable();
-            AddString(std::to_string(v));
-            EndVariable();
-        }
-        inline void AddVariable(const int32_t v) override {
-            StartVariable();
-            AddString(std::to_string(v));
-            EndVariable();
-        }
-        inline void AddVariable(const int64_t v) override {
-            StartVariable();
-            AddString(std::to_string(v));
-            EndVariable();
+        inline void EndMap() override {
+            EndArray();
         }
 
-        inline void AddVariable(const uint8_t v) override {
-            StartVariable();
+        inline void AddVariable(const int8_t v, const std::string_view name="") override {
+            StartVariable(name);
             AddString(std::to_string(v));
             EndVariable();
         }
-        inline void AddVariable(const uint16_t v) override {
-            StartVariable();
+        inline void AddVariable(const int16_t v, const std::string_view name="") override {
+            StartVariable(name);
             AddString(std::to_string(v));
             EndVariable();
         }
-        inline void AddVariable(const uint32_t v) override {
-            StartVariable();
+        inline void AddVariable(const int32_t v, const std::string_view name="") override {
+            StartVariable(name);
             AddString(std::to_string(v));
             EndVariable();
         }
-        inline void AddVariable(const uint64_t v) override {
-            StartVariable();
+        inline void AddVariable(const int64_t v, const std::string_view name="") override {
+            StartVariable(name);
             AddString(std::to_string(v));
             EndVariable();
         }
 
-        inline void AddVariable(const float v) override {
-            StartVariable();
+        inline void AddVariable(const uint8_t v, const std::string_view name="") override {
+            StartVariable(name);
             AddString(std::to_string(v));
             EndVariable();
         }
-        inline void AddVariable(const double v) override {
-            StartVariable();
+        inline void AddVariable(const uint16_t v, const std::string_view name="") override {
+            StartVariable(name);
+            AddString(std::to_string(v));
+            EndVariable();
+        }
+        inline void AddVariable(const uint32_t v, const std::string_view name="") override {
+            StartVariable(name);
+            AddString(std::to_string(v));
+            EndVariable();
+        }
+        inline void AddVariable(const uint64_t v, const std::string_view name="") override {
+            StartVariable(name);
             AddString(std::to_string(v));
             EndVariable();
         }
 
-        inline void AddVariable(const std::string& v) override {
-            StartVariable();
+        inline void AddVariable(const bool v, const std::string_view name="") override {
+            StartVariable(name);
+            AddString(std::to_string((uint8_t)v));
+            EndVariable();
+        }
+
+        inline void AddVariable(const float v, const std::string_view name="") override {
+            StartVariable(name);
+            AddString(std::to_string(v));
+            EndVariable();
+        }
+        inline void AddVariable(const double v, const std::string_view name="") override {
+            StartVariable(name);
+            AddString(std::to_string(v));
+            EndVariable();
+        }
+
+        inline void AddVariable(const std::string& v, const std::string_view name="") override {
+            StartVariable(name);
             AddString("\"");
             AddString(v);
             AddString("\"");
@@ -121,13 +134,14 @@ namespace Util {
             (*_outputStream) << s;
         }
 
-        inline void StartVariable() {
+        inline void StartVariable(const std::string_view name="") {
             if(_state[_state.size()-1]._variableCount) {
                 AddString(", ");
             }
             if(_state[_state.size()-1]._isArray) return;
             AddString("\"");
-            AddString(std::to_string(_state[_state.size()-1]._variableCount));
+            if(name.empty()) AddString(std::to_string(_state[_state.size()-1]._variableCount));
+            else AddString(std::string(name.data(), name.size()));
             AddString("\": ");
         }
         inline void EndVariable() {
@@ -150,6 +164,7 @@ namespace Util {
      * 
      * Yes, deserializing JSON is a lot more difficult than serializing it
      * 
+     * @warning This class cannot magically access private members, if you want private members serialized, you need to add ```friend class Util::Deserializer```
      */
     class JSONDeserializer : public Deserializer {
     public:
@@ -169,48 +184,24 @@ namespace Util {
 
             _state.clear();
             _state.push_back(State{0, &_JSON});
-            Deserializer::Deserialize(t);
+            Deserializer::Deserialize(t, "root");
         }
 
-        inline void StartClass() override {
-            if(_state.size() == 1 && !_state[0]._variableCount) {
-                // This is the first call
-                ASSERT(GetState()._currentNode->IsMap(), "[Util::JsonDeserializer] Given type started class, but JSON is not a class")
-                return;
-            }
 
-            if(GetState()._currentNode->IsMap()) {
-                ASSERT(GetState()._currentNode->GetMap().contains(std::to_string(GetState()._variableCount)), "[Util::JsonDeserializer] Trying to deserialize JSON that does not contain enough variables for the give type")
-                GetState()._variableCount++;
-                _state.push_back(State{0, &GetState()._currentNode->GetMap()[std::to_string(GetState()._variableCount - 1)]});
-            } else {
-                ASSERT(GetState()._currentNode->GetVector().size() >= GetState()._variableCount, "[Util::JsonDeserializer] Trying to deserialize JSON that does not contain enough variables for the give type")
-                GetState()._variableCount++;
-                _state.push_back(State{0, &GetState()._currentNode->GetVector()[GetState()._variableCount - 1]});
-            }
+
+
+
+        inline void StartClass(const std::string_view name="") override {
+            StartCompositeNode(name);
             ASSERT(GetState()._currentNode->IsMap(), "[Util::JsonDeserializer] Given type started class, but JSON is not a class")
         }
         inline void EndClass() override {
             _state.pop_back();
         }
 
-        inline void StartPair() override {
-            if(_state.size() == 1 && !_state[0]._variableCount) {
-                // This is the first call
-                ASSERT(GetState()._currentNode->IsVector(), "[Util::JsonDeserializer] Given type started class, but JSON is not a class")
-                ASSERT(GetState()._currentNode->GetVector().size() == 2, "[Util::JsonDeserializer] Given type started pair, but JSON is not a array of size=2")
-                return;
-            }
+        inline void StartPair(const std::string_view name="") override {
+            StartCompositeNode(name);
 
-            if(GetState()._currentNode->IsMap()) {
-                ASSERT(GetState()._currentNode->GetMap().contains(std::to_string(GetState()._variableCount)), "[Util::JsonDeserializer] Trying to deserialize JSON that does not contain enough variables for the give type")
-                GetState()._variableCount++;
-                _state.push_back(State{0, &GetState()._currentNode->GetMap()[std::to_string(GetState()._variableCount - 1)]});
-            } else {
-                ASSERT(GetState()._currentNode->GetVector().size() >= GetState()._variableCount, "[Util::JsonDeserializer] Trying to deserialize JSON that does not contain enough variables for the give type")
-                GetState()._variableCount++;
-                _state.push_back(State{0, &GetState()._currentNode->GetVector()[GetState()._variableCount - 1]});
-            }
             ASSERT(GetState()._currentNode->IsVector(), "[Util::JsonDeserializer] Given type started array, but JSON is not a array")
             ASSERT(GetState()._currentNode->GetVector().size() == 2, "[Util::JsonDeserializer] Given type started pair, but JSON is not a array of size=2")
         }
@@ -218,22 +209,8 @@ namespace Util {
             _state.pop_back();
         }
 
-        inline void StartArray() override {
-            if(_state.size() == 1 && !_state[0]._variableCount) {
-                // This is the first call
-                ASSERT(GetState()._currentNode->IsVector(), "[Util::JsonDeserializer] Given type started class, but JSON is not a class")
-                return;
-            }
-
-            if(GetState()._currentNode->IsMap()) {
-                ASSERT(GetState()._currentNode->GetMap().contains(std::to_string(GetState()._variableCount)), "[Util::JsonDeserializer] Trying to deserialize JSON that does not contain enough variables for the give type")
-                GetState()._variableCount++;
-                _state.push_back(State{0, &GetState()._currentNode->GetMap()[std::to_string(GetState()._variableCount - 1)]});
-            } else {
-                ASSERT(GetState()._currentNode->GetVector().size() >= GetState()._variableCount, "[Util::JsonDeserializer] Trying to deserialize JSON that does not contain enough variables for the give type")
-                GetState()._variableCount++;
-                _state.push_back(State{0, &GetState()._currentNode->GetVector()[GetState()._variableCount - 1]});
-            }
+        inline void StartArray(const std::string_view name="") override {
+            StartCompositeNode(name);
             ASSERT(GetState()._currentNode->IsVector(), "[Util::JsonDeserializer] Given type started array, but JSON is not a array")
         }
         inline bool IsEndArray() override {
@@ -243,48 +220,82 @@ namespace Util {
             _state.pop_back();
         }
 
-        inline void GetVariable(int8_t& v) override {
-            GetVariableInternal(v);
+        inline void StartMap(const std::string_view name="") override {
+            StartArray(name);
         }
-        inline void GetVariable(int16_t& v) override {
-            GetVariableInternal(v);
+        inline bool IsEndMap() override {
+            return IsEndArray();           
         }
-        inline void GetVariable(int32_t& v) override {
-            GetVariableInternal(v);
-        }
-        inline void GetVariable(int64_t& v) override {
-            GetVariableInternal(v);
+        inline void EndMap() override {
+            EndArray();
         }
 
-        inline void GetVariable(uint8_t& v) override {
-            GetVariableInternal(v);
+        inline void GetVariable(int8_t& v, const std::string_view name="") override {
+            GetVariableInternal(v, name);
         }
-        inline void GetVariable(uint16_t& v) override {
-            GetVariableInternal(v);
+        inline void GetVariable(int16_t& v, const std::string_view name="") override {
+            GetVariableInternal(v, name);
         }
-        inline void GetVariable(uint32_t& v) override {
-            GetVariableInternal(v);
+        inline void GetVariable(int32_t& v, const std::string_view name="") override {
+            GetVariableInternal(v, name);
         }
-        inline void GetVariable(uint64_t& v) override {
-            GetVariableInternal(v);
-        }
-
-        inline void GetVariable(float& v) override {
-            GetVariableInternal(v);
-        }
-        inline void GetVariable(double& v) override {
-            GetVariableInternal(v);
+        inline void GetVariable(int64_t& v, const std::string_view name="") override {
+            GetVariableInternal(v, name);
         }
 
-        inline void GetVariable(std::string& v) override {
-            GetVariableInternal(v);
+        inline void GetVariable(uint8_t& v, const std::string_view name="") override {
+            GetVariableInternal(v, name);
+        }
+        inline void GetVariable(uint16_t& v, const std::string_view name="") override {
+            GetVariableInternal(v, name);
+        }
+        inline void GetVariable(uint32_t& v, const std::string_view name="") override {
+            GetVariableInternal(v, name);
+        }
+        inline void GetVariable(uint64_t& v, const std::string_view name="") override {
+            GetVariableInternal(v, name);
+        }
+
+        inline void GetVariable(bool& v, const std::string_view name="") override {
+            uint8_t value;
+            GetVariableInternal(value, name);
+            v = (bool)value;
+        }
+
+        inline void GetVariable(float& v, const std::string_view name="") override {
+            GetVariableInternal(v, name);
+        }
+        inline void GetVariable(double& v, const std::string_view name="") override {
+            GetVariableInternal(v, name);
+        }
+
+        inline void GetVariable(std::string& v, const std::string_view name="") override {
+            GetVariableInternal(v, name);
         }
     private:
-        inline void GetVariableInternal(std::string& v) {
+        inline void StartCompositeNode(const std::string_view name="", const bool isMap=false) {
+            if(_state.size() == 1 && !_state[0]._variableCount) {
+                // This is the first node:
+                return;
+            }
+
+            if(GetState()._currentNode->IsMap()) {
+                std::string nameStr = std::string(name.data(), name.size());
+                ASSERT(GetState()._currentNode->GetMap().contains(nameStr), "[Util::JsonDeserializer] Trying to deserialize JSON that does not contain enough variables for the give type")
+                GetState()._variableCount++;
+                _state.push_back(State{0, &GetState()._currentNode->GetMap()[nameStr], isMap});
+            } else {
+                ASSERT(GetState()._currentNode->GetVector().size() >= GetState()._variableCount, "[Util::JsonDeserializer] Trying to deserialize JSON that does not contain enough variables for the give type")
+                GetState()._variableCount++;
+                _state.push_back(State{0, &GetState()._currentNode->GetVector()[GetState()._variableCount - 1], isMap});
+            }
+        }
+        inline void GetVariableInternal(std::string& v, const std::string_view name="") {
             JsonData* node;
             if(GetState()._currentNode->IsMap()) {
-                ASSERT(GetState()._currentNode->GetMap().contains(std::to_string(GetState()._variableCount)), "[Util::JsonDeserializer] Trying to deserialize JSON that does not contain enough variables for the give type")
-                node = &GetState()._currentNode->GetMap()[std::to_string(GetState()._variableCount)];
+                std::string nameStr = std::string(name.data(), name.size());
+                ASSERT(GetState()._currentNode->GetMap().contains(nameStr), "[Util::JsonDeserializer] Trying to deserialize JSON that does not contain enough variables for the give type")
+                node = &GetState()._currentNode->GetMap()[nameStr];
             } else {
                 ASSERT(GetState()._currentNode->GetVector().size() >= GetState()._variableCount, "[Util::JsonDeserializer] Trying to deserialize JSON that does not contain enough variables for the give type")
                 node = &GetState()._currentNode->GetVector()[GetState()._variableCount];
@@ -304,9 +315,9 @@ namespace Util {
                 THROW("[Util::JsonDeserializer] Trying to deserialize a number, but received a number followed by some string '" + std::string(ptr) + "'")
         }
         template<FundamentalType T>
-        inline void GetVariableInternal(T& t) {
+        inline void GetVariableInternal(T& t, const std::string_view name="") {
             std::string value;
-            GetVariableInternal(value);
+            GetVariableInternal(value, name);
             StringToNumber(value, t);
         }
 
@@ -314,6 +325,7 @@ namespace Util {
         struct State {
             uint_fast32_t _variableCount;
             JsonData* _currentNode = nullptr;
+            bool _isMap = false;
         };
         std::vector<State> _state;
         State& GetState() {
@@ -449,6 +461,7 @@ namespace Util {
                 _inputStream->read(&input, 1);
                 if(!std::isspace(input)) return input;
             }
+            THROW("[Util::JsonDeserializer] Failed to find the next non-whitespace character")
         }
         std::string ReadString() {
             char input = ' ';
@@ -460,6 +473,7 @@ namespace Util {
                 if(previousInput != '\\' && input == '"') return ret;
                 ret += input;
             }
+            return ret;
         }
 
     };

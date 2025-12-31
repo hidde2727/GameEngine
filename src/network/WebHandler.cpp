@@ -3,7 +3,7 @@
 namespace Engine {
 namespace Network {
     
-    WebHandler::WebHandler(Private) : _acceptor(_context) {
+    WebHandler::WebHandler(Private) : _acceptor(_context), Router("/engine/CookieCache.bin", 0) {
     }
 
     void WebHandler::Start() {
@@ -75,18 +75,18 @@ namespace Network {
         if(!_running) return;
         _websocketConnections.erase(uuid);
     }
-    void WebHandler::UpgradeHTTPConnection(const size_t olduuid, asio::ip::tcp::socket&& socket, HTTP::Request& request, HTTP::Response& response) {
+    void WebHandler::UpgradeHTTPConnection(const size_t olduuid, asio::ip::tcp::socket&& socket, std::shared_ptr<HTTP::Request> request, std::shared_ptr<HTTP::Response> response) {
         _httpConnections.erase(olduuid);
-        Util::WeirdPointer<WebsocketHandler> handler = response.GetUserData();
+        Util::WeirdPointer<Websocket::BasicHandler> handler = response->GetUserData();
         std::shared_ptr<WebsocketConnection> newConnection = std::make_shared<WebsocketConnection>(shared_from_this(), std::move(socket), handler);
 
         size_t uuid = reinterpret_cast<size_t>(newConnection.get());// Using the memory adress as the uuid (lifetime of the uuid and the unique_ptr are the same, thus the uuid is unique)
         newConnection->Start(uuid);
-        _websocketConnections[uuid] = std::move(newConnection);
+        _websocketConnections[uuid] = newConnection;
         if(ENGINE_NETWORK_VERBOSE_HTTP_WEBSOCKET) LOG("[Network::WebHandler] Upgraded connection (" + std::to_string(uuid) + ")")
         // Post work for the main thread
-        asio::post(_requestHandler, [this, &newConnection, &request, handler]() {
-            handler->OnWebsocketStartInternal(newConnection.get(), request);
+        asio::post(_requestHandler, [this, newConnection, request, handler]() {
+            handler->OnWebsocketStart(*newConnection.get(), *request);
         });
     }
 

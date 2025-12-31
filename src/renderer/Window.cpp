@@ -349,9 +349,9 @@ namespace Renderer {
         "\nmaxFragmentDualSrcAttachments: " + std::to_string(properties.limits.maxFragmentDualSrcAttachments) +
         "\nmaxFragmentCombinedOutputResources: " + std::to_string(properties.limits.maxFragmentCombinedOutputResources) +
         "\nmaxComputeSharedMemorySize: " + std::to_string(properties.limits.maxComputeSharedMemorySize) +
-        "\nmaxComputeWorkGroupCount[3]: " + std::to_string(properties.limits.maxComputeWorkGroupCount[3]) +
+        "\nmaxComputeWorkGroupCount[3]: " + std::to_string(properties.limits.maxComputeWorkGroupCount[0]) + ", " + std::to_string(properties.limits.maxComputeWorkGroupCount[1]) + ", " + std::to_string(properties.limits.maxComputeWorkGroupCount[2]) +
         "\nmaxComputeWorkGroupInvocations: " + std::to_string(properties.limits.maxComputeWorkGroupInvocations) +
-        "\nmaxComputeWorkGroupSize[3]: " + std::to_string(properties.limits.maxComputeWorkGroupSize[3]) +
+        "\nmaxComputeWorkGroupSize[3]: " + std::to_string(properties.limits.maxComputeWorkGroupSize[0]) + ", " + std::to_string(properties.limits.maxComputeWorkGroupSize[1]) + ", " + std::to_string(properties.limits.maxComputeWorkGroupSize[2]) +
         "\nsubPixelPrecisionBits: " + std::to_string(properties.limits.subPixelPrecisionBits) +
         "\nsubTexelPrecisionBits: " + std::to_string(properties.limits.subTexelPrecisionBits) +
         "\nmipmapPrecisionBits: " + std::to_string(properties.limits.mipmapPrecisionBits) +
@@ -360,8 +360,8 @@ namespace Renderer {
         "\nmaxSamplerLodBias: " + std::to_string(properties.limits.maxSamplerLodBias) +
         "\nmaxSamplerAnisotropy: " + std::to_string(properties.limits.maxSamplerAnisotropy) +
         "\nmaxViewports: " + std::to_string(properties.limits.maxViewports) +
-        "\nmaxViewportDimensions[2]: " + std::to_string(properties.limits.maxViewportDimensions[2]) +
-        "\nviewportBoundsRange[2]: " + std::to_string(properties.limits.viewportBoundsRange[2]) +
+        "\nmaxViewportDimensions[2]: " + std::to_string(properties.limits.maxViewportDimensions[0]) + ", " + std::to_string(properties.limits.maxViewportDimensions[1]) +
+        "\nviewportBoundsRange[2]: " + std::to_string(properties.limits.viewportBoundsRange[0]) + ", " + std::to_string(properties.limits.viewportBoundsRange[1]) +
         "\nviewportSubPixelBits: " + std::to_string(properties.limits.viewportSubPixelBits) +
         "\nminMemoryMapAlignment: " + std::to_string(properties.limits.minMemoryMapAlignment) +
         "\nminTexelBufferOffsetAlignment: " + std::to_string(properties.limits.minTexelBufferOffsetAlignment) +
@@ -394,8 +394,8 @@ namespace Renderer {
         "\nmaxCullDistances: " + std::to_string(properties.limits.maxCullDistances) +
         "\nmaxCombinedClipAndCullDistances: " + std::to_string(properties.limits.maxCombinedClipAndCullDistances) +
         "\ndiscreteQueuePriorities: " + std::to_string(properties.limits.discreteQueuePriorities) +
-        "\npointSizeRange[2]: " + std::to_string(properties.limits.pointSizeRange[2]) +
-        "\nlineWidthRange[2]: " + std::to_string(properties.limits.lineWidthRange[2]) +
+        "\npointSizeRange[2]: " + std::to_string(properties.limits.pointSizeRange[0]) + ", " + std::to_string(properties.limits.pointSizeRange[1])  +
+        "\nlineWidthRange[2]: " + std::to_string(properties.limits.lineWidthRange[0]) + ", " + std::to_string(properties.limits.lineWidthRange[1]) +
         "\npointSizeGranularity: " + std::to_string(properties.limits.pointSizeGranularity) +
         "\nlineWidthGranularity: " + std::to_string(properties.limits.lineWidthGranularity) +
         "\nstrictLines: " + std::to_string(properties.limits.strictLines) +

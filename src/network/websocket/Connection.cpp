@@ -1,12 +1,12 @@
-#include "network/WebsocketConnection.h"
+#include "network/websocket/Connection.h"
 
-#include "network/WebsocketHandler.h"
+#include "network/websocket/BasicHandler.h"
 #include "network/WebHandler.h"
 
 namespace Engine {
 namespace Network {
     
-    WebsocketConnection::WebsocketConnection(std::weak_ptr<WebHandler> webhandler, asio::ip::tcp::socket&& socket, Util::WeirdPointer<WebsocketHandler> handler) :
+    WebsocketConnection::WebsocketConnection(std::weak_ptr<WebHandler> webhandler, asio::ip::tcp::socket&& socket, Util::WeirdPointer<Websocket::BasicHandler> handler) :
     _webhandler(webhandler),
     _socket(std::move(socket)),
     _receivingFrame(std::make_shared<Websocket::Frame>()),
@@ -39,7 +39,7 @@ namespace Network {
         // Post work for the main thread
         std::shared_ptr<WebsocketConnection> self = shared_from_this();
         asio::post(_webhandler.lock()->_requestHandler, [this, self]() {
-            _websocketHandler->OnWebsocketStopInternal(self.get());
+            _websocketHandler->OnWebsocketStop(*self.get());
         });
     }
     void WebsocketConnection::ReceiveFirstPartHeader() {
@@ -115,7 +115,7 @@ namespace Network {
         _receivingFrame = std::make_shared<Websocket::Frame>();
         // Post work for the main thread
         asio::post(_webhandler.lock()->_requestHandler, [this, self, frame]() {
-            _websocketHandler->OnWebsocketMessageInternal(self.get(), *frame);
+            _websocketHandler->OnWebsocketMessage(*self.get(), *frame);
         });
     }
 

@@ -1,37 +1,50 @@
-#ifndef ENGINE_NETWORK_HTTPROUTER_H
-#define ENGINE_NETWORK_HTTPROUTER_H
+#ifndef ENGINE_NETWORK_HTTP_ROUTER_H
+#define ENGINE_NETWORK_HTTP_ROUTER_H
 
 #include "core/PCH.h"
 #include "network/HTTP/Request.h"
 #include "network/HTTP/Response.h"
-#include "network/WebsocketHandler.h"
-#include "network/SessionStorage.h"
+#include "network/HTTP/SessionStorage.h"
+#include "network/websocket/BasicHandler.h"
 
 #include "util/TemplateConcepts.h"
 #include "util/WeirdPointer.h"
 
 namespace Engine {
 namespace Network {
+namespace HTTP {
 
-    typedef std::shared_ptr<HTTP::Response> HTTPResponse;
-    typedef HTTP::Request HTTPRequest;
-
-    class HTTPRouter {
+    class Router {
     public:
 
-        /// @brief Create with an empty session storage
-        HTTPRouter();
-        /// @brief Create from a cache file
-        HTTPRouter(const std::string sessionCacheID);
-        /// @brief Create with a session storage
-        HTTPRouter(std::shared_ptr<SessionStorage> sessions);
+        /**
+         * @brief Create with an empty session storage
+         * 
+         */
+        Router();
+        /**
+         * @brief Create from a cache file
+         * 
+         * @param sessionCacheID The cacheID to retrieve the stored sessions (see FileManager::GetCacheFile for cacheID's)
+         * @param sessionID The id to use to identify the cookies of different session storages (0 is in use by the Game class)
+         */
+        Router(const std::string sessionCacheID, const uint64_t sessionID);
+        /**
+         * @brief Create with a session storage
+         * 
+         * @param sessions The session storage to use (must have a unique sessionID and not use 0 as id)
+         * @warning The SessionStorage id must be unique and not 0 (0 is in use by the Game class) 
+         */
+        Router(std::shared_ptr<SessionStorage> sessions);
+
+        ~Router();
 
         /** 
          * Override this method to implement custom HTTP responses.
          * 
          * Example usage:
          * ```
-         * HTTPResponse HandleRequest(HTTPRequest request) override {
+         * std::shared_ptr<Response> HandleRequest(HTTPRequest request) override {
          *     if(Get("/index.html")) {
          *         return File("index.html");
          *     }
@@ -40,9 +53,9 @@ namespace Network {
          * ```
          * 
          * @param request The incoming request
-         * @return NotHandled()/nullptr if not handled, else a HTTPResponse created with one of the helper functions
+         * @return NotHandled()/nullptr if not handled, else a std::shared_ptr<Response> created with one of the helper functions
          */
-        virtual HTTPResponse HandleRequest(HTTPRequest& request) { return nullptr; }
+        virtual std::shared_ptr<Response> HandleRequest(Request& request) { return nullptr; }
 
         /**
          * Use this method to, if the current handeled requests path starts with subpath, let the router paramter handle the request.
@@ -51,8 +64,9 @@ namespace Network {
          * 
          * @param subpath The path this router will forward to the router parameter.
          * @param router The router to forward the requests to subpath to. (use nullptr to remove the route)
+         * @param useParentSessionStorage Will set the session storage of router to the session storage of this
          */
-        void Route(const std::string subpath, std::shared_ptr<HTTPRouter> router);
+        void Route(const std::string subpath, std::shared_ptr<Router> router, const bool useParentSessionStorage=true);
         /**
          * Use this method to, if the current handeled requests path starts with subpath, let the router paramter handle the request.
          * The router will receive the same request, but with the subpath parameter removed from the start of the path.
@@ -60,23 +74,38 @@ namespace Network {
          * 
          * @param subpath The path this router will forward to the router parameter.
          * @param router The router to forward the requests to subpath to. (use nullptr to remove the route)
+         * @param useParentSessionStorage Will set the session storage of router to the session storage of this
          * @warning The user must keep the pointer until removed from ```this```
          */
-        void Route(const std::string subpath, HTTPRouter* router);
+        void Route(const std::string subpath, Router* router, const bool useParentSessionStorage=true);
+
+        /**
+         * @brief Removes a route
+         * Is equivalent to calling:
+         * ```
+         * Route(subpath, nullptr);
+         * ```
+         * @param subpath The path to remove
+         */
+        void RemoveRouter(const std::string subpath) {
+            Route(subpath, (Router*)nullptr, false);
+        }
 
         /**
          * Use this method to, if the current handeled request isn't handled by this, let the router paramter handle the request.
          * 
          * @param router The router to forward the requests to subpath to. (use nullptr to remove the route)
+         * @param useParentSessionStorage Will set the session storage of router to the session storage of this
          */
-        void Route(std::shared_ptr<HTTPRouter> router);
+        void Route(std::shared_ptr<Router> router, const bool useParentSessionStorage=true);
         /**
          * Use this method to, if the current handeled request isn't handled by this, let the router paramter handle the request.
          * 
          * @param router The router to forward the requests to subpath to. (use nullptr to remove the route)
+         * @param useParentSessionStorage Will set the session storage of router to the session storage of this
          * @warning The user must keep the pointer until removed from ```this```
          */
-        void Route(HTTPRouter* router);
+        void Route(Router* router, const bool useParentSessionStorage=true);
 
         /** 
          * These methods check if the current handled request is of the method(name of function) and path(parameter).
@@ -126,44 +155,48 @@ namespace Network {
          * @see HandleRequest()
          */
         ///@{
-        HTTPResponse DefaultResponse();
+        std::shared_ptr<Response> DefaultResponse();
         /**
          * Returns a response with a body set to a file.
          * If the file is not found && dontHandleOnException==false, returns NotFound().
          * If the file is not found && dontHandleOnException==true, returns NotHandled().
          */
-        HTTPResponse File(const std::string filepath, const bool dontHandleOnException = true);
-        HTTPResponse Text(const std::string text);
-        HTTPResponse BadRequest(const std::string reason = "");
-        HTTPResponse InternalServerError(const std::string reason = "");
-        HTTPResponse NotFound(const std::string message = "");
+        std::shared_ptr<Response> File(const std::string filepath, const bool dontHandleOnException = true);
+        std::shared_ptr<Response> Text(const std::string text);
+        std::shared_ptr<Response> BadRequest(const std::string reason = "");
+        std::shared_ptr<Response> InternalServerError(const std::string reason = "");
+        std::shared_ptr<Response> NotFound(const std::string message = "");
         /// @warning Only use if the request is a websocket upgrade request
-        HTTPResponse AcceptWebsocket(std::shared_ptr<WebsocketHandler> handler);
+        std::shared_ptr<Response> AcceptWebsocket(std::shared_ptr<Websocket::BasicHandler> handler);
         /// @warning Only use if the request is a websocket upgrade request
         /// @warning The handler must stay alive until the websocket connection closes
-        HTTPResponse AcceptWebsocket(WebsocketHandler* handler);
+        std::shared_ptr<Response> AcceptWebsocket(Websocket::BasicHandler* handler);
         /// @warning Only use if the request is a websocket upgrade request
-        HTTPResponse DenyWebsocket();
+        std::shared_ptr<Response> DenyWebsocket();
         /// The same as returning nullptr
-        HTTPResponse NotHandled();
+        std::shared_ptr<Response> NotHandled();
         ///@}
 
-        /// Create a HTTPResponse from a HTTPRequest
+        /// Create a std::shared_ptr<Response> from a HTTPRequest
         /// @warning cannot be used inside the HandlerRequest() function
-        HTTPResponse NotFound(std::shared_ptr<HTTPRequest> request, const std::string message = " ");
+        std::shared_ptr<Response> NotFound(std::shared_ptr<Request> request, const std::string message = " ");
 
     protected:
-        HTTPResponse HandleRequestInternal(std::shared_ptr<HTTPRequest> request);
+        std::shared_ptr<Response> HandleRequestInternal(std::shared_ptr<Request> request);
     private:
-        std::map<std::string, Util::WeirdPointer<HTTPRouter>> _routes;
-        Util::WeirdPointer<HTTPRouter> _defaultTo = nullptr;
+        std::shared_ptr<Response> AcceptWebsocket(Util::WeirdPointer<Websocket::BasicHandler> handler);    
+
+        std::map<std::string, Util::WeirdPointer<Router>> _routes;
+        Util::WeirdPointer<Router> _defaultTo = nullptr;
 
         // State while handeling a request
-        std::shared_ptr<HTTPRequest> _currentRequest = nullptr;
+        std::shared_ptr<Request> _currentRequest = nullptr;
 
         std::shared_ptr<SessionStorage> _sessions = nullptr;
+        std::string _sessionStorageLocation;
     };
 
+}
 }
 }
 

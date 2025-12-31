@@ -1,4 +1,4 @@
-#include "util/Log.h"
+#include "util/BasicLog.h"// I would like to include Log.h, but this triggers an compiler front-end crash
 #include "util/math/Math.h"
 
 #define GLFW_INCLUDE_VULKAN
@@ -29,3 +29,6 @@
 #include <functional>
 #include <random>
 #include <cctype>
+#include <bit>
+#include <charconv>
+#include <typeindex>

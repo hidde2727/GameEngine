@@ -1,19 +1,36 @@
 #include "util/Log.h"
+#include "util/serialization/Serialization.h"
 
 namespace Engine {
 namespace Util {
 
     void Log(std::string message) {
-        std::cout << GetTime() << message << '\n';
+        std::cout << GetTime() << SetLogColor() << message << ResetLogColor() << "\n";;
     }
     void Info(std::string message) {
-        std::cout << GetTime()  << "\033[34m" << message << "\033[0m\n";
+        std::cout << GetTime() << SetInfoColor() << message << ResetLogColor() << "\n";;
     }
     void Error(std::string message) {
-        std::cout << GetTime()  << "\033[31m" << message << "\033[0m\n";
+        std::cout << GetTime() << SetErrorColor() << message << ResetLogColor() << "\n";;
     }
     void Throw(std::string message) {
-        std::cout << GetTime()  << "\033[91m" << message << "\033[0m\n";
+        std::cout << GetTime() << SetThrowColor() << message << ResetLogColor() << "\n";
+    }
+
+    constexpr std::string SetLogColor() {
+        return "\033[0m";
+    }
+    constexpr std::string SetInfoColor() {
+        return "\033[34m";
+    }
+    constexpr std::string SetErrorColor() {
+        return "\033[31m";
+    }
+    constexpr std::string SetThrowColor() {
+        return "\033[91m";
+    }
+    constexpr std::string ResetLogColor() {
+        return "\033[0m";
     }
 
     std::string GetTime() {
@@ -23,13 +40,14 @@ namespace Util {
 
 		std::stringstream ss;
 
+        ss << '[';
+		ss << std::put_time(std::localtime(&time_t), "%H:%M:%S:");
 		ss << std::setw(3) << std::setfill('0') << nowMS % 1000;
-		std::string strNowMS = ss.str();
-		ss.str("");
-		ss << std::put_time(std::localtime(&time_t), "%H:%M:%S:") << strNowMS;
+        ss << "] ";
 
-		return '['+ss.str()+"] ";
+        return ss.str();
 	}
-
+    
+    
 }
 }

@@ -1,4 +1,4 @@
-#include "network/HTTPConnection.h"
+#include "network/HTTP/Connection.h"
 #include "network/WebHandler.h"
 
 #include "util/Hashing.h"
@@ -63,9 +63,9 @@ namespace Network {
         ScheduleTimeoutCheck();
         std::shared_ptr<HTTPConnection> self = shared_from_this();
 
-        _request->_body.resize(size);
+        _request->GetBody().resize(size);
 
-        asio::async_read(_socket, asio::buffer(_request->_body.data(), _request->_body.size()),
+        asio::async_read(_socket, asio::buffer(_request->GetBody().data(), _request->GetBody().size()),
         [this, self](const std::error_code& ec, std::size_t bytesTransferred)
         {
             if (ec) {
@@ -127,7 +127,7 @@ namespace Network {
                 if(!isUpgradeRequest) return;
                 else {
                     _isStopped = true;
-                    _webhandler.lock()->UpgradeHTTPConnection(_uuid, std::move(_socket), *request, *response);
+                    _webhandler.lock()->UpgradeHTTPConnection(_uuid, std::move(_socket), request, response);
                 }
             });
         }));

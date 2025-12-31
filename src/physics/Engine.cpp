@@ -26,14 +26,14 @@ namespace Physics {
 				// Create a copy of the collider+position and indicate with a flag CollisionManifold needs
 				// 		to delete the pointers
 				Component::Collider* body2Ptr = new Component::Collider(body2.col);
-				body2Ptr->flags != Component::ColliderFlags::Internal;
+				body2Ptr->flags |= Component::ColliderFlags::Internal;
 				Component::Position* pos2Ptr = new Component::Position(body2.pos);
 
 				CollisionManifold manifold(
 					&body.col, &pos1, vel1,
 					body2Ptr, pos2Ptr, nullptr);
 				if(manifold.DoesCollide())
-                	manifolds.push_back(manifold);
+                	manifolds.push_back(std::move(manifold));
 			}
 			int j = 0;
 			for(auto& [uuid2, body2] : _movingBodies) {
@@ -46,7 +46,7 @@ namespace Physics {
 					&body.col, &pos1, vel1,
 					&body2.col, &pos2, vel2);
 				if(manifold.DoesCollide())
-                	manifolds.push_back(manifold);
+                	manifolds.push_back(std::move(manifold));
 			}
 			i++;
 		}

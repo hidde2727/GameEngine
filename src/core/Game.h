@@ -18,7 +18,7 @@
 namespace Engine {
     typedef Renderer::AssetID AssetID;
 
-    class Game : public Network::HTTPRouter {
+    class Game : public Network::HTTP::Router {
     public:
 
         Game();

@@ -48,23 +48,25 @@ add_library (GameEngine STATIC
 
 "src/network/WebHandler.h"
 "src/network/WebHandler.cpp"
-"src/network/HTTPConnection.h"
-"src/network/HTTPConnection.cpp"
-"src/network/HTTPRouter.h"
-"src/network/HTTPRouter.cpp"
-"src/network/SessionStorage.h"
-"src/network/SessionStorage.cpp"
-"src/network/WebsocketConnection.h"
-"src/network/WebsocketConnection.cpp"
 "src/network/WebsocketHandler.h"
-"src/network/WebsocketHandler.cpp"
 "src/network/WebsocketRouter.h"
+
 "src/network/HTTP/Request.h"
 "src/network/HTTP/Request.cpp"
 "src/network/HTTP/Response.h"
 "src/network/HTTP/Response.cpp"
+"src/network/HTTP/Connection.h"
+"src/network/HTTP/Connection.cpp"
+"src/network/HTTP/Router.h"
+"src/network/HTTP/Router.cpp"
+"src/network/HTTP/SessionStorage.h"
+"src/network/HTTP/SessionStorage.cpp"
+
 "src/network/websocket/Frame.h"
 "src/network/websocket/Frame.cpp"
+"src/network/websocket/Connection.h"
+"src/network/websocket/Connection.cpp"
+"src/network/websocket/BasicHandler.h"
 
 "src/physics/Components.h"
 "src/physics/Components.cpp"
@@ -91,6 +93,7 @@ add_library (GameEngine STATIC
 "src/util/FileManager.cpp"
 "src/util/WeirdPointer.h"
 "src/util/VectorStreamBuffer.h"
+"src/util/Reflection.h"
 
 "src/util/math/Vec2D.h"
 "src/util/math/Vec3D.h"
@@ -103,12 +106,20 @@ add_library (GameEngine STATIC
 "src/util/serialization/Serialization.h"
 "src/util/serialization/JSON.h"
 "src/util/serialization/Binary.h"
-"src/util/serialization/Print.h"
-
-"lib/glslang/glslang/ResourceLimits/ResourceLimits.cpp"
+"src/util/serialization/ClassStructure.h"
 )
 target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_precompile_headers(GameEngine PUBLIC "src/core/PCH.h")
+
+set(GameEngineFlags -freflection -std=c++26 -stdlib=libc++ -freflection-latest)
+set(GameEngineLibraryFlags -stdlib=libc++)
+IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    message("Enabling reflection")
+    target_compile_options(GameEngine PUBLIC ${GameEngineFlags})
+    target_link_options(GameEngine PUBLIC ${GameEngineFlags})
+ELSE()
+    message("This CMakeLists.txt does not now how to active reflection in the currently selected kit")
+ENDIF()
 
 # Vulkan
 find_package(Vulkan REQUIRED)
@@ -122,7 +133,7 @@ target_link_libraries(GameEngine PRIVATE glfw)
 target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lib/glfw/include")
 
 # GLSL compiler
-target_link_libraries(GameEngine PRIVATE glslang)
+target_link_libraries(GameEngine PRIVATE glslang glslang-default-resource-limits)
 target_include_directories(GameEngine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lib/glslang")
 
 # Asio

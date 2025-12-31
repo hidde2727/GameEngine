@@ -67,6 +67,7 @@ namespace HTTP {
             std::getline(ss, cookieName, '=');
             std::getline(ss, cookieVal, ';');
             _cookies[cookieName] = cookieVal;
+            ss >> std::ws;// Remove the whitespace the browser puts in between cookies
         }
     }
 

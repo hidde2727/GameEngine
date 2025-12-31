@@ -15,19 +15,26 @@ namespace Physics {
             Component::Collider* a, Component::Position* posA, Component::Velocity* velA, 
             Component::Collider* b, Component::Position* posB, Component::Velocity* velB
         );
-        CollisionManifold(const CollisionManifold& c) = default;
+        CollisionManifold(const CollisionManifold& c) = delete;
         CollisionManifold(CollisionManifold&& c) noexcept {
-            *this = c;
-            // Make sure the colliders aren't destructed when 'col' is destructed
-            c._a = nullptr;
-            c._posA = nullptr;
-            c._b = nullptr;
-            c._posB = nullptr;
+            *this = std::move(c);// operator=(CollisionManifold&&)
         }
         ~CollisionManifold();
-        CollisionManifold& operator=(const CollisionManifold& c) = default;
+        CollisionManifold& operator=(const CollisionManifold& c) = delete;
         CollisionManifold& operator=(CollisionManifold&& c) noexcept {
-            *this = c;
+            _a = c._a;
+            _posA = c._posA;
+            _velA = c._velA;
+            _b = c._b;
+            _posB = c._posB;
+            _velB = c._velB;
+
+            _normal = std::move(c._normal);
+            _penetration = c._penetration;
+            _contacts[0] = std::move(c._contacts[0]);
+            _contacts[1] = std::move(c._contacts[1]);
+            _contactCount = c._contactCount;
+            _bIsRef = c._bIsRef;
             // Make sure the colliders aren't destructed when 'col' is destructed
             c._a = nullptr;
             c._posA = nullptr;

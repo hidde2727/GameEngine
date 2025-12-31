@@ -3,4 +3,5 @@
 #include "core/Scene.h"
 #include "core/Components.h"
 #include "physics/Components.h"
+#include "network/WebsocketHandler.h"
 #include "util/Log.h"

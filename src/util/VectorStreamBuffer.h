@@ -10,7 +10,8 @@ namespace Util {
     class VectorStreamBuffer : public std::basic_streambuf<Q> {
     public:
 
-        VectorStreamBuffer(std::vector<T>& vec) : _vec(vec) {
+        VectorStreamBuffer(std::vector<T>& vec, const size_t startingOffset=0) : _vec(vec), _offset(startingOffset) {
+            ASSERT(vec.size() == 0 || startingOffset < vec.size(), "[Util::VectorStreamBuffer] Cannot start outside of the buffer (startingOffset must be less than vec.size())")
             Parent::setg(begin(), begin(), end());
             Parent::setp(end(), end());
         }
@@ -138,15 +139,14 @@ namespace Util {
 
     private:
         Q* begin() {
-            // ASSERT(_vec.size() == 0, "[Util::VectorStreamBuffer] Vector must have at least a size of 1")
-            return reinterpret_cast<Q*>(_vec.data());
+            return reinterpret_cast<Q*>(_vec.data() + _offset);
         }
         Q* end() {
-            // ASSERT(_vec.size() == 0, "[Util::VectorStreamBuffer] Vector must have at least a size of 1")
             return reinterpret_cast<Q*>(_vec.data() + _vec.size());
         }
 
         std::vector<T>& _vec;
+        size_t _offset = 0;
     };
 
 }

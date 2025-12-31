@@ -71,7 +71,7 @@ namespace Websocket {
         std::vector<uint8_t> _buffer;
         Opcode _code;
         bool _errorOccured = false;
-        StatusCode _errorCode;
+        StatusCode _errorCode=StatusCode::Close;
         bool _masked;
         uint32_t _bodySize;
         uint8_t _mask[4];

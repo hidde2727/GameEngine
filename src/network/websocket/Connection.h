@@ -3,17 +3,17 @@
 
 #include "core/PCH.h"
 #include "network/websocket/Frame.h"
-#include "network/WebsocketHandler.h"
 #include "util/WeirdPointer.h"
 
 namespace Engine {
 namespace Network {
     
     class WebHandler;
+    namespace Websocket { class BasicHandler; }
     class WebsocketConnection : public std::enable_shared_from_this<WebsocketConnection> {
     public:
 
-        WebsocketConnection(std::weak_ptr<WebHandler> webhandler, asio::ip::tcp::socket&& socket, Util::WeirdPointer<WebsocketHandler> handler);
+        WebsocketConnection(std::weak_ptr<WebHandler> webhandler, asio::ip::tcp::socket&& socket, Util::WeirdPointer<Websocket::BasicHandler> handler);
         ~WebsocketConnection();
 
         void Start(const size_t uuid);
@@ -23,7 +23,9 @@ namespace Network {
         void SendData(std::shared_ptr<Websocket::Frame> data);
         /// Safe to call from the main thread
         size_t GetUUID() { return _uuid; }
-        Util::WeirdPointer<WebsocketHandler> GetHandler() { return _websocketHandler; }
+        Util::WeirdPointer<Websocket::BasicHandler> GetHandler() { return _websocketHandler; }
+
+        std::shared_ptr<WebsocketConnection> GetShared() { return shared_from_this(); }
 
     private:
         void ReceiveFirstPartHeader();
@@ -34,7 +36,7 @@ namespace Network {
         void StopWithoutHandshake();
 
         std::weak_ptr<WebHandler> _webhandler;
-        Util::WeirdPointer<WebsocketHandler> _websocketHandler;
+        Util::WeirdPointer<Websocket::BasicHandler> _websocketHandler;
         asio::ip::tcp::socket _socket;
         asio::system_timer _timeout;// The timeout is used to make sure we close after a closing frame
         size_t _uuid;

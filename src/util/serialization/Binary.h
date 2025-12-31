@@ -10,41 +10,18 @@
 namespace Engine {
 namespace Util {
 
-    #ifndef ENGINE_UTIL_BINARY_SERIALISATION_VERSION
-    #define ENGINE_UTIL_BINARY_SERIALISATION_VERSION 1
+    #ifndef ENGINE_UTIL_BINARY_SERIALIZATION_VERSION
+    #define ENGINE_UTIL_BINARY_SERIALIZATION_VERSION 3
     #endif
     
     /**
      * @brief Will serialize a class into a binary format
      * The binary format can be used to send data over a websocket or to store a class on the disk
      * 
+     * @warning This class cannot magically access private members, if you want private members serialized, you need to add ```friend class Util::Serializer```
      */
     class BinarySerializer : public Serializer {
     public:
-        enum OutputFlag {
-            IncludeTypeInfo     = 1,// Defaults to not include type info
-            OutputBigEndian     = 2,// Default is system endianess
-            OutputLitleEndian   = 4 // Default is system endianess
-        };
-        enum Types {
-            Class       = 0,
-            Pair        = 1,
-            Array       = 2,
-
-            UInt8       = 10,
-            UInt16      = 11,
-            UInt32      = 12,
-            UInt64      = 13,
-            Int8        = 20,
-            Int16       = 21,
-            Int32       = 22,
-            Int64       = 23,
-
-            Float       = 30,
-            Double      = 31,
-
-            String      = 40
-        };
         template<class T, class Q> requires(sizeof(Q) == 1)
         void Serialize(T& obj, std::vector<Q>& vector, uint8_t flags = 0) {
             VectorStreamBuffer<Q, char> buffer(vector);
@@ -55,78 +32,92 @@ namespace Util {
         void Serialize(T& obj, std::basic_ostream<char>& stream, uint8_t flags = 0) {
             _outputStream = &stream;
             _flags = flags;
-            ASSERT(!(IsFlagSet(OutputFlag::OutputBigEndian) && IsFlagSet(OutputFlag::OutputLitleEndian)), "[Util::BinarySerializer] Cannot output both big and litle endian");
-            if(!IsFlagSet(OutputFlag::OutputBigEndian) || !IsFlagSet(OutputFlag::OutputLitleEndian)) {
-                if(isSystemBigEndian) flags |= OutputBigEndian;
-                else flags |= OutputLitleEndian;
+            ASSERT(!(IsFlagSet(BinarySerializationOutputFlag::OutputBigEndian) && IsFlagSet(BinarySerializationOutputFlag::OutputLitleEndian)), "[Util::BinarySerializer] Cannot output both big and litle endian");
+            if(!IsFlagSet(BinarySerializationOutputFlag::OutputBigEndian) && !IsFlagSet(BinarySerializationOutputFlag::OutputLitleEndian)) {
+                if(isSystemBigEndian) flags |= BinarySerializationOutputFlag::OutputBigEndian;
+                else flags |= BinarySerializationOutputFlag::OutputLitleEndian;
             }
-            Output<uint8_t>(ENGINE_UTIL_BINARY_SERIALISATION_VERSION);// version
             Output<uint8_t>(flags);// flags
+            if(!IsFlagSet(BinarySerializationOutputFlag::ExcludeVersioning))
+                Output<uint8_t>(ENGINE_UTIL_BINARY_SERIALIZATION_VERSION);// version
             Serializer::Serialize(obj);
         }
 
 
-        inline void StartClass(const size_t amountMembers) override {
-            if(IsFlagSet(OutputFlag::IncludeTypeInfo)) Output((uint8_t)Types::Class);
-            if(IsFlagSet(OutputFlag::IncludeTypeInfo)) Output((uint32_t)amountMembers);
+        inline void StartClass(const size_t amountMembers, const std::string_view name="") override {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint8_t)SerializationTypes::Class);
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint32_t)amountMembers);
         }
         inline void EndClass() override {
 
         }
 
-        inline void StartPair() override {
-            if(IsFlagSet(OutputFlag::IncludeTypeInfo)) Output((uint8_t)Types::Pair);
-
+        inline void StartPair(const std::string_view name="") override {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint8_t)SerializationTypes::Pair);
         }
         inline void EndPair() override {
 
         }
 
-        inline void StartArray(const size_t amountElements) override {
-            if(IsFlagSet(OutputFlag::IncludeTypeInfo)) Output((uint8_t)Types::Array);
+        inline void StartArray(const size_t amountElements, const std::string_view name="") override {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint8_t)SerializationTypes::Array);
             ASSERT(amountElements < UINT32_MAX, "[Util::BinarySerializer] Cannot serialize arrays with a size larger than UINT32_MAX")
             Output((uint32_t)amountElements);
         }
         inline void EndArray() override {
 
         }
+        
+        inline void StartMap(const size_t amountElements, const std::string_view name="") override {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint8_t)SerializationTypes::Map);
+            ASSERT(amountElements < UINT32_MAX, "[Util::BinarySerializer] Cannot serialize maps with a size larger than UINT32_MAX")
+            Output((uint32_t)amountElements);
+        }
+        inline void EndMap() override {
 
-        inline void AddVariable(const int8_t v) override {
-            if(IsFlagSet(OutputFlag::IncludeTypeInfo)) Output((uint8_t)Types::Int8);
-            Output(v);
-        }
-        inline void AddVariable(const int16_t v) override {
-            if(IsFlagSet(OutputFlag::IncludeTypeInfo)) Output((uint8_t)Types::Int16);
-            Output(v);
-        }
-        inline void AddVariable(const int32_t v) override {
-            if(IsFlagSet(OutputFlag::IncludeTypeInfo)) Output((uint8_t)Types::Int32);
-            Output(v);
-        }
-        inline void AddVariable(const int64_t v) override {
-            if(IsFlagSet(OutputFlag::IncludeTypeInfo)) Output((uint8_t)Types::Int64);
-            Output(v);
         }
 
-        inline void AddVariable(const uint8_t v) override {
-            if(IsFlagSet(OutputFlag::IncludeTypeInfo)) Output((uint8_t)Types::UInt8);
+        inline void AddVariable(const int8_t v, const std::string_view name="") override {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint8_t)SerializationTypes::Int8);
             Output(v);
         }
-        inline void AddVariable(const uint16_t v) override {
-            if(IsFlagSet(OutputFlag::IncludeTypeInfo)) Output((uint8_t)Types::UInt16);
+        inline void AddVariable(const int16_t v, const std::string_view name="") override {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint8_t)SerializationTypes::Int16);
             Output(v);
         }
-        inline void AddVariable(const uint32_t v) override {
-            if(IsFlagSet(OutputFlag::IncludeTypeInfo)) Output((uint8_t)Types::UInt32);
+        inline void AddVariable(const int32_t v, const std::string_view name="") override {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint8_t)SerializationTypes::Int32);
             Output(v);
         }
-        inline void AddVariable(const uint64_t v) override {
-            if(IsFlagSet(OutputFlag::IncludeTypeInfo)) Output((uint8_t)Types::UInt64);
+        inline void AddVariable(const int64_t v, const std::string_view name="") override {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint8_t)SerializationTypes::Int64);
             Output(v);
         }
 
-        inline void AddVariable(const float v) override {
-            if(IsFlagSet(OutputFlag::IncludeTypeInfo)) Output((uint8_t)Types::Float);
+        inline void AddVariable(const uint8_t v, const std::string_view name="") override {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint8_t)SerializationTypes::UInt8);
+            Output(v);
+        }
+        inline void AddVariable(const uint16_t v, const std::string_view name="") override {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint8_t)SerializationTypes::UInt16);
+            Output(v);
+        }
+        inline void AddVariable(const uint32_t v, const std::string_view name="") override {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint8_t)SerializationTypes::UInt32);
+            Output(v);
+        }
+        inline void AddVariable(const uint64_t v, const std::string_view name="") override {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint8_t)SerializationTypes::UInt64);
+            Output(v);
+        }
+
+        inline void AddVariable(const bool v, const std::string_view name="") override {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint8_t)SerializationTypes::Bool);
+            Output<uint8_t>(v);
+        }
+
+        inline void AddVariable(const float v, const std::string_view name="") override {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint8_t)SerializationTypes::Float);
             if(std::numeric_limits<float>::is_iec559 && sizeof(float) == 4) {
                 // It is already stored in the correct format
                 float copy = v;
@@ -135,8 +126,8 @@ namespace Util {
                 THROW("[Util::BinarySerializer] Binary serializing floats that are not stored according to IEEE 754 is not implemented yet")
             }
         }
-        inline void AddVariable(const double v) override {
-            if(IsFlagSet(OutputFlag::IncludeTypeInfo)) Output((uint8_t)Types::Double);
+        inline void AddVariable(const double v, const std::string_view name="") override {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint8_t)SerializationTypes::Double);
             if(std::numeric_limits<double>::is_iec559 && sizeof(double) == 8) {
                 // It is already stored in the correct format
                 double copy = v;
@@ -146,8 +137,8 @@ namespace Util {
             }
         }
 
-        inline void AddVariable(const std::string& v) override {
-            if(IsFlagSet(OutputFlag::IncludeTypeInfo)) Output((uint8_t)Types::String);
+        inline void AddVariable(const std::string& v, const std::string_view name="") override {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) Output((uint8_t)SerializationTypes::String);
             ASSERT(v.size() <= UINT16_MAX, "[Util::BinarySerializer] Cannot serialize string with a size bigger than UINT16_MAX")
             Output<uint16_t>(v.size());
             for(size_t i = 0; i < v.size(); i++) {
@@ -157,13 +148,13 @@ namespace Util {
     private:
         template<IntegralType T>
         inline void Output(T t) {
-            if(IsFlagSet(OutputFlag::OutputBigEndian)) t = Util::ToBigEndian(t);
-            if(IsFlagSet(OutputFlag::OutputLitleEndian)) t = Util::ToLitleEndian(t);
+            if(IsFlagSet(BinarySerializationOutputFlag::OutputBigEndian)) t = Util::ToBigEndian(t);
+            if(IsFlagSet(BinarySerializationOutputFlag::OutputLitleEndian)) t = Util::ToLitleEndian(t);
 
             _outputStream->write(reinterpret_cast<char*>(&t), sizeof(T));
             ASSERT(!_outputStream->fail() && !_outputStream->bad(), "[Util::BinaryDeserializer] Not enough bytes in the input for deserialisation")
         }
-        inline bool IsFlagSet(const OutputFlag flag) const {
+        inline bool IsFlagSet(const BinarySerializationOutputFlag flag) const {
             return _flags & flag;
         }
 
@@ -174,41 +165,43 @@ namespace Util {
     /**
      * @brief Deserializes the binary format created by BinarySerializer
      * 
+     * @warning This class cannot magically access private members, if you want private members deserialized, you need to add ```friend class Util::Deserializer```
      */
     class BinaryDeserializer : public Deserializer {
     public:
 
         template<class T, class Q> requires (sizeof(Q) == 1)
-        void Deserialize(T& obj, std::vector<Q>& vector) {
-            VectorStreamBuffer<Q, char> buffer(vector);
+        void Deserialize(T& obj, std::vector<Q>& vector, const size_t startingOffset=0) {
+            VectorStreamBuffer<Q, char> buffer(vector, startingOffset);
             std::istream tempStream(&buffer);
             Deserialize(obj, tempStream);
         }
         template<class T>
         void Deserialize(T& obj, std::basic_istream<char>& stream) {
             _inputStream = &stream;
-            ASSERT(GetFromInput<uint8_t>() == ENGINE_UTIL_BINARY_SERIALISATION_VERSION, "[Util::BinaryDeserializer] Reading wrong version of the binary serialisation")// version
             _flags = GetFromInput<uint8_t>();
+            if(!IsFlagSet(BinarySerializationOutputFlag::ExcludeVersioning))
+                ASSERT(GetFromInput<uint8_t>() == ENGINE_UTIL_BINARY_SERIALIZATION_VERSION, "[Util::BinaryDeserializer] Reading wrong version of the binary serialisation")// version
             Deserializer::Deserialize(obj);
         }
 
 
-        inline void StartClass() override {
-            CheckTypeInfo(BinarySerializer::Types::Class);
+        inline void StartClass(const std::string_view name="") override {
+            CheckTypeInfo(SerializationTypes::Class);
             OnVariableStart();
             size_t expectedAmountMembers = 1000000000000000;
-            if(IsFlagSet(BinarySerializer::OutputFlag::IncludeTypeInfo)) expectedAmountMembers = GetFromInput<uint32_t>();
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) expectedAmountMembers = GetFromInput<uint32_t>();
             _state.push_back({false, expectedAmountMembers});
         }
         inline void EndClass() override {
-            if(IsFlagSet(BinarySerializer::OutputFlag::IncludeTypeInfo)) {
+            if(IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) {
                 ASSERT(GetState()._expectedAmountElements == 0, "[Util::BinaryDeserializer] Expected amount of members not met")
             }
             _state.pop_back();
         }
 
-        inline void StartPair() override {
-            CheckTypeInfo(BinarySerializer::Types::Pair);
+        inline void StartPair(const std::string_view name="") override {
+            CheckTypeInfo(SerializationTypes::Pair);
             OnVariableStart();
             _state.push_back({false, 2});
         }
@@ -217,8 +210,8 @@ namespace Util {
             _state.pop_back();
         }
 
-        inline void StartArray() override {
-            CheckTypeInfo(BinarySerializer::Types::Array);
+        inline void StartArray(const std::string_view name="") override {
+            CheckTypeInfo(SerializationTypes::Array);
             OnVariableStart();
             size_t expectedAmountElements = GetFromInput<uint32_t>();
             _state.push_back({true, expectedAmountElements});
@@ -230,73 +223,92 @@ namespace Util {
             _state.pop_back();            
         }
 
-        inline void GetVariable(int8_t& v) override {
-            CheckTypeInfo(BinarySerializer::Types::Int8);
+        inline void StartMap(const std::string_view name="") override {
+            CheckTypeInfo(SerializationTypes::Map);
+            OnVariableStart();
+            size_t expectedAmountElements = GetFromInput<uint32_t>();
+            _state.push_back({true, expectedAmountElements});
+        }
+        inline bool IsEndMap() override {
+            return GetState()._expectedAmountElements == 0;            
+        }
+        inline void EndMap() override {
+            _state.pop_back();  
+        }
+
+        inline void GetVariable(int8_t& v, const std::string_view name="") override {
+            CheckTypeInfo(SerializationTypes::Int8);
             OnVariableStart();
             v = GetFromInput<int8_t>();
         }
-        inline void GetVariable(int16_t& v) override {
-            CheckTypeInfo(BinarySerializer::Types::Int16);
+        inline void GetVariable(int16_t& v, const std::string_view name="") override {
+            CheckTypeInfo(SerializationTypes::Int16);
             OnVariableStart();
             v = GetFromInput<int16_t>();
         }
-        inline void GetVariable(int32_t& v) override {
-            CheckTypeInfo(BinarySerializer::Types::Int32);
+        inline void GetVariable(int32_t& v, const std::string_view name="") override {
+            CheckTypeInfo(SerializationTypes::Int32);
             OnVariableStart();
             v = GetFromInput<int32_t>();
         }
-        inline void GetVariable(int64_t& v) override {
-            CheckTypeInfo(BinarySerializer::Types::Int64);
+        inline void GetVariable(int64_t& v, const std::string_view name="") override {
+            CheckTypeInfo(SerializationTypes::Int64);
             OnVariableStart();
             v = GetFromInput<int64_t>();
         }
 
-        inline void GetVariable(uint8_t& v) override {
-            CheckTypeInfo(BinarySerializer::Types::UInt8);
+        inline void GetVariable(uint8_t& v, const std::string_view name="") override {
+            CheckTypeInfo(SerializationTypes::UInt8);
             OnVariableStart();
             v = GetFromInput<uint8_t>();
         }
-        inline void GetVariable(uint16_t& v) override {
-            CheckTypeInfo(BinarySerializer::Types::UInt16);
+        inline void GetVariable(uint16_t& v, const std::string_view name="") override {
+            CheckTypeInfo(SerializationTypes::UInt16);
             OnVariableStart();
             v = GetFromInput<uint16_t>();
         }
-        inline void GetVariable(uint32_t& v) override {
-            CheckTypeInfo(BinarySerializer::Types::UInt32);
+        inline void GetVariable(uint32_t& v, const std::string_view name="") override {
+            CheckTypeInfo(SerializationTypes::UInt32);
             OnVariableStart();
             v = GetFromInput<uint32_t>();
         }
-        inline void GetVariable(uint64_t& v) override {
-            CheckTypeInfo(BinarySerializer::Types::UInt64);
+        inline void GetVariable(uint64_t& v, const std::string_view name="") override {
+            CheckTypeInfo(SerializationTypes::UInt64);
             OnVariableStart();
             v = GetFromInput<uint64_t>();
         }
 
-        inline void GetVariable(float& v) override {
-            CheckTypeInfo(BinarySerializer::Types::Float);
+        inline void GetVariable(bool& v, const std::string_view name="") override {
+            CheckTypeInfo(SerializationTypes::Bool);
             OnVariableStart();
-            if(std::numeric_limits<float>::is_iec559 && sizeof(float) == 8) {
+            v = GetFromInput<uint8_t>();
+        }
+
+        inline void GetVariable(float& v, const std::string_view name="") override {
+            CheckTypeInfo(SerializationTypes::Float);
+            OnVariableStart();
+            if constexpr (std::numeric_limits<float>::is_iec559 && sizeof(float) == 4) {
                 // It is already stored in the correct format
                 uint32_t copy = GetFromInput<uint32_t>();
                 v = *reinterpret_cast<float*>(&copy);
             } else {
-                THROW("[Util::BinaryDeserializer] Binary deserializing floats that are not stored according to IEEE 754 is not implemented yet")
+                THROW("[Util::BinaryDeserializer] Binary deserializing doubles that are not stored according to IEEE 754 is not implemented yet");
             }            
         }
-        inline void GetVariable(double& v) override {
-            CheckTypeInfo(BinarySerializer::Types::Double);
+        inline void GetVariable(double& v, const std::string_view name="") override {
+            CheckTypeInfo(SerializationTypes::Double);
             OnVariableStart();
-            if(std::numeric_limits<double>::is_iec559 && sizeof(double) == 8) {
+            if constexpr (std::numeric_limits<double>::is_iec559 && sizeof(double) == 8) {
                 // It is already stored in the correct format
                 uint64_t copy = GetFromInput<uint64_t>();
                 v = *reinterpret_cast<double*>(&copy);
             } else {
-                THROW("[Util::BinaryDeserializer] Binary deserializing doubles that are not stored according to IEEE 754 is not implemented yet")
+                THROW("[Util::BinaryDeserializer] Binary deserializing doubles that are not stored according to IEEE 754 is not implemented yet");
             }
         }
 
-        inline void GetVariable(std::string& v) override {
-            CheckTypeInfo(BinarySerializer::Types::String);
+        inline void GetVariable(std::string& v, const std::string_view name="") override {
+            CheckTypeInfo(SerializationTypes::String);
             OnVariableStart();
             size_t amountCharacters = GetFromInput<uint16_t>();
             v.reserve(amountCharacters);
@@ -310,17 +322,17 @@ namespace Util {
             T t;
             _inputStream->read(reinterpret_cast<char*>(&t), sizeof(T));
             ASSERT(!_inputStream->fail() && !_inputStream->eof(), "[Util::BinaryDeserializer] Not enough bytes in the input for deserialisation")
-            if(IsFlagSet(BinarySerializer::OutputFlag::OutputBigEndian)) t = Util::FromBigEndian(t);
-            else if(IsFlagSet(BinarySerializer::OutputFlag::OutputLitleEndian)) t = Util::FromLitleEndian(t);
+            if(IsFlagSet(BinarySerializationOutputFlag::OutputBigEndian)) t = Util::FromBigEndian(t);
+            else if(IsFlagSet(BinarySerializationOutputFlag::OutputLitleEndian)) t = Util::FromLitleEndian(t);
             // Endianess only matters if the amount of bytes > 1
             else if(sizeof(T) > 1) THROW("[Util::BinaryDeserializer] No flag for endianness set in the input")
             return t;
         }
-        inline bool IsFlagSet(const BinarySerializer::OutputFlag flag) {
+        inline bool IsFlagSet(const BinarySerializationOutputFlag flag) {
             return _flags & flag;
         }
-        void CheckTypeInfo(BinarySerializer::Types type) {
-            if(!IsFlagSet(BinarySerializer::OutputFlag::IncludeTypeInfo)) return;
+        void CheckTypeInfo(SerializationTypes type) {
+            if(!IsFlagSet(BinarySerializationOutputFlag::IncludeTypeInfo)) return;
             ASSERT(GetFromInput<uint8_t>() == type, "[Util::BinaryDeserializer] Found the wrong type in the binary vs the one expected")
         }
 

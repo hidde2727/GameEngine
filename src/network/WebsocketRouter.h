@@ -2,7 +2,8 @@
 #define ENGINE_NETWORK_WEBSOCKETROUTER_H
 
 #include "core/PCH.h"
-#include "network/HTTPRouter.h"
+#include "network/HTTP/Router.h"
+#include "network/websocket/BasicHandler.h"
 #include "network/WebsocketHandler.h"
 
 namespace Engine {
@@ -13,7 +14,8 @@ namespace Network {
      * - It will automatically accept any incoming websocket request based on the AllowRequest() function
      * - It will bind this class to be the handeler of the websocket request if it is accepted
      */
-    class WebsocketRouter : private HTTPRouter, public WebsocketHandler {
+    template<Util::Derived<Websocket::BasicHandler> Handler>
+    class WebsocketRouter : private HTTP::Router, public Handler {
     public:
 
     private:
