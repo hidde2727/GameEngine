@@ -53,16 +53,29 @@ namespace Network {
      *      }
      * }
      * 
+     * You must put either of the following in the Derived class:
+     * ```
+     * using WebsocketHandler<Derived, MessageTypeID>::OnWebsocketMessage;
+     * ```
+     * Or put:
+     * ```
+     * template<class T>
+     * OnWebsocketMessage(Websocket& connection, T& message) {
+     *      // All the remaining types (not seperatly implemented) will go to this function
+     *      THROW("Not implemented")
+     * }
+     * ```
+     * 
      * The connecting client must specify it wants to use the 'gameengine-websocket-reflection-v1' websocket protocol (version may change, see ENGINE_NETWORK_WEBSOCKET_HANDLER_VERSION for accurate version)
      * 
      * @tparam Derived The class that inherits from WebsocketHandler
      * @tparam MessageTypeID The format to identify message types with, with uin8_t a maximimum of UINT8_MAX types can be registered
      * @warning All the members of a message type must be accesible by Util::Serializer, Util::Deserializer and Util::ClassStructureSerializer
+     * @warning You must implement OnWebsocketMessage in you Derived class
      */
     template<class Derived, Util::FundamentalType MessageTypeID=uint8_t>
     class WebsocketHandler : public Websocket::BasicHandler {
     public:
-
         typedef WebsocketHandler<Derived, MessageTypeID> WebsocketHandlerBase;
 
         class Connection {
@@ -124,14 +137,15 @@ namespace Network {
          * To receive certain message types, do the following:
          * ```
          * class YourImplementation : public WebsocketHandler<YourImplementation> {
-         *      template<>
          *      OnWebsocketMessage(Websocket& connection, SomeType& message) {
          *          // Do something with it
          *      }
-         * 
+         *      // Use either:
+         *      using WebsocketHandler<Derived, MessageType>::OnWebsocketMessage;// All non implemented type will be handled with this statement
+         *      // Or use:
          *      template<class T>
          *      OnWebsocketMessage(Websocket& connection, T& message) {
-         *          // Al the remaning types (not seperatly implemented) will go to this function
+         *          // All the remaining types (not seperatly implemented) will go to this function
          *          THROW("Not implemented")
          *      }
          * }
@@ -284,7 +298,7 @@ namespace Network {
             ASSERT(message[startingOffset] == ENGINE_NETWORK_WEBSOCKET_SERIALIZATION_FLAGS, "[Network::WebsocketHandler] Serialized data doesn't have the correct flags set")
             deserializer.Deserialize(decoded, message, startingOffset);
             try {
-                static_cast<Derived*>(this)->template OnWebsocketMessage<T>(websocket, decoded);
+                static_cast<Derived*>(this)->OnWebsocketMessage(websocket, decoded);
             } catch(std::runtime_error err) {
                 WARNING("[Network::WebsocketHandler] OnWebsocketMessage failed with the following error: " + std::string(err.what()))
             } catch(...) {
