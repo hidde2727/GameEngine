@@ -163,7 +163,7 @@ namespace Physics {
 
 		id.firstStaticBody = _staticBodies.GetNextChildID();
         int width, height, channels;
-		std::shared_ptr<uint8_t> imageDataPtr = Util::FileManager::ReadImageFile(collider._file, &width, &height, &channels, 1);
+		std::shared_ptr<uint8_t> imageDataPtr = Util::FileManager::Get(collider._file).ReadImage(width, height, channels, 1);
 		uint8_t* imageData = imageDataPtr.get();
 		float scaleX = collider._forcedSize == 0 ? 1.f : collider._forcedSize.x / (float)width;
 		float scaleY = collider._forcedSize == 0 ? 1.f : collider._forcedSize.y / (float)height;

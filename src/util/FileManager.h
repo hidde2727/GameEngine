@@ -9,11 +9,137 @@ namespace Util {
 
     typedef std::string CacheID;
 
+    /**
+     * @brief A class for easy file access
+     * The file may not exist on the file system
+     * 
+     */
+    class File {
+    public:
+
+        /**
+         * @brief Construct a File
+         * 
+         * @param _path The path this class will operate on 
+         */
+        File(const std::filesystem::path path) : _path(path) {}
+
+        /**
+         * @brief Check is the file exists
+         * 
+         * @return bool
+         */
+        bool Exists() const;
+        /**
+         * @brief Check if it is an file (will return false if it is for example a folder)
+         * 
+         * @return bool
+         */
+        bool IsRegular() const;
+        /**
+         * @brief Check if the location is a folder
+         * 
+         * @return bool
+         */
+        bool IsDirectory() const;
+        /**
+         * @brief Check if it is an image file
+         * Is the same as:
+         * ```
+         * int width, height, comp;
+         * bool isImage = GetImageInfo(width, height, comp);
+         * ```
+         * 
+         * @return bool
+         */
+        bool IsImage() const;
+        /**
+         * @brief Returns the last moment the file content was changed
+         * 
+         * @return std::chrono::time_point
+         */
+        std::filesystem::file_time_type LastChange() const;
+        /**
+         * @brief Will return the size of the file
+         * 
+         * @return bool
+         */
+        size_t GetSize() const;
+        /**
+         * @brief Returns the input stream if the file exists, else it throws
+         * 
+         * @param inputMode The io mode to open the file in (for example std::ios::trunc to override the existing content)
+         * @return std::ifstream
+         */
+        std::ifstream GetInStream(const std::ios_base::openmode inputMode = 0) const;
+        template<class T>
+        void Read(T* readBuffer, const size_t readBufferSize, const std::ios_base::openmode inputMode = std::ios_base::binary) const;
+        template<class T>
+        void Read(std::vector<T>& readBuffer, const std::ios_base::openmode inputMode = std::ios_base::binary) const;
+        void Read(std::string& readBuffer, const std::ios_base::openmode inputMode = 0) const;
+
+        /**
+         * @brief Creates the file, if it does not exist on the file system
+         * Is the same as calling:
+         * ```
+         * GetOutStream().close();
+         * ```
+         */
+        void Create() const;
+        /**
+         * @brief Optionally creates the file, then returns the output stream
+         * 
+         * @param outputMode The ios mode to open the stream in (for example std::ios::trunc to override the existing content)
+         * @return std::ofstream
+         */
+        std::ofstream GetOutStream(const std::ios_base::openmode outputMode = 0) const;
+        template<class T>
+        void Write(T* buffer, const size_t bufferSize, const std::ios_base::openmode outputMode = std::ios_base::binary) const;
+        template<class T>
+        void Write(std::vector<T>& buffer, const std::ios_base::openmode outputMode = std::ios_base::binary) const;
+        void Write(std::string& buffer, const std::ios_base::openmode outputMode = 0) const;
+
+        /**
+         * @brief Get the info of an image
+         * 
+         * @param width The width of the image
+         * @param height The height of the image 
+         * @param comp The amount of components (3 components implies the image is in RGB, 4 implies RGBA)
+         * @return If it is an success or not
+         */
+        bool GetImageInfo(int& width, int& height, int& comp) const;
+        /**
+         * @brief Read the image from the file
+         * 
+         * @param width The width of the image
+         * @param height The height of the image
+         * @param channelsInFile The amount of channels originally in the file, if desiredChannels was ignored
+         * @param desiredChannels The amount of channels to read in
+         * @return A pointer to the image data, that automatically deletes the data when it is not used anymore
+         */
+        std::shared_ptr<uint8_t> ReadImage(int& width, int& height, int& channelsInFile, int desiredChannels=3) const;
+        /**
+         * @brief If the process of getting the info of an image fails, you can use this function to get the reason for the failure
+         * 
+         * @return The error
+         */
+        std::string GetImageReadingError() const;
+
+        inline std::string String() const {
+            return _path.string();
+        }
+
+        inline explicit operator std::string() const {
+            return String();
+        }
+
+    private:
+        std::filesystem::path _path;
+    };
+
     /** 
      * Is created with a prioritized list of searchPaths, 
      * When you are trying to get a file it will return the file from the first searchPath that contains the file.
-     * 
-     * @warning cacheID should be an identifier ending with a file extension (using the relative path of the original file as cacheID is recommended)
      */
     class FileManager {
     public:
@@ -31,65 +157,25 @@ namespace Util {
         ///@}
 
         /**
-         * Utility functions to make caching easier. cacheID is put through a hash to get a location in the cache folder.
-         * cacheID is a string.
+         * @brief Returns a location in the cache folder
+         * The resulting location in the cache folder is Base64(SHA256(cacheID)) + fileExtension
          * 
-         * @warning cacheID should end with a file extension
-         * @name Cache
+         * @param cacheID Should be an identifier ending with a file extension (using the relative path of the original file as cacheID is recommended)
+         * @return File
          */
-        ///@{
-        static bool DoesCacheFileExist(const CacheID cacheID);
-        static std::filesystem::file_time_type GetLastCacheChange(const CacheID cacheID);
+        static File Cache(const CacheID cacheID);
+        /**
+         * @brief Retrieves an existing file on the disk, it must exist in one of the search directories
+         * 
+         * @param path The path to search for in the search directories
+         * @return File
+         * @throws If path is unfindable in all the search directories
+         */
+        static File Get(const std::string path);
+    
         /// Will check if one of the inputFilePaths changed after the cacheID was created
         static bool CanUseCache(const CacheID cacheID, const std::initializer_list<std::string> inputFiles);
-        /// Will return the ifstream of the cached file
-        static std::ifstream GetCachedFile(const CacheID cacheID, const std::ios_base::openmode inputMode = std::ios_base::in);
-        /// Will return the size of the cached item
-        static size_t GetCachedFileSize(const CacheID cacheID);
-        /// Will create the cache file and return the ofstream
-        static std::ofstream AddCachedFile(const CacheID cacheID, const std::ios_base::openmode outputMode = std::ios_base::out);
-        template<class T>
-        static void ReadCacheFile(const CacheID cacheID, T* readBuffer, const size_t readBufferSize, const std::ios_base::openmode inputMode = std::ios_base::in);
-        template<class T>
-        static void ReadCacheFile(const CacheID cacheID, std::vector<T>& readBuffer);
-        static void ReadCacheFile(const CacheID cacheID, std::string& readBuffer);
-        ///@}
 
-        /**
-         * Utility functions to make file storage easier.
-         * 
-         * @name Files
-         */
-        ///@{
-        /// Same as std::filesystem::exists
-        static bool DoesFileExists(const std::string path);
-        /// Same as std::filesystem::is_regular_file
-        static bool IsFileRegular(const std::string path);
-        static size_t GetFileSize(const std::string path);
-        static std::ifstream GetFile(const std::string path, const std::ios_base::openmode inputMode = std::ios_base::in);
-        template<class T>
-        static void ReadFile(const std::string path, T* readBuffer, const size_t readBufferSize, const std::ios_base::openmode inputMode = std::ios_base::in);
-        template<class T>
-        static void ReadFile(const std::string path, std::vector<T>& readBuffer);
-        static void ReadFile(const std::string path, std::string& readBuffer);
-        ///@}
-
-        /**
-         * Utility functions to make reading images easier.
-         * 
-         * @name Images
-         */
-        ///@{
-        static bool GetImageInfo(const std::string path, int *x, int *y, int *comp);
-        static std::shared_ptr<uint8_t> ReadImageFile(const std::string path, int *x, int *y, int *channelsInFile, int desiredChannels=4);
-        static std::string GetImageReadError();
-        ///@}
-
-        /// @warning INTERNAL
-        static std::string GetCacheLocation(const std::string cacheID);
-        /// @warning INTERNAL
-        static std::string GetFileLocation(const std::string file);
-    
     private:
 
         static std::vector<std::filesystem::path> _searchPaths;
@@ -101,31 +187,26 @@ namespace Util {
 
 
     template<class T>
-    void FileManager::ReadCacheFile(const std::string cacheID, T* readBuffer, const size_t readBufferSize, const std::ios_base::openmode inputMode) {
-        std::ifstream inputStream = GetCachedFile(cacheID, inputMode);
-        ASSERT(!inputStream.fail(), "[Util::FileManager] Failed to open input stream for cacheID '" + cacheID + "'")
-        inputStream.read(reinterpret_cast<char*>(readBuffer), readBufferSize*sizeof(T));
-        inputStream.close();
+    void File::Read(T* buffer, const size_t bufferSize, const std::ios_base::openmode inputMode) const {
+        std::ifstream inputStream = GetInStream(inputMode);
+        inputStream.read(reinterpret_cast<char*>(buffer), bufferSize*sizeof(T));
     }
     template<class T>
-    void FileManager::ReadCacheFile(const std::string cacheID, std::vector<T>& readBuffer) {
-        readBuffer.resize(std::ceil(GetCachedFileSize(cacheID) / sizeof(T)));
-        ReadCacheFile(cacheID, readBuffer.data(), readBuffer.size(), std::ios::binary);
+    void File::Read(std::vector<T>& buffer, const std::ios_base::openmode inputMode) const {
+        buffer.resize(GetSize() * sizeof(T));
+        Read(buffer.data(), buffer.size(), inputMode);
     }
 
+    template<class T>
+    void File::Write(T* buffer, const size_t bufferSize, const std::ios_base::openmode outputMode) const {
+        std::ofstream outputStream = GetOutStream(outputMode);
+        outputStream.write(reinterpret_cast<char*>(buffer), bufferSize*sizeof(T));
+    }
+    template<class T>
+    void File::Write(std::vector<T>& buffer, const std::ios_base::openmode outputMode) const {
+        Write(buffer.data(), buffer.size(), outputMode);
+    }
 
-    template<class T>
-    void FileManager::ReadFile(const std::string path, T* readBuffer, const size_t readBufferSize, const std::ios_base::openmode inputMode) {
-        std::ifstream inputStream = GetFile(path, inputMode);
-        ASSERT(!inputStream.fail(), "[Util::FileManager] Failed to open input stream for file '" + path + "'")
-        inputStream.read(reinterpret_cast<char*>(readBuffer), readBufferSize*sizeof(T));
-        inputStream.close();
-    }
-    template<class T>
-    void FileManager::ReadFile(const std::string path, std::vector<T>& readBuffer) {
-        readBuffer.resize(GetFileSize(path));
-        ReadFile(path, readBuffer.data(), readBuffer.size(), std::ios::binary);
-    }
 
 
     

@@ -7,6 +7,7 @@
 #include "core/PCH.h"
 
 #include "renderer/ttf/InstructionExecutor.h"
+#include "util/FileManager.h"
 
 namespace Engine {
 namespace Renderer {
@@ -131,19 +132,19 @@ namespace Renderer {
 	public:
 
 		TTFFontParser();
-		TTFFontParser(const std::string filePath, const Characters characters);
+		TTFFontParser(const Util::File file, const Characters characters);
 
-		// Will do the same as the constructor
-		void LoadFile(const std::string filePath, const Characters characters);
-		// Will set the characters to be extracted but will not parse them into memory
+		/// Will do the same as the constructor
+		void LoadFile(const Util::File file, const Characters characters);
+		/// Will set the characters to be extracted but will not parse them into memory
 		void SetCharacters(const Characters characters);
-		// Will reload the .ttf file but not parse it
-		void LoadFile(const std::string filePath);
-		// Will unload the raw .ttf file
+		/// Will reload the .ttf file but not parse it
+		void LoadFile(const Util::File file);
+		/// Will unload the raw .ttf file
 		void UnloadFile();
-		// Will reload the general tables that aren't dependent on the sfntVersion (type of encoding of the character outlines)
+		/// Will reload the general tables that aren't dependent on the sfntVersion (type of encoding of the character outlines)
 		void LoadGeneralTables();
-		// Will reload the other tables than the general tables
+		/// Will reload the other tables than the general tables
 		void LoadOtherTables();
 		
 		// For the getter function see below the private data

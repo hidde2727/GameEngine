@@ -215,7 +215,7 @@ namespace Vulkan {
                 else if(filetype == ".comp") stageType = VK_SHADER_STAGE_COMPUTE_BIT;
                 else if(filetype == ".geom") stageType = VK_SHADER_STAGE_GEOMETRY_BIT;
 
-                Util::FileManager::ReadCacheFile(cacheID, _shaders[i]);
+                Util::FileManager::Cache(cacheID).Read(_shaders[i]);
 
                 _shaderInfos[i].sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
                 _shaderInfos[i].codeSize = _shaders[i].size()*sizeof(uint32_t);
@@ -247,7 +247,7 @@ namespace Vulkan {
             INFO("[Vulkan::PipelineCreator] Compiling vulkan shader - " + fileLocation);
 
             std::string shaderCode;
-            Util::FileManager::ReadFile(fileLocation, shaderCode);
+            Util::FileManager::Get(fileLocation).Read(shaderCode);
 
             shaders[i] = std::make_unique<glslang::TShader>(languageType);
             const char* sources[1] = { shaderCode.c_str() };
@@ -312,9 +312,7 @@ namespace Vulkan {
 
             // Write the generated program to the cache
             std::string cacheID = *(fileLocations.begin() + i) + ".spiv";
-            std::ofstream outputStream = Util::FileManager::AddCachedFile(cacheID, std::ios::trunc | std::ios::binary);
-            outputStream.write(reinterpret_cast<char*>(_shaders[i].data()), _shaders[i].size()*sizeof(uint32_t));
-            outputStream.close();
+            Util::FileManager::Cache(cacheID).Write(_shaders[i], std::ios::trunc | std::ios::binary);
         }
 
         program.release();

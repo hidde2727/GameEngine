@@ -13,7 +13,7 @@ namespace Util {
 #define BRACKET_SEARCH_MAX_STEPS 32
 #define PRECISION 0.000000001
 
-	template<FloatPointType T>
+	template<FloatingPointType T>
 	// Solves ax^3 + bx^2 + cx + d = 0
 	// Returns the solutions in the T x[3] and returns the amount of solutions
 	int SolveCubic(T x[3], T a, T b, T c, T d) {
@@ -47,13 +47,13 @@ namespace Util {
 		}
 	}
 
-	template<FloatPointType T>
+	template<FloatingPointType T>
 	inline T quartic(T x, T a, T b, T c, T d, T e) {
 		//return (a * x * x * x * x + b * x * x * x + c * x * x + d * x + e);
 		return (((a*x+b)*x+c)*x+d)*x+e;
 	}
 
-	template<FloatPointType T>
+	template<FloatingPointType T>
 	// Solves ax^4 + bx^3 + cx^2 + dx + e = 0
 	// Returns the solutions in the T x[4] and returns the amount of solutions
 	int SolveQuartic(T x[4], T a, T b, T c, T d, T e) {
@@ -127,13 +127,13 @@ namespace Util {
 		}
 	}
 
-	template<FloatPointType T>
+	template<FloatingPointType T>
 	inline T quintic(T x, T a, T b, T c, T d, T e, T f) {
 		//return (a * x * x * x * x * x + b * x * x * x * x + c * x * x * x + d * x * x + e * x + f);
 		return ((((a*x+b)*x+c)*x+d)*x+e)*x+f;
 	}
 
-	template<FloatPointType T>
+	template<FloatingPointType T>
 	// Solves ax^5 + bx^4 + cx^3 + dx^2 + ex + f = 0
 	// Returns the solutions in the T x[5] and returns the amount of solutions
 	int SolveQuintic(T x[5], T a, T b, T c, T d, T e, T f) {

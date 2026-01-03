@@ -11,6 +11,14 @@
 namespace Engine {
 namespace Util {
 
+    template<FloatingPointType T>
+    inline constexpr int floor(const T a) {
+        return (int)a;
+    }
+    template<FloatingPointType T>
+    inline constexpr int ceil(const T a) {
+        return (int)(a+1);
+    }
     template<FundamentalType T>
     inline constexpr T min(const T a, const T b) {
         if(a < b) return a;

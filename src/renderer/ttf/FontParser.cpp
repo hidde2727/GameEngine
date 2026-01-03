@@ -5,12 +5,12 @@ namespace Renderer {
 
 	TTFFontParser::TTFFontParser() {}
 
-	TTFFontParser::TTFFontParser(const std::string filePath, const Characters characters) {
-		LoadFile(filePath, characters);
+	TTFFontParser::TTFFontParser(const Util::File file, const Characters characters) {
+		LoadFile(file, characters);
 	}
-	void TTFFontParser::LoadFile(const std::string filePath, const Characters characters) {
+	void TTFFontParser::LoadFile(const Util::File file, const Characters characters) {
 		SetCharacters(characters);
-		LoadFile(filePath);
+		LoadFile(file);
 		LoadGeneralTables();
 		LoadOtherTables();
 	}
@@ -20,11 +20,8 @@ namespace Renderer {
 		_characters = characters;
 	}
 	// Will reload the .ttf file but not parse it
-	void TTFFontParser::LoadFile(const std::string filePath) {
-		std::ifstream input(filePath.c_str(), std::ifstream::binary);
-		uint32_t dataSize = (uint32_t)std::filesystem::file_size(std::filesystem::path(filePath));
-		_data.resize(dataSize);
-		input.read((char*)_data.data(), dataSize);
+	void TTFFontParser::LoadFile(const Util::File file) {
+		file.Read(_data);
 	}
 	// Will unload the raw .ttf file
 	void TTFFontParser::UnloadFile() {

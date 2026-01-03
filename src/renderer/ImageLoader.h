@@ -23,7 +23,7 @@ namespace Renderer {
 
     private:
         
-        std::string _file;
+        Util::File _file;
         Util::AreaF _area;
         uint32_t _descriptorArrayID;
 

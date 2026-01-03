@@ -114,7 +114,7 @@ namespace HTTP {
     bool Response::SetBodyToFile(const std::string fileName, const bool ifNotFound404) {
         try {
             ASSERT(fileName.find("..")==std::string::npos, "[HTTP::Response::SetBodyToFile] Received a file with .., this is unsafe behavior")
-            Util::FileManager::ReadFile(fileName, _body);
+            Util::FileManager::Get(fileName).Read(_body);
         }
         catch (std::exception ex) {
             if(!ifNotFound404) THROW("[HTTP::Response::SetBodyToFile] Failed to load file '" + fileName + "':\n" + std::string(ex.what()))

@@ -15,10 +15,10 @@ namespace Util {
 	template<class T>
 	concept IntegralType = std::is_integral<T>::value;
 	template <typename T>
-	concept FloatPointType = std::floating_point<T>;
+	concept FloatingPointType = std::floating_point<T>;
 
 	template<class T>
-	concept FundamentalType = IntegralType<T> || FloatPointType<T>;
+	concept FundamentalType = IntegralType<T> || FloatingPointType<T>;
 	template<class T>
 	concept NotFundamentalType = !FundamentalType<T>;
 

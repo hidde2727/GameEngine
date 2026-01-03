@@ -5,22 +5,23 @@
 namespace Engine {
 namespace Renderer {
     
-    TextLoader::TextLoader(const std::string file, const Characters characters, const std::initializer_list<uint32_t> sizes) {
-        _file = file;
+    TextLoader::TextLoader(const std::string file, const Characters characters, const std::initializer_list<uint32_t> sizes)
+    :  _file(Util::FileManager::Get(file)) 
+    {
         _characters = characters;
         _sizes = sizes;
         // Should remove all the duplicates of size above ENGINE_RENDERER_FONTPROGRAM_MAXSIZE
     }
 
     void TextLoader::Init() {
-        ASSERT(Util::FileManager::DoesFileExists(_file), "[Renderer::TextLoader] TextLoader received a file that does not exist '" + _file + "'")
-        ASSERT(Util::FileManager::IsFileRegular(_file), "[Renderer::TextLoader] TextLoader received an invalid file '" + _file + "'")
+        ASSERT(_file.Exists(), "[Renderer::TextLoader] TextLoader received a file that does not exist '" + _file.String() + "'")
+        ASSERT(_file.IsRegular(), "[Renderer::TextLoader] TextLoader received an invalid file '" + _file.String() + "'")
     }
     size_t TextLoader::GetAmountTextures() {
         return _characters._characterCount * _sizes.size();
     }
     void TextLoader::SetTextureSizes(Util::Vec3U32* start) {
-        TTFFontParser fontParser = TTFFontParser(Util::FileManager::GetFileLocation(_file), _characters);
+        TTFFontParser fontParser = TTFFontParser(_file, _characters);
         size_t i = 0;
         _fontData.resize(_sizes.size());
         _textureAreas.resize(_sizes.size()*_characters._characterCount);

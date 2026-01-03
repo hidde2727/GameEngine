@@ -63,7 +63,7 @@ namespace Renderer {
         inline float Distance(const Curve prev, const Curve curve, const Curve next, const Util::Vec2D p, const bool pseudo);
         Util::AreaU8 CalculateSignedField(const float x, const float y);
 
-        std::string _file;
+        Util::File _file;
         Characters _characters;
         std::vector<uint32_t> _sizes;
             
