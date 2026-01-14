@@ -8,34 +8,6 @@
 
 namespace Engine {
 namespace Util {
-    
-    enum SerializationTypes {
-        Class       = 0,
-        Pair        = 1,
-        Array       = 2,
-        Map         = 3,
-
-        UInt8       = 10,
-        UInt16      = 11,
-        UInt32      = 12,
-        UInt64      = 13,
-        Int8        = 20,
-        Int16       = 21,
-        Int32       = 22,
-        Int64       = 23,
-        Bool        = 24,
-
-        Float       = 30,
-        Double      = 31,
-
-        String      = 40
-    };
-    enum BinarySerializationOutputFlag {
-        IncludeTypeInfo     = 1,// Defaults to not include type info
-        OutputBigEndian     = 2,// Default is system endianess
-        OutputLitleEndian   = 4,// Default is system endianess
-        ExcludeVersioning   = 8 // Defaults to including the versioning data
-    };
 
     /**
      * @brief A type for a compiler annotation to skip a property during serialization
@@ -48,352 +20,433 @@ namespace Util {
      */
     constexpr struct SkipSerializationType {} SkipSerialization;
 
-    class Serializer;
-    class Deserializer;
-    class ClassStructureSerializer;
-    /**
-     * @brief Class can inherit this to make itself serializable
-     * Can be used if automatic serialization does not work correctly
-     */
-    class Serializable {
-        /**
-         * @brief The function to use while serializing this class, example:
-         * ```
-         * s->StartClass(1, name);// 1 stands for the amount of members you will serialize
-         * s->Serialize(some_member_variable);
-         * s->EndClass();
-         * 
-         * // If you have only one variable, you can just forward the serialization:
-         * s->Serialize(some_member_variable, name);
-         * ```
-         * 
-         * @param s The serializer that must be used
-         * @param name The member name of the class that holds this type
-         */
-        virtual void Serialize(Serializer* s, const std::string_view name="") = 0;
-        /**
-         * @brief The function to use while deserializing this class, example:
-         * ```
-         * d->StartClass(name);
-         * d->Deserialize(some_member_variable);
-         * d->EndClass();  
-         * 
-         * // If you have only one variable, you can just forward the serialization:
-         * d->Deserialize(some_member_variable, name);
-         * ```
-         * 
-         * @param d The deserializer that must be used
-         * @param name The member name of the class that holds this type
-         */
-        virtual void Deserialize(Deserializer* d, const std::string_view name="") = 0;
-
-        /**
-         * @brief The function to use while serializing this class, example:
-         * ```
-         * // THESE VALUES YOU MUST OUTPUT if you have multiple variables inside the class:
-         * s->Output<uint8_t>(SerializationTypes::Class);
-         * s->Output<uint8_t>(amountMembers);
-         * s->Output(name);
-         * // Then serialize all the member variable types, in the order Serialize() serializes them:
-         * s->SerializeInternal<uint64_t>("some_member_variable_name");
-         * 
-         * // If you have only one variable, you can just forward the serialization:
-         * s->SerializeInternal<uint64_t>(name);
-         * ```
-         * 
-         * @param s The serializer that must be used
-         * @param name The member name of the class that holds this type
-         */
-        static void SerializeTypes(ClassStructureSerializer* s, const std::string_view name="") {
-            THROW("[Serializable::SerializeTypes] Not implemented")
-        }
-    };
-
-
     template<class T>
-    concept SpecialSerialization = 
-        Derived<T, Serializable> || FundamentalType<T> || PointerType<T> || ArrayType<T> ||
-        StdVectorType<T> || StdMapType<T> || StdStringType<T> || StdTimePoint<T> || StdSharedPtr<T>;
-
-
+    concept SpecialSerialization = FundamentalType<T> || PointerType<T> || (IterableSTL<T> && InsertableSTL<T>)
+        || IsType<T, std::string> || IsTemplatedType<T, ^^std::shared_ptr> || IsTemplatedType<T, ^^std::unique_ptr> || IsTemplatedType<T, ^^std::atomic>
+        || IsTemplatedType<T, ^^std::queue> || IsTemplatedType<T, ^^std::priority_queue> || IsTemplatedType<T, ^^std::stack>
+        || ArrayType<T> || IsTemplatedType<T, ^^std::array>
+        || IsTemplatedType<T, ^^std::chrono::time_point> || IsTemplatedType<T, ^^std::chrono::duration>
+        || IsTemplatedType<T, ^^std::pair>;
+    
+    // All the std library types use special allocations, so I do not want to accept types that are not implemented as they will garantuee bugs
+    template<class T>
+    concept NotImplementedSerialization = IsInNamespace<^^T, ^^std>() && !SpecialSerialization<T>;
 
     /**
-     * @brief Override to create a custom serializer
-     * All these methods must be override so the Deserializer class can correctly identify
-     *      the values of variables and for example vector starts/ends
+     * @brief A helper class to make implementing custom serialization easier
+     * Uses CRTP for almost virtual templated functions
+     * You need to implement the following methods:
+     * ```
+     * class CustomSerializer : public Util::Serializer<CustomSerializer> {
+     *      void StartClass(const size_t amountMembers, const std::string_view name) override {}
+     *      void EndClass() override {}
+     *
+     *      // The template T will be the type of the container (for example std::vector<uint8_t>)
+     *      // You can use reflection/concepts to distinguis different containers
+     *      template<class T>
+     *      void StartSTLContainer(const size_t size, const std::string_view name) {}
+     *      // Template T is the same as for StartSTLContainer
+     *      template<class T>
+     *      void EndSTLContainer() {}
+     * 
+     *      // Is called with (u)int8_t till (u)int64_t, float, double and long double
+     *      template<FundamentalType T>
+     *      void AddVariable(const T& t, const std::string_view name) {}
+     * 
+     *      void AddVariable(const std::string& t, const std::string_view name) override {}
+     * }
+     * ```
+     * 
+     * @tparam Derived The class that derives and implements all the methods called by Serializer (see above)
      */
+    template<class Derived>
     class Serializer {
     public:
-        virtual inline void StartClass(const size_t amountMembers, const std::string_view name="") {}
-        virtual inline void EndClass() {}
-
-        virtual inline void StartPair(const std::string_view name="") {}
-        virtual inline void EndPair() {}
-
-        virtual inline void StartArray(const size_t amountElements, const std::string_view name="") {}
-        virtual inline void EndArray() {}
-
-        // Every key-value pair will be started with StartPair and ended with EndPair
-        virtual inline void StartMap(const size_t amountElements, const std::string_view name="") {}
-        virtual inline void EndMap() {}
-
-        virtual inline void AddVariable(const int8_t v, const std::string_view name="")  { THROW("[Util::Deserializer] A AddVariable function is not implemented") }
-        virtual inline void AddVariable(const int16_t v, const std::string_view name="") { THROW("[Util::Deserializer] A AddVariable function is not implemented") }
-        virtual inline void AddVariable(const int32_t v, const std::string_view name="") { THROW("[Util::Deserializer] A AddVariable function is not implemented") }
-        virtual inline void AddVariable(const int64_t v, const std::string_view name="") { THROW("[Util::Deserializer] A AddVariable function is not implemented") }
-
-        virtual inline void AddVariable(const uint8_t v, const std::string_view name="")  { THROW("[Util::Deserializer] A AddVariable function is not implemented") }
-        virtual inline void AddVariable(const uint16_t v, const std::string_view name="") { THROW("[Util::Deserializer] A AddVariable function is not implemented") }
-        virtual inline void AddVariable(const uint32_t v, const std::string_view name="") { THROW("[Util::Deserializer] A AddVariable function is not implemented") }
-        virtual inline void AddVariable(const uint64_t v, const std::string_view name="") { THROW("[Util::Deserializer] A AddVariable function is not implemented") }
-
-        virtual inline void AddVariable(const bool v, const std::string_view name="") { THROW("[Util::Deserializer] A AddVariable function is not implemented") }
-
-        virtual inline void AddVariable(const float v, const std::string_view name="")  { THROW("[Util::Deserializer] A AddVariable function is not implemented") }
-        virtual inline void AddVariable(const double v, const std::string_view name="") { THROW("[Util::Deserializer] A AddVariable function is not implemented") }
-
-        virtual inline void AddVariable(const std::string& v, const std::string_view name="") { THROW("[Util::Deserializer] A AddVariable function is not implemented") }
         
-        /**
-        * @name Serialization
-        */
-        ///@{
+    protected:
+        virtual void StartClass(const size_t amountMembers, const std::string_view name) {}
+        virtual void EndClass() {}
+
+        template<class T>
+        void StartSTLContainer(const size_t size, const std::string_view name) {}
+        template<class T>
+        void EndSTLContainer() {}
+
+        template<FundamentalType T>
+        void AddVariable(const T t, const std::string_view name) {}
+        virtual void AddVariable(const std::string& t, const std::string_view name) {}
 
         /**
-         * @brief Will serialize the param t
-         * Has a lot of template overrides for primitive types.
-         * If you want to use these methods, the class must be either fully public, or implement:
-         *      tuple_size<T>, tuple_element<I, T> and get<I> (so structured bindings work)
-         * This requirement must also hold for all it's members.
+         * @brief Counts the publicly accesible members of a class (without the SkipSerialization annotation)
+         * 
+         * @tparam T The type
+         * @return The amount of member variables 
+         */
+        template<class T>
+        static consteval size_t CountMembers() {
+            constexpr auto memberTypes = std::define_static_array(std::meta::nonstatic_data_members_of(^^T, std::meta::access_context::current()));
+            size_t count = 0;
+            template for (constexpr std::meta::info memberTypeInfo : memberTypes) {
+                if constexpr (HasAnnotation<SkipSerializationType>(memberTypeInfo)) continue;
+                count++;
+            }
+            return count;
+        }
+
+        /**
+         * @brief Will serialize all the members of t accesible to this
          * 
          * @tparam T Object type to serialize
          * @param serializer The serializer specialization to use
          * @param t The object to serialize using the serializer param
          */
-        template<class T> requires (!SpecialSerialization<T>)
-        void Serialize(T& t, const std::string_view name="") {
+        template<class T> requires (!SpecialSerialization<T> && !NotImplementedSerialization<T>)
+        void Serialize(const T& t, const std::string_view name="") {
             constexpr auto memberTypes = std::define_static_array(std::meta::nonstatic_data_members_of(^^T, std::meta::access_context::current()));
-            constexpr size_t amountMembers = memberTypes.size();
-            if(amountMembers == 0) WARNING("[Util::Serializer] Found a class (" + PrettyNameOf<T>() + ") with 0 member variables, are you sure it is intented this class has only private members? (maybe you forgot to add 'friend class Util::Serializer')")
+            constexpr size_t amountMembers = CountMembers<T>();
+            if(amountMembers == 0) WARNING("[Util::Serializer] Found a class (" + PrettyNameOf<T>() + ") with 0 member variables, are you sure it is intented this class has only private members?")
             
             StartClass(amountMembers, name);
             template for (constexpr std::meta::info memberTypeInfo : memberTypes) {
-                if(HasAnnotation<SkipSerializationType>(memberTypeInfo)) continue;
-                Serialize(t.[:memberTypeInfo:], std::meta::identifier_of(memberTypeInfo));
+                if constexpr (HasAnnotation<SkipSerializationType>(memberTypeInfo)) continue;
+                else Serialize(t.[:memberTypeInfo:], std::meta::identifier_of(memberTypeInfo));
             }
             EndClass();
         }
-        /**
-         * @name Serialize template overrides for primitives
-         */
-        ///@{
-        template<ClassType T> requires (Derived<T, Serializable>)
-        void Serialize(T& t, const std::string_view name="") {
-            t.Serialize(this, name);
+
+        template<NotImplementedSerialization T>
+        void Serialize(const T& t, const std::string_view name) {
+            static_assert(false, "[Util::Deserializer] STD library class not yet implemented");
         }
+
         template<FundamentalType T> requires (!PointerType<T>)
-        void Serialize(T& t, const std::string_view name="") {
-            AddVariable(t, name);
+        void Serialize(const T& t, const std::string_view name="") {
+            static_cast<Derived*>(this)->template AddVariable<std::remove_cv_t<T>>(t, name);
         }
-        template<StdStringType T>
-        void Serialize(T& t, const std::string_view name="") {
-            AddVariable(t, name);
-        }
-        template<class T>
-        void Serialize(std::vector<T>& t, const std::string_view name="") {
-            StartArray(t.size(), name);
-            for(T& c : t) {
-                Serialize(c);
-            }
-            EndArray();        
-        }
-        template<class T, class Q>
-        void Serialize(std::map<T, Q>& t, const std::string_view name="") {
-            StartMap(t.size(), name);
-            for(auto& [key, value] : t) {
-                StartPair();
-                Serialize(key);
-                Serialize(value);
-                EndPair();
-            }
-            EndMap();
-        }
-        template<class T, class Q>
-        void Serialize(std::chrono::time_point<T, Q>& t, const std::string_view name="") {
-            uint64_t count = std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::time_point_cast<std::chrono::milliseconds>(t).time_since_epoch()
-            ).count();
-            AddVariable(count, name);
-        }
-        template<PointerType T>
-        void Serialize(T& t, const std::string_view name="") {
-            ASSERT(t != nullptr, "[Util::Serializer] Cannot serialize a nullptr")
-            try {
-                Serialize(*t, name);
-            } catch(...) {
-                THROW("[Util::Serializer] Failed to serialize pointer, does it point to a valid adress?")
-            }
+        void Serialize(const std::string& t, const std::string_view name="") {
+            static_cast<Derived*>(this)->AddVariable(t, name);
         }
         template<class T>
-        void Serialize(std::shared_ptr<T>& t, const std::string_view name="") {
+        void Serialize(const T*& t, const std::string_view name="") {
             Serialize(*t, name);
         }
-        template<class T, size_t N>
-        void Serialize(T(&t)[N], const std::string_view name="") {
-            StartArray(N, name);
-            for(size_t i = 0; i < N; i++) {
-                Serialize(t[i]);
-            }
-            EndArray();
+        template<class T>
+        void Serialize(const std::shared_ptr<T>& t, const std::string_view name="") {
+            Serialize(*t, name);
         }
-        ///@}
-        ///@}
+        template<class T>
+        void Serialize(const std::unique_ptr<T>& t, const std::string_view name="") {
+            Serialize(*t, name);
+        }
+        template<class T>
+        void Serialize(const std::atomic<T>& t, const std::string_view name="") {
+            Serialize(t.load(), name);
+        }
+
+        template<class T> requires IterableSTL<T> && InsertableSTL<T>
+        void Serialize(const T& t, const std::string_view name="") {
+            static_cast<Derived*>(this)->template StartSTLContainer<T>(t.size(), name);
+            
+            for(const auto& elem : t) {
+                Serialize(elem, "STL-Container-Element");
+            }
+
+            static_cast<Derived*>(this)->template EndSTLContainer<T>();
+        }
+        template<class T, class Allocator>
+        void Serialize(const std::forward_list<T, Allocator>& t, const std::string_view name="") {
+            static_cast<Derived*>(this)->template StartSTLContainer<std::forward_list<T, Allocator>>(t.size(), name);
+            
+            for(const auto& elem : t) {
+                Serialize(elem, "STL-Forward-List-Element");
+            }
+
+            static_cast<Derived*>(this)->template EndSTLContainer<std::forward_list<T, Allocator>>();
+        }
+        template<class T, class Container>
+        void Serialize(const std::queue<T, Container>& t, const std::string_view name="") {
+            static_cast<Derived*>(this)->template StartSTLContainer<std::queue<T, Container>>(t.size(), name);
+            // Because queues are stupid, we need to first make a copy to access the actual data
+            std::queue<T, Container> copy = t;
+            while(copy.size()) {
+                Serialize(t.front(), "STL-Queue-Element");
+                t.pop();
+            }
+            static_cast<Derived*>(this)->template EndSTLContainer<std::queue<T, Container>>();
+        }
+        template<class T, class Container, class Compare>
+        void Serialize(const std::priority_queue<T, Container, Compare>& t, const std::string_view name="") {
+            static_cast<Derived*>(this)->template StartSTLContainer<std::priority_queue<T, Container, Compare>>(t.size(), name);
+            // Because queues are stupid, we need to first make a copy to access the actual data
+            std::priority_queue<T, Container, Compare> copy = t;
+            while(copy.size()) {
+                Serialize(t.top(), "STL-Priority-Queue-Element");
+                t.pop();
+            }
+            static_cast<Derived*>(this)->template EndSTLContainer<std::priority_queue<T, Container, Compare>>();
+        }
+        template<class T, class Container>
+        void Serialize(const std::stack<T, Container>& t, const std::string_view name="") {
+            static_cast<Derived*>(this)->template StartSTLContainer<std::stack<T, Container>>(t.size(), name);
+            // Because stacks are stupid, we need to first make a copy to access the actual data
+            std::stack<T, Container> copy = t;
+            while(copy.size()) {
+                Serialize(t.top(), "STL-Stack-Element");
+                t.pop();
+            }
+            static_cast<Derived*>(this)->template EndSTLContainer<std::stack<T, Container>>();
+        }
+        template<class T, size_t N>
+        void Serialize(const std::array<T, N>& t, const std::string_view name="") {
+            static_cast<Derived*>(this)->template StartSTLContainer<std::array<T, N>>(t.size(), name);
+            
+            for(const auto& elem : t) {
+                Serialize(elem, "STL-Array-Element");
+            }
+
+            static_cast<Derived*>(this)->template EndSTLContainer<std::array<T, N>>();
+        }
+        template<class T, size_t N>
+        void Serialize(const T (&t)[N], const std::string_view name="") {
+            static_cast<Derived*>(this)->template StartSTLContainer<std::array<T, N>>(N, name);
+            
+            for(const auto& elem : t) {
+                Serialize(elem, "Array-Element");
+            }
+
+            static_cast<Derived*>(this)->template EndSTLContainer<std::array<T, N>>();
+        }
+
+        template<class Clock, class Duration>
+        void Serialize(const std::chrono::time_point<Clock, Duration>& t, const std::string_view name="") {
+            if constexpr(IsType<Clock, std::chrono::steady_clock>) {
+                static bool oneTimeWarning = []() { WARNING("[Util::Serialize] Serializing std::chrono::steady_clock gives unpredictable results (the epoch is reset every time the computer reboots)")};
+            }
+            Serialize(t.time_since_epoch());
+        }
+
+        template<class Rep, class Period>
+        void Serialize(const std::chrono::duration<Rep, Period>& t, const std::string_view name="") {
+            Serialize(t.count(), name);
+        }
+
+        template<class T, class Q>
+        void Serialize(const std::pair<T, Q>& t, const std::string_view name="") {
+            StartClass(2, name);
+            Serialize(t.first, "first");
+            Serialize(t.second, "second");
+            EndClass();
+        }
     };
+
     /**
-     * @brief Override to create a custom deserializer
-     * All these methods must be override so this can correctly identify
-     *      the values of variables and for example vector starts/ends serialized by the Serializer class
-     * The name given, is the name a variable has inside a class. Name="" if the variable sits inside an array
+     * @brief A helper class to make implementing custom deserialization easier
+     * Uses CRTP for almost virtual templated functions
+     * You need to implement the following methods:
+     * ```
+     * class CustomDeserializer : public Util::Deserializer<CustomDeserializer> {
+     *      void StartClass(const size_t amountMembers, const std::string_view name) override {}
+     *      void EndClass() override {}
+     *
+     *      // The template T will be the type of the container (for example std::vector<uint8_t>)
+     *      // You can use reflection/concepts to distinguis different containers
+     *      template<class T>
+     *      void StartSTLContainer(const std::string_view name) {}
+     *      // Template T is the same as for StartSTLContainer
+     *      // Should return true if there aren't any more elements left
+     *      void IsSTLEnd(const std::string_view name) override {}
+     *      // Template T is the same as for StartSTLContainer
+     *      template<class T>
+     *      void EndSTLContainer() {}
+     * 
+     *      // Is called with (u)int8_t till (u)int64_t, float, double and long double
+     *      // Must set T to the type present in the serialized bytes
+     *      template<FundamentalType T>
+     *      void GetVariable(T& t, const std::string_view name) {}
+     *      void GetVariable(std::string& t, const std::string_view name) {}
+     * }
+     * ```
+     * 
+     * @tparam Derived The class that derives and implements all the methods called by Deserializer (see above)
      */
+    template<class Derived>
     class Deserializer {
     public:
-        virtual inline void StartClass(const std::string_view name="") {}
-        virtual inline void EndClass() {}
+        
+    protected:
+        virtual void StartClass(const size_t amountMembers, const std::string_view name) {}
+        virtual void EndClass() {}
 
-        virtual inline void StartPair(const std::string_view name="") {}
-        virtual inline void EndPair() {}
+        template<class T>
+        void StartSTLContainer(const std::string_view name) {}
+        virtual bool IsSTLEnd() { THROW("[Util::Serialization] IsSTLEnd() must be overriden") }
+        template<class T>
+        void EndSTLContainer() {}
 
-        virtual inline void StartArray(const std::string_view name="") {}
-        virtual inline bool IsEndArray() { THROW("[Util::Deserializer] A IsEndArray is not implemented") }
-        virtual inline void EndArray() {}
-
-        virtual inline void StartMap(const std::string_view name="") {}
-        virtual inline bool IsEndMap() { THROW("[Util::Deserializer] A IsEndArray is not implemented") }
-        virtual inline void EndMap() {}
-
-        virtual inline void GetVariable(int8_t& v, const std::string_view name="") { THROW("[Util::Deserializer] A GetVariable function is not implemented") }
-        virtual inline void GetVariable(int16_t& v, const std::string_view name="") { THROW("[Util::Deserializer] A GetVariable function is not implemented") }
-        virtual inline void GetVariable(int32_t& v, const std::string_view name="") { THROW("[Util::Deserializer] A GetVariable function is not implemented") }
-        virtual inline void GetVariable(int64_t& v, const std::string_view name="") { THROW("[Util::Deserializer] A GetVariable function is not implemented") }
-
-        virtual inline void GetVariable(uint8_t& v, const std::string_view name="") { THROW("[Util::Deserializer] A GetVariable function is not implemented") }
-        virtual inline void GetVariable(uint16_t& v, const std::string_view name="") { THROW("[Util::Deserializer] A GetVariable function is not implemented") }
-        virtual inline void GetVariable(uint32_t& v, const std::string_view name="") { THROW("[Util::Deserializer] A GetVariable function is not implemented") }
-        virtual inline void GetVariable(uint64_t& v, const std::string_view name="") { THROW("[Util::Deserializer] A GetVariable function is not implemented") }
-
-        virtual inline void GetVariable(bool& v, const std::string_view name="") { THROW("[Util::Deserializer] A GetVariable function is not implemented") }
-
-        virtual inline void GetVariable(float& v, const std::string_view name="") { THROW("[Util::Deserializer] A GetVariable function is not implemented") }
-        virtual inline void GetVariable(double& v, const std::string_view name="") { THROW("[Util::Deserializer] A GetVariable function is not implemented") }
-
-        virtual inline void GetVariable(std::string& s, const std::string_view name="") { THROW("[Util::Deserializer] A GetVariable function is not implemented") }
-        /**
-         * @name Deserialization
-         */
-        ///@{
+        template<FundamentalType T>
+        void GetVariable(T& t, const std::string_view name) {}
+        virtual void GetVariable(std::string& t, const std::string_view name) {}
 
         /**
-         * @brief Will deserialize the param t
-         * Has template overrides for primitive types.
+         * @brief Counts the publicly accesible members of a class (without the SkipSerialization annotation) and makes sure the class does not contain const members
          * 
-         * @tparam T Object type to deserialize
-         * @param deserialize The deserializer specialization to use
-         * @param t The object to deserialize using the deserializer param
+         * @tparam T The type
+         * @return The amount of member variables 
          */
-        template<class T> requires (!SpecialSerialization<T>)
+        template<class T>
+        static consteval size_t CountAndCheckMembers() {
+            constexpr auto memberTypes = std::define_static_array(std::meta::nonstatic_data_members_of(^^T, std::meta::access_context::current()));
+            size_t count = 0;
+            template for (constexpr std::meta::info memberTypeInfo : memberTypes) {
+                if constexpr (HasAnnotation<SkipSerializationType>(memberTypeInfo)) continue;
+                static_assert(!std::meta::is_const(std::meta::type_of(memberTypeInfo)), "[Util::Deserializer] Cannot deserialize a class with constant members (please add the Util::SkipSerialization annotation)");
+                count++;
+            }
+            return count;
+        }
+
+        /**
+         * @brief Will serialize all the members of t accesible to this
+         * 
+         * @tparam T Object type to serialize
+         * @param serializer The serializer specialization to use
+         * @param t The object to serialize using the serializer param
+         */
+        template<class T> requires (!SpecialSerialization<T> && !NotImplementedSerialization<T>)
         void Deserialize(T& t, const std::string_view name="") {
             constexpr auto memberTypes = std::define_static_array(std::meta::nonstatic_data_members_of(^^T, std::meta::access_context::current()));
-            constexpr size_t amountMembers = memberTypes.size();
-            if(amountMembers == 0) WARNING("[Util::Deserializer] Found a class (" + PrettyNameOf<T>() + ") with 0 member variables, are you sure it is intented this class has only private members? (maybe you forgot to add 'friend class Util::Deserializer')")
+            constexpr size_t amountMembers = CountAndCheckMembers<T>();
+            if(amountMembers == 0) WARNING("[Util::Deserializer] Found a class (" + PrettyNameOf<T>() + ") with 0 member variables, are you sure it is intented this class has only private members?")
             
-            StartClass(name);
+            StartClass(amountMembers, name);
             template for (constexpr std::meta::info memberTypeInfo : memberTypes) {
-                if(HasAnnotation<SkipSerializationType>(memberTypeInfo)) continue;
-                Deserialize(t.[:memberTypeInfo:], std::meta::identifier_of(memberTypeInfo));
+                if constexpr (HasAnnotation<SkipSerializationType>(memberTypeInfo)) continue;
+                else Deserialize(t.[:memberTypeInfo:], std::meta::identifier_of(memberTypeInfo));
             }
             EndClass();
         }
-        /**
-         * @name Serialize template overrides 
-         */
-        ///@{
-        template<ClassType T> requires (Derived<T, Serializable>)
-        void Deserialize(T& t, const std::string_view name="") {
-            t.Deserialize(this, name);
+
+        template<NotImplementedSerialization T>
+        void Deserialize(T& t, const std::string_view name) {
+            static_assert(false, "[Util::Deserializer] STD library class not yet implemented");
         }
+
         template<FundamentalType T> requires (!PointerType<T>)
         void Deserialize(T& t, const std::string_view name="") {
-            GetVariable(t, name);
+            static_cast<Derived*>(this)->template GetVariable<std::remove_cv_t<T>>(t, name);
         }
-        template<StdStringType T>
-        void Deserialize(T& t, const std::string_view name="") {
-            t = "";
-            GetVariable(t, name);
+        void Deserialize(std::string& t, const std::string_view name="") {
+            static_cast<Derived*>(this)->GetVariable(t, name);
         }
         template<class T>
-        void Deserialize(std::vector<T>& t, const std::string_view name="") {
-            t.clear();
-            StartArray(name);
-            while(!IsEndArray()) {
-                t.push_back(T());
-                Deserialize(t[t.size()-1]);
-            }
-            EndArray();        
-        }
-        template<class T, class Q>
-        void Deserialize(std::map<T, Q>& t, const std::string_view name="") {
-            t.clear();
-            StartArray(name);
-            while(!IsEndArray()) {
-                StartPair();
-                T key{};
-                Deserialize(key);
-                Deserialize(t[key]);
-                EndPair();
-            }
-            EndArray();        
-        }
-        template<class T, class Q>
-        void Deserialize(std::chrono::time_point<T, Q>& t, const std::string_view name="") {
-            long count;
-            GetVariable(count, name);
-            t = std::chrono::time_point_cast<Q>(
-                std::chrono::time_point<T, std::chrono::milliseconds>{
-                    std::chrono::milliseconds(count)
-                }
-            );
-        }
-        template<PointerType T>
-        void Deserialize(T& t, const std::string_view name="") {
-            try {
-                Deserialize(*t, name);
-            } catch(...) {
-                t = new std::pointer_traits<T>::type();
-                try {
-                    Deserialize(*t, name);
-                } catch(...) {
-                    THROW("[Util::Serializer] Tried to deserialize a pointer, but Serializer failed")
-                }
-            }
+        void Deserialize(T*& t, const std::string_view name="") {
+            Deserialize(*t, name);
         }
         template<class T>
         void Deserialize(std::shared_ptr<T>& t, const std::string_view name="") {
             t = std::make_shared<T>();
             Deserialize(*t, name);
         }
-        template<class T, size_t N>
-        void Serialize(T(&t)[N], const std::string_view name="") {
-            t.clear();
-            StartArray(name);
-            for(size_t i = 0; i < N; i++) {
-                ASSERT(!IsEndArray(), "[Util::Serialization] Serialized array doesn't contain enough elements")
-                Deserialize(t[i]);
-            }
-            ASSERT(IsEndArray(), "[Util::Serialization] Serialized array containing too many elements")
-            EndArray();
+        template<class T>
+        void Deserialize(std::unique_ptr<T>& t, const std::string_view name="") {
+            t = std::make_unique<T>();
+            Deserialize(*t, name);
         }
-        ///@}
-        ///@}
+        template<class T>
+        void Deserialize(std::atomic<T>& t, const std::string_view name="") {
+            Deserialize(t.load(), name);
+        }
+
+        template<class T> requires IterableSTL<T> && InsertableSTL<T>
+        void Deserialize(T& t, const std::string_view name="") {
+            static_cast<Derived*>(this)->template StartSTLContainer<T>(name);
+            
+            while(!IsSTLEnd()) {
+                if constexpr (requires { typename T::mapped_type; }) {
+                    // Remove the const from the key:
+                    std::pair<
+                        typename std::remove_cv_t<typename T::key_type>, 
+                        typename std::remove_cv_t<typename T::mapped_type>
+                    > value;
+                    Deserialize(value, "STL-Container-Element");
+                    t.insert(t.end(), std::move(value));
+                } else {
+                    typename std::remove_cv_t<typename T::value_type> value;
+                    Deserialize(value, "STL-Container-Element");
+                    t.insert(t.end(), std::move(value));
+                }
+            }
+
+            static_cast<Derived*>(this)->template EndSTLContainer<T>();
+        }
+        template<class T, class Allocator>
+        void Deserialize(std::forward_list<T, Allocator>& t, const std::string_view name="") {
+            static_cast<Derived*>(this)->template StartSTLContainer<std::forward_list<T, Allocator>>(name);
+            
+            while(!IsSTLEnd()) {
+                typename std::remove_cv_t<typename T::value_type> value;
+                Deserialize(value, "STL-Forward-List-Element");
+                t.insert_after(t.end(), std::move(value));
+            }
+
+            static_cast<Derived*>(this)->template EndSTLContainer<std::forward_list<T, Allocator>>();
+        }
+        template<class T> requires (IsTemplatedType<T, ^^std::queue> || IsTemplatedType<T, ^^std::priority_queue> || IsTemplatedType<T, ^^std::stack>)
+        void Deserialize(T& t, const std::string_view name="") {
+            static_cast<Derived*>(this)->template StartSTLContainer<T>(name);
+            while(!IsSTLEnd()) {
+                typename std::remove_cv_t<typename T::value_type> value;
+                Deserialize(value, "STL-Queue-Element");
+                t.push(std::move(value));
+            }
+            static_cast<Derived*>(this)->template EndSTLContainer<T>();
+        }
+        template<class T, size_t N>
+        void Deserialize(std::array<T, N>& t, const std::string_view name="") {
+            static_cast<Derived*>(this)->template StartSTLContainer<std::array<T, N>>(name);
+            for(size_t i = 0; i < N; i++) {
+                ASSERT(!IsSTLEnd(), "[Util::Deserializer] Not enough elements serialized for std::array")
+                Deserialize(t[i], "STL-Array-Element");
+            }
+            ASSERT(IsSTLEnd(), "[Util::Deserializer] Too many elements serialized for std::array")
+            static_cast<Derived*>(this)->template EndSTLContainer<std::array<T, N>>();
+        }
+        template<class T, size_t N>
+        void Deserialize(T (&t)[N], const std::string_view name="") {
+            static_cast<Derived*>(this)->template StartSTLContainer<std::array<T, N>>(name);
+            for(size_t i = 0; i < N; i++) {
+                ASSERT(!IsSTLEnd(), "[Util::Deserializer] Not enough elements serialized for std::array")
+                Deserialize(t[i], "STL-Array-Element");
+            }
+            ASSERT(IsSTLEnd(), "[Util::Deserializer] Too many elements serialized for std::array")
+            static_cast<Derived*>(this)->template EndSTLContainer<std::array<T, N>>();
+        }
+
+        template<class Clock, class Duration>
+        void Deserialize(std::chrono::time_point<Clock, Duration>& t, const std::string_view name="") {
+            if constexpr(IsType<Clock, std::chrono::steady_clock> || IsType<Clock, std::chrono::high_resolution_clock>) {
+                static bool oneTimeWarning = []() { WARNING("[Util::Deserializer] Serializing std::chrono::steady_clock and std::chrono::high_resolution_clock give unpredictable results (the epoch is reset every time the computer reboots)"); return true; };
+            }
+            Duration duration;
+            Deserialize(duration);
+            t = std::chrono::time_point<Clock, Duration>(std::move(duration));
+        }
+
+        template<class Rep, class Period>
+        void Deserialize(std::chrono::duration<Rep, Period>& t, const std::string_view name="") {
+            Rep count;
+            Deserialize(count, name);
+            t = std::chrono::duration<Rep, Period>(std::move(count));
+        }
+
+        template<class T, class Q>
+        void Deserialize(std::pair<T, Q>& t, const std::string_view name="") {
+            static_assert(!std::is_const_v<T> && !std::is_const_v<Q>, "[Util::Deserializer] Cannot deserialize a pair with const members");
+            StartClass(2, name);
+            Deserialize(t.first, "first");
+            Deserialize(t.second, "second");
+            EndClass();
+        }
     };
 
 }

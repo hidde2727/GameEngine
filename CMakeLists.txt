@@ -94,6 +94,7 @@ add_library (GameEngine STATIC
 "src/util/WeirdPointer.h"
 "src/util/VectorStreamBuffer.h"
 "src/util/Reflection.h"
+"src/util/Strings.h"
 
 "src/util/math/Vec2D.h"
 "src/util/math/Vec3D.h"

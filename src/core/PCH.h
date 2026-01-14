@@ -1,4 +1,4 @@
-#include "util/BasicLog.h"// I would like to include Log.h, but this triggers an compiler front-end crash
+#include "util/BasicLog.h"// I would like to include Log.h, but this triggers a compiler front-end crash
 #include "util/math/Math.h"
 
 #define GLFW_INCLUDE_VULKAN
@@ -18,14 +18,17 @@
 
 #include <asio.hpp>
 
+#include <forward_list>
 #include <string>
 #include <vector>
 #include <map>
+#include <flat_set>
+#include <flat_map>
+#include <queue>
 #include <initializer_list>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
-#include <queue>
 #include <functional>
 #include <random>
 #include <cctype>

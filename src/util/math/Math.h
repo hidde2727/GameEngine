@@ -17,7 +17,7 @@ namespace Util {
     }
     template<FloatingPointType T>
     inline constexpr int ceil(const T a) {
-        return (int)(a+1);
+        return (int)(a + 0.5 - std::numeric_limits<T>::min());
     }
     template<FundamentalType T>
     inline constexpr T min(const T a, const T b) {

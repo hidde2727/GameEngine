@@ -193,7 +193,7 @@ namespace Util {
     }
     template<class T>
     void File::Read(std::vector<T>& buffer, const std::ios_base::openmode inputMode) const {
-        buffer.resize(GetSize() * sizeof(T));
+        buffer.resize(ceil( GetSize()/(float)sizeof(T)));
         Read(buffer.data(), buffer.size(), inputMode);
     }
 

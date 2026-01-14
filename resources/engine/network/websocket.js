@@ -1,44 +1,80 @@
 /**
  * This file generates factories and classes for all the data types that are registered
  *      in the c++ code and controls the websocket connection
- * All the data types are send over the websocket by the (in c++) Network::WebsocketHandler
+ * All the data types are send over the websocket by the (in the c++ code) Network::WebsocketHandler
  */
 
 /**************************************************************************
  * Utility and constants                                                  *
  *************************************************************************/
-const binarySerializationOutputFlag = {
-    IncludeTypeInfo     : 1,// Defaults to not include type info
-    OutputBigEndian     : 2,// Default is system endianess
-    OutputLitleEndian   : 4,// Default is system endianess
-    ExcludeVersioning   : 8 // Defaults to including the versioning data
-};
-const serializationTypes = {
-    Class       : 0,
-    Pair        : 1,
-    Array       : 2,
-    Map         : 3,
-
-    UInt8       : 10,
-    UInt16      : 11,
-    UInt32      : 12,
-    UInt64      : 13,
-    Int8        : 20,
-    Int16       : 21,
-    Int32       : 22,
-    Int64       : 23,
-    Bool        : 24,
-
-    Float       : 30,
-    Double      : 31,
-
-    String      : 40
-};
-
-const binaryProtocolVersion = 3;
-const classStructureProtocolVersion = 2;
+const binaryProtocolVersion = 4;
+const classStructureProtocolVersion = 3;
 const websocketHandlerProtocolVersion = 1;
 const websocketCheckValue = 133;
+
+const outputFlag = {
+    IncludeTypeInfo      : 1, // Defaults to not include type info
+    OutputBigEndian      : 2, // Default is system endianess
+    OutputLitleEndian    : 4, // Default is system endianess
+    ExcludeVersioning    : 8, // Defaults to including the versioning data
+    ExcludeVariableNames : 16,// Defaults to include variable names (is only output if IncludeTypeInfo=true)
+    CheckVariableNames   : 32 // Defaults to not check the variable names (is only checked if IncludeTypeInfo=true)
+};
+const serializationTypes = {
+    Class                   : 0,
+
+    
+    Uint8                   : 1,
+    Uint16                  : 2,
+    Uint32                  : 3,
+    Uint64                  : 4,
+    Uint128                 : 5,
+    Int8                    : 6,
+    Int16                   : 7,
+    Int32                   : 8,
+    Int64                   : 9,
+    Int128                  : 10,
+    Bool                    : 11,
+
+    Float                   : 15,
+    Double                  : 16,
+    LongDouble              : 17,
+
+    String                  : 20,
+
+    Array                   : 30,
+    Vector                  : 31,
+    Deque                   : 32,
+    ForwardList             : 33,
+    List                    : 34,
+    Set                     : 35,
+    Multiset                : 36,
+    Map                     : 37,
+    Multimap                : 38,
+    UnorderedSet            : 39,
+    UnorderedMultiset       : 40,
+    UnorderedMap            : 41,
+    UnorderedMultimap       : 42,
+    Stack                   : 43,
+    Queue                   : 44,
+    PriorityQueue           : 45,
+    FlatSet                 : 46,
+    FlatMultiset            : 47,
+    FlatMap                 : 48,
+    FlatMultimap            : 49,
+
+    TimePoint               : 60,
+    Duration                : 61
+};
+const clockTypes = {
+    System              : 0,
+    Steady              : 1,
+    HighResolution      : 2,
+    UTC                 : 3,
+    TAI                 : 4,
+    GPS                 : 5,
+    File                : 6
+};
 
 function GetString(dataView) {
     let length = dataView.getUint16();
@@ -226,16 +262,16 @@ export class WebsocketNumberNode {
         return this.#value;
     }
     ReadFromWebsocket(dataView, type) {
-        if(type == serializationTypes.UInt8) {
+        if(type == serializationTypes.Uint8) {
             this.#value = dataView.getUint8();
             return dataView;
-        } else if(type == serializationTypes.UInt16) {
+        } else if(type == serializationTypes.Uint16) {
             this.#value = dataView.getUint16();
             return dataView;  
-        } else if(type == serializationTypes.UInt32) {
+        } else if(type == serializationTypes.Uint32) {
             this.#value = dataView.getUint32();
             return dataView;      
-        } else if(type == serializationTypes.UInt64) {
+        } else if(type == serializationTypes.Uint64) {
             this.#value = dataView.getUint64();
             return dataView;      
         }
@@ -274,13 +310,13 @@ export class WebsocketNumberNode {
         return node;
     }
     Serialize(dataView, type) {
-        if(type == serializationTypes.UInt8) {
+        if(type == serializationTypes.Uint8) {
             dataView.setUint8(this.#value);
-        } else if(type == serializationTypes.UInt16) {
+        } else if(type == serializationTypes.Uint16) {
             dataView.setUint16(this.#value);
-        } else if(type == serializationTypes.UInt32) {
+        } else if(type == serializationTypes.Uint32) {
             dataView.setUint32(this.#value);
-        } else if(type == serializationTypes.UInt64) {
+        } else if(type == serializationTypes.Uint64) {
             dataView.setUint64(this.#value);
         }
 
@@ -468,21 +504,15 @@ function CreateDataNodeInternal(dataView) {
             node[nameNested] = nodeNested;
         }
         return { name, type, node };
-    } else if(type == serializationTypes.Pair) {
-        throw "[websocket.js] A pair should not be used in the binary protocol";
-    } else if(type == serializationTypes.Array) {
-        throw "[websocket.js] Not implemented yet";
-    } else if(type == serializationTypes.Map) {
-        throw "[websocket.js] Not implemented yet";
     }
 
-    else if(type == serializationTypes.UInt8) {
+    else if(type == serializationTypes.Uint8) {
         return {name, type, node: new WebsocketNumberNode(0, 2**8-1, true)};
-    } else if(type == serializationTypes.UInt16) {
+    } else if(type == serializationTypes.Uint16) {
         return {name, type, node: new WebsocketNumberNode(0, 2**16-1, true)};        
-    } else if(type == serializationTypes.UInt32) {
+    } else if(type == serializationTypes.Uint32) {
         return {name, type, node: new WebsocketNumberNode(0, 2**32-1, true)};        
-    } else if(type == serializationTypes.UInt64) {
+    } else if(type == serializationTypes.Uint64) {
         return {name, type, node: new WebsocketNumberNode(0, 2**64-1, true)};        
     }
 
@@ -509,6 +539,8 @@ function CreateDataNodeInternal(dataView) {
     else if(type == serializationTypes.String) {
         return {name, type, node: new WebsocketStringNode(2**16-1)};// max length of UINT16_MAX
     }
+
+    throw "[websocket.js] Not implemented yet";
 }
 
 /**************************************************************************
@@ -606,10 +638,12 @@ try {
     if(server.messageTypeSize == 8) messageType = view.getUint64();
 
     const flags = view.getUint8();
-    if(flags & binarySerializationOutputFlag.IncludeTypeInfo) throw "[websocket.js] Don't know how to read type info";
-    if(flags & binarySerializationOutputFlag.OutputLitleEndian) throw "[websocket.js] Data over websocket must be in big endian";
-    if(!(flags & binarySerializationOutputFlag.OutputBigEndian)) throw "[websocket.js] Data over websocket must be in big endian";
-    if(!(flags & binarySerializationOutputFlag.ExcludeVersioning)) throw "[websocket.js[ Data must not contain versioning";
+    if(flags & outputFlag.IncludeTypeInfo) throw "[websocket.js] Don't know how to read type info";
+    if(flags & outputFlag.OutputLitleEndian) throw "[websocket.js] Data over websocket must be in big endian";
+    if(!(flags & outputFlag.OutputBigEndian)) throw "[websocket.js] Data over websocket must be in big endian";
+    if(!(flags & outputFlag.ExcludeVersioning)) throw "[websocket.js] Data must not contain versioning";
+    if(flags & outputFlag.ExcludeVariableNames) throw "[websocket.js] Data must include variable names";
+    if(flags & outputFlag.CheckVariableNames) throw "[websocket.js] Data must not check variable name equality";
 
     // Actual message parsing:
     if(messageType == 0) {
@@ -676,7 +710,7 @@ function SendPacket(packet) {
     if(server.messageTypeSize == 2) dataView.setUint16(packet.GetTypeID());
     if(server.messageTypeSize == 4) dataView.setUint32(packet.GetTypeID());
     if(server.messageTypeSize == 8) dataView.setUint64(packet.GetTypeID());
-    dataView.setUint8(10);// Binary serialization flags
+    dataView.setUint8(10);// Binary serialization flags (exlude versioning, big endian)
     
     packet.Serialize(dataView);
     if(dataView.getView().getUint8(0, false) != websocketCheckValue) {

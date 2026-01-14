@@ -12,9 +12,9 @@ namespace Util {
     /**
      * @brief Will print a class type in an easy to read format (JSON like)
      * 
-     * @warning This class cannot magically access private members, if you want private members serialized, you need to add ```friend class Util::Serializer```
+     * @warning This class cannot magically access private members, if you want private members serialized, you need to add ```friend class Util::Serializer<Util::ClassPrinter>```
      */
-    class ClassPrinter : public Serializer {
+    class ClassPrinter : public Serializer<ClassPrinter> {
     public:
 
         template<class T>
@@ -28,7 +28,7 @@ namespace Util {
             std::cout << GetTime() << color;
             _startLine = ResetLogColor() + "\n" + GetTime() + color;
             _state.push_back({false, true});
-            Serializer::Serialize(t, PrettyNameOf<T>());
+            Serializer<ClassPrinter>::Serialize(t, PrettyNameOf<T>());
             std::cout << "\n" << ResetLogColor();
             std::cout.flush();
         }
@@ -45,77 +45,29 @@ namespace Util {
             std::cout << _startLine << "}";
         }
 
-        inline void StartPair(const std::string_view name="") override {
-            StartVariable(name);
-            _state.push_back({true, true});
-            AddPadding();
-            std::cout << "(" << _startLine;
-        }
-        inline void EndPair() override {
-            _state.pop_back();
-            RemovePadding();
-            std::cout << _startLine << ")";
-        }
-
-        inline void StartArray(const size_t amountElements, const std::string_view name="") override {
+        template<class T>
+        inline void StartSTLContainer(const size_t amountElements, const std::string_view name="") {
             StartVariable(name);
             _state.push_back({true, true});
             AddPadding();
             std::cout << "[" << _startLine;
         }
-        inline void EndArray() override {
+        template<class T>
+        inline void EndSTLContainer() {
             _state.pop_back();
             RemovePadding();
             std::cout << _startLine << "]";
         }
 
-        inline void AddVariable(const int8_t v, const std::string_view name="") override {
+        template<FundamentalType T>
+        inline void AddVariable(const T v, const std::string_view name="") {
             StartVariable(name);
             std::cout << std::to_string(v);
         }
-        inline void AddVariable(const int16_t v, const std::string_view name="") override {
-            StartVariable(name);
-            std::cout << std::to_string(v);
-        }
-        inline void AddVariable(const int32_t v, const std::string_view name="") override {
-            std::cout << std::to_string(v);
-        }
-        inline void AddVariable(const int64_t v, const std::string_view name="") override {
-        StartVariable(name);
-            std::cout << std::to_string(v);
-        }
-
-        inline void AddVariable(const uint8_t v, const std::string_view name="") override {
-            StartVariable(name);
-            std::cout << std::to_string(v);
-        }
-        inline void AddVariable(const uint16_t v, const std::string_view name="") override {
-            StartVariable(name);
-            std::cout << std::to_string(v);
-        }
-        inline void AddVariable(const uint32_t v, const std::string_view name="") override {
-            StartVariable(name);
-            std::cout << std::to_string(v);
-        }
-        inline void AddVariable(const uint64_t v, const std::string_view name="") override {
-            StartVariable(name);
-            std::cout << std::to_string(v);
-        }
-
-        inline void AddVariable(const bool v, const std::string_view name="") override {
+        inline void AddVariable(const bool v, const std::string_view name="") {
             StartVariable(name);
             std::cout << std::boolalpha << v << std::noboolalpha;
         }
-
-        inline void AddVariable(const float v, const std::string_view name="") override {
-            StartVariable(name);
-            std::cout << std::to_string(v);
-        }
-        inline void AddVariable(const double v, const std::string_view name="") override {
-            StartVariable(name);
-            std::cout << std::to_string(v);
-        }
-
         inline void AddVariable(const std::string& v, const std::string_view name="") override {
             StartVariable(name);
             std::cout << '"' << v << '"';

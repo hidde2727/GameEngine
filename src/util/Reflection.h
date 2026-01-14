@@ -51,11 +51,90 @@ namespace Util {
         return true;
     }
 
+    /**
+     * @brief Checks if INFO is the global namespace
+     * 
+     * @tparam INFO 
+     * @return bool 
+     */
     template<std::meta::info INFO>
     consteval bool IsGlobalNamespace() {
         if constexpr(!std::meta::is_namespace(INFO)) return false;
         else return INFO == ^^::;
     }
+
+    /**
+     * @brief Convert a string to the equally named value in an enum.
+     * 
+     * @param name The name to find inside the Enum
+     * @tparam Enum The enum type to try and find the value
+     */
+    template<class Enum> requires std::is_enum_v<Enum>
+    constexpr std::optional<Enum> StringToEnum(const std::string_view name) {
+        static_assert(std::meta::is_enumerable_type(^^Enum), "[Util::StringToEnum] Cannot use StringToEnum on an enum that is not enumerable");
+        template for (constexpr auto e : std::define_static_array(std::meta::enumerators_of(^^Enum)))
+            if (name.compare(std::meta::identifier_of(e)))
+                return [: e :];
+        return std::nullopt;
+    }
+
+    /**
+     * @brief COnvert an enum to a string
+     * 
+     * @param value To be converted
+     * @tparam Enum The enum to use to convert the value to a stringz
+     */
+    template<class Enum> requires std::is_enum_v<Enum>
+    constexpr std::string_view EnumToString(const Enum value) {
+        static_assert(std::meta::is_enumerable_type(^^Enum), "[Util::StringToEnum] Cannot use EnumToString on an enum that is not enumerable");
+        template for (constexpr auto e : std::define_static_array(std::meta::enumerators_of(^^Enum)))
+            if (value == [: e :])
+                return std::meta::identifier_of(e);
+        return "[Util::EnumToString] Illegal enum value, could not find it inside the enum";
+    }
+
+    /**
+     * @brief Compares two objects to see if they represent the same namespace
+     * Just calling == on the std::meta::info with two namespace retrieved with for example ^^std and std::meta::parent_of(^^std::vector) will result
+     * in a false negative.
+     * This function compares the identifier of all the parents of the namespace to see if they are the same
+     * 
+     * @tparam T 
+     * @tparam SAME_AS 
+     * @return bool 
+     */
+    template<std::meta::info T, std::meta::info SAME_AS>
+    consteval bool IsSameNamespace() {
+        if constexpr (!std::meta::is_namespace(T) || !std::meta::is_namespace(SAME_AS)) return false;
+        else if constexpr (IsGlobalNamespace<T>() && IsGlobalNamespace<SAME_AS>()) return true;
+        else if constexpr (IsGlobalNamespace<T>() || IsGlobalNamespace<SAME_AS>()) return false;
+        else if constexpr (std::meta::identifier_of(T) != std::meta::identifier_of(SAME_AS)) return false;
+        else return IsSameNamespace<std::meta::parent_of(T), std::meta::parent_of(SAME_AS)>();
+    }
+
+    /**
+     * @brief Check if NAMESPACE is a parent of T
+     * 
+     * @tparam T The type to check if it is part of NAMESPACE
+     * @tparam NAMESPACE 
+     * @return bool
+     */
+    template<std::meta::info T, std::meta::info NAMESPACE>
+    consteval bool IsInNamespace() {
+        if constexpr (std::meta::is_type(T)) {
+            if constexpr (std::meta::has_template_arguments(T)) return IsInNamespace<std::meta::template_of(T), NAMESPACE>();
+            else if constexpr (std::meta::is_array_type(T)) return IsInNamespace<std::meta::remove_extent(T), NAMESPACE>();
+            else if constexpr (std::is_integral_v<typename [: T :]>) return false;
+            else if constexpr (std::is_floating_point_v<typename [: T :]>) return false;
+            else if constexpr (std::is_pointer_v<typename [: T :]>) return IsInNamespace<^^std::pointer_traits<typename [: T :]>::element_type, NAMESPACE>();
+            else return IsInNamespace<std::meta::parent_of(T), NAMESPACE>();
+        } else {
+            if constexpr (IsGlobalNamespace<T>()) return IsSameNamespace<T, NAMESPACE>();
+            else if constexpr (IsSameNamespace<T, NAMESPACE>()) return true;
+            else return IsInNamespace<std::meta::parent_of(T), NAMESPACE>();
+        }
+    }
+
 
     /**
      * @brief A function to get a nicely formatted name of a type that includes all its namespaces
@@ -105,30 +184,6 @@ namespace Util {
     std::string PrettyNameOf() {
         return PrettyNameOfImpl<^^T>();
     }
-    // template<class T, bool IgnoreTemplateArgs=true>
-    // std::string PrettyNameOf() {
-    //     if constexpr (!std::meta::is_namespace_member(^^T)) return std::string(std::meta::display_string_of(^^T));
-    //     // else if constexpr (!std::meta::is_complete_type(^^T)) return std::string(std::meta::display_string_of(^^T));
-    //     else if constexpr (std::meta::is_array_type(^^T)) return PrettyNameOf<typename [: std::meta::remove_extent(^^T) :]>() + "[]";
-    //     else if constexpr (std::meta::has_template_arguments(^^T)) {
-    //         constexpr auto withoutTemplate = std::meta::template_of(^^T);
-    //         // return PrettyNameOf<typename [: withoutTemplate :]>();
-    //         return std::string(std::meta::display_string_of(withoutTemplate)); 
-    //     }
-    //     // else if constexpr (!IgnoreTemplateArgs && std::meta::has_template_arguments(^^T)) {
-    //     //     std::string ret = PrettyNameOf<typename [: std::meta::template_of(^^T) :]>() + "<";
-    //     //     bool isFirst = true;
-    //     //     template for(constexpr std::meta::info templateType : std::meta::template_arguments_of(^^T)) {
-    //     //         if(!isFirst) ret += ", ";
-    //     //         isFirst = false;
-    //     //         ret += PrettyNameOf<typename [: templateType :]>();
-    //     //     }
-    //     //     ret += ">";
-    //     //     return ret;
-    //     // }
-    //     else return PrettyNameOf<typename [: std::meta::parent_of(^^T) :]>() + "::" + std::string(std::meta::display_string_of(^^T));
-    // }
-
 }
 }
 

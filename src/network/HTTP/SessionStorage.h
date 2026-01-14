@@ -68,8 +68,9 @@ namespace HTTP {
         void LoadFromCache(const std::string cacheID);
 
     private:
-        friend class Util::Serializer;
-        friend class Util::Deserializer;
+        friend class Util::Serializer<Util::BinarySerializer>;
+        friend class Util::Deserializer<Util::BinaryDeserializer>;
+        friend class Util::ClassStructureBase;
 
         std::map<uint64_t, std::shared_ptr<Session>> _sessions;
         [[=Util::SkipSerialization]] std::string _cookieID;

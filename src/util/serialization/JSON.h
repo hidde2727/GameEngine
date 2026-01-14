@@ -10,9 +10,9 @@ namespace Util {
     /**
      * @brief Will serialize a class into valid JSON
      * 
-     * @warning This class cannot magically access private members, if you want private members serialized, you need to add ```friend class Util::Serializer```
+     * @warning This class cannot magically access private members, if you want private members serialized, you need to add ```friend class Util::Serializer<Util::JSONSerializer>```
      */
-    class JSONSerializer : public Serializer {
+    class JSONSerializer : public Serializer<JSONSerializer> {
     public:
         template<class T>
         void Serialize(T& t, std::string& s) {
@@ -24,7 +24,7 @@ namespace Util {
         void Serialize(T& t, std::basic_ostream<char>& s) {
             _outputStream = &s;
             _state.clear();
-            Serializer::Serialize(t);
+            Serializer<JSONSerializer>::Serialize(t);
         }
 
         inline void StartClass(const size_t amountMembers, const std::string_view name="") override {
@@ -38,90 +38,30 @@ namespace Util {
             if(_state.size()) EndVariable();
         }
 
-        inline void StartPair(const std::string_view name="") override {
-            StartArray(2);
-        }
-        inline void EndPair() override {
-            EndArray();
-        }
-
-        inline void StartArray(const size_t amountElements, const std::string_view name="") override {
+        template<class T>
+        inline void StartSTLContainer(const size_t amountElements, const std::string_view name="") {
             StartVariable(name);
             AddString("[");
             _state.push_back({0, true});
         }
-        inline void EndArray() override {
+        template<class T>
+        inline void EndSTLContainer() {
             AddString("]");
             _state.pop_back();
             EndVariable();
         }
-        
-        inline void StartMap(const size_t amountElements, const std::string_view name="") override {
-            StartArray(amountElements, name);
-        }
-        inline void EndMap() override {
-            EndArray();
-        }
 
-        inline void AddVariable(const int8_t v, const std::string_view name="") override {
+        template<FundamentalType T>
+        inline void AddVariable(const T v, const std::string_view name="") {
             StartVariable(name);
             AddString(std::to_string(v));
             EndVariable();
         }
-        inline void AddVariable(const int16_t v, const std::string_view name="") override {
-            StartVariable(name);
-            AddString(std::to_string(v));
-            EndVariable();
-        }
-        inline void AddVariable(const int32_t v, const std::string_view name="") override {
-            StartVariable(name);
-            AddString(std::to_string(v));
-            EndVariable();
-        }
-        inline void AddVariable(const int64_t v, const std::string_view name="") override {
-            StartVariable(name);
-            AddString(std::to_string(v));
-            EndVariable();
-        }
-
-        inline void AddVariable(const uint8_t v, const std::string_view name="") override {
-            StartVariable(name);
-            AddString(std::to_string(v));
-            EndVariable();
-        }
-        inline void AddVariable(const uint16_t v, const std::string_view name="") override {
-            StartVariable(name);
-            AddString(std::to_string(v));
-            EndVariable();
-        }
-        inline void AddVariable(const uint32_t v, const std::string_view name="") override {
-            StartVariable(name);
-            AddString(std::to_string(v));
-            EndVariable();
-        }
-        inline void AddVariable(const uint64_t v, const std::string_view name="") override {
-            StartVariable(name);
-            AddString(std::to_string(v));
-            EndVariable();
-        }
-
-        inline void AddVariable(const bool v, const std::string_view name="") override {
+        inline void AddVariable(const bool v, const std::string_view name="") {
             StartVariable(name);
             AddString(std::to_string((uint8_t)v));
             EndVariable();
         }
-
-        inline void AddVariable(const float v, const std::string_view name="") override {
-            StartVariable(name);
-            AddString(std::to_string(v));
-            EndVariable();
-        }
-        inline void AddVariable(const double v, const std::string_view name="") override {
-            StartVariable(name);
-            AddString(std::to_string(v));
-            EndVariable();
-        }
-
         inline void AddVariable(const std::string& v, const std::string_view name="") override {
             StartVariable(name);
             AddString("\"");
@@ -164,9 +104,9 @@ namespace Util {
      * 
      * Yes, deserializing JSON is a lot more difficult than serializing it
      * 
-     * @warning This class cannot magically access private members, if you want private members serialized, you need to add ```friend class Util::Deserializer```
+     * @warning This class cannot magically access private members, if you want private members serialized, you need to add ```friend class Util::Deserializer<Util::JSONDeserializer>```
      */
-    class JSONDeserializer : public Deserializer {
+    class JSONDeserializer : public Deserializer<JSONDeserializer> {
     public:
         template<class T>
         void Deserialize(T& t, std::string& s) {
@@ -184,14 +124,10 @@ namespace Util {
 
             _state.clear();
             _state.push_back(State{0, &_JSON});
-            Deserializer::Deserialize(t, "root");
+            Deserializer<JSONDeserializer>::Deserialize(t, "root");
         }
 
-
-
-
-
-        inline void StartClass(const std::string_view name="") override {
+        inline void StartClass(const size_t size, const std::string_view name="") override {
             StartCompositeNode(name);
             ASSERT(GetState()._currentNode->IsMap(), "[Util::JsonDeserializer] Given type started class, but JSON is not a class")
         }
@@ -199,79 +135,32 @@ namespace Util {
             _state.pop_back();
         }
 
-        inline void StartPair(const std::string_view name="") override {
-            StartCompositeNode(name);
-
-            ASSERT(GetState()._currentNode->IsVector(), "[Util::JsonDeserializer] Given type started array, but JSON is not a array")
-            ASSERT(GetState()._currentNode->GetVector().size() == 2, "[Util::JsonDeserializer] Given type started pair, but JSON is not a array of size=2")
-        }
-        inline void EndPair() override {
-            _state.pop_back();
-        }
-
-        inline void StartArray(const std::string_view name="") override {
+        template<class T>
+        inline void StartSTLContainer(const std::string_view name="") {
             StartCompositeNode(name);
             ASSERT(GetState()._currentNode->IsVector(), "[Util::JsonDeserializer] Given type started array, but JSON is not a array")
         }
-        inline bool IsEndArray() override {
+        inline bool IsSTLEnd() override {
             return GetState()._currentNode->GetVector().size() == GetState()._variableCount;
         }
-        inline void EndArray() override {
+        template<class T>
+        inline void EndSTLContainer() {
             _state.pop_back();
         }
 
-        inline void StartMap(const std::string_view name="") override {
-            StartArray(name);
-        }
-        inline bool IsEndMap() override {
-            return IsEndArray();           
-        }
-        inline void EndMap() override {
-            EndArray();
-        }
-
-        inline void GetVariable(int8_t& v, const std::string_view name="") override {
+        template<FundamentalType T>
+        inline void GetVariable(T& v, const std::string_view name="") {
             GetVariableInternal(v, name);
         }
-        inline void GetVariable(int16_t& v, const std::string_view name="") override {
-            GetVariableInternal(v, name);
-        }
-        inline void GetVariable(int32_t& v, const std::string_view name="") override {
-            GetVariableInternal(v, name);
-        }
-        inline void GetVariable(int64_t& v, const std::string_view name="") override {
-            GetVariableInternal(v, name);
-        }
-
-        inline void GetVariable(uint8_t& v, const std::string_view name="") override {
-            GetVariableInternal(v, name);
-        }
-        inline void GetVariable(uint16_t& v, const std::string_view name="") override {
-            GetVariableInternal(v, name);
-        }
-        inline void GetVariable(uint32_t& v, const std::string_view name="") override {
-            GetVariableInternal(v, name);
-        }
-        inline void GetVariable(uint64_t& v, const std::string_view name="") override {
-            GetVariableInternal(v, name);
-        }
-
-        inline void GetVariable(bool& v, const std::string_view name="") override {
+        inline void GetVariable(bool& v, const std::string_view name="") {
             uint8_t value;
             GetVariableInternal(value, name);
             v = (bool)value;
         }
-
-        inline void GetVariable(float& v, const std::string_view name="") override {
-            GetVariableInternal(v, name);
-        }
-        inline void GetVariable(double& v, const std::string_view name="") override {
-            GetVariableInternal(v, name);
-        }
-
         inline void GetVariable(std::string& v, const std::string_view name="") override {
             GetVariableInternal(v, name);
         }
+        
     private:
         inline void StartCompositeNode(const std::string_view name="", const bool isMap=false) {
             if(_state.size() == 1 && !_state[0]._variableCount) {

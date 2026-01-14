@@ -46,13 +46,13 @@ namespace HTTP {
     void SessionStorage::StoreToCache(const std::string cacheID) {
         Util::BinarySerializer serializer;
         std::ofstream out = Util::FileManager::Cache(cacheID).GetOutStream(std::ios::binary | std::ios::trunc);
-        serializer.Serialize(*this, out);
+        serializer.Serialize(*this, out, Util::BinarySerializationOutputFlag::IncludeTypeInfo);
     }
     void SessionStorage::LoadFromCache(const std::string cacheID) {
         try {
             if(!Util::FileManager::Cache(cacheID).Exists()) return;
             Util::BinaryDeserializer deserializer;
-            std::ifstream in = Util::FileManager::Cache(cacheID).GetInStream(std::ios::binary | std::ios::trunc);
+            std::ifstream in = Util::FileManager::Cache(cacheID).GetInStream(std::ios::binary);
             deserializer.Deserialize(*this, in);
         } catch(...) {
             WARNING("[HTTP::SessionStorage] Failed to load previous sessions from the cache")
