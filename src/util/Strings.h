@@ -123,6 +123,20 @@ namespace Util {
         return CamelCaseToSnakeCase(in);
     }
 
+    /**
+     * @brief Modifies the input string to not contain the leading character
+     * 
+     * @param in The string to be modified
+     * @param c The character to be removed
+     * @return std::string The string with the leading c removed
+     */
+    inline std::string RemoveLeading(std::string in, const char c) {
+        while(!in.empty() && in[0] == '/') {
+            in.erase(in.begin());
+        }
+        return in;
+    }
+
 }
 }
 

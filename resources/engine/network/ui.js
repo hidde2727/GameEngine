@@ -1,6 +1,6 @@
 import websocket from './websocket.js';
 
-websocket.OnMessage = (message) => {
+websocket.Get().OnMessage = (message) => {
     console.log(message);
 };
 
@@ -263,11 +263,11 @@ customElements.define(
                 x = (this.#x/this.#radius - 1);
                 y = (this.#y/this.#radius - 1);
             }
-            let packet = websocket.GetPacketType("Engine::Network::JoystickEvent");
+            let packet = websocket.Get().GetPacketType("Engine::Network::JoystickEvent");
             packet._name = this.#name;
             packet._pos.x = x;
             packet._pos.y = y;
-            websocket.SendPacket(packet);
+            websocket.Get().SendPacket(packet);
         }
     }
 );

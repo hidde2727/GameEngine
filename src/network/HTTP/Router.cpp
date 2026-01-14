@@ -46,52 +46,52 @@ namespace HTTP {
 
     bool Router::Get(const std::string path) {
         ASSERT(_currentRequest, "[Network::Router] Cannot use the Get function outside the virtual HandleRequest function")
-        if(path != " " && _currentRequest->GetURL() != path) return false;
+        if(path != " " && _currentRequest->GetURL() != Util::RemoveLeading(path, '/')) return false;
         return _currentRequest->GetMethod() == HTTP::Method::Get;
     }
     bool Router::Head(const std::string path) {
         ASSERT(_currentRequest, "[Network::Router] Cannot use the Head function outside the virtual HandleRequest function")
-        if(path != " " && _currentRequest->GetURL() != path) return false;
+        if(path != " " && _currentRequest->GetURL() != Util::RemoveLeading(path, '/')) return false;
         return _currentRequest->GetMethod() == HTTP::Method::Head;
     }
     bool Router::Put(const std::string path) {
         ASSERT(_currentRequest, "[Network::Router] Cannot use the Put function outside the virtual HandleRequest function")
-        if(path != " " && _currentRequest->GetURL() != path) return false;
+        if(path != " " && _currentRequest->GetURL() != Util::RemoveLeading(path, '/')) return false;
         return _currentRequest->GetMethod() == HTTP::Method::Put;
     }
     bool Router::Post(const std::string path) {
         ASSERT(_currentRequest, "[Network::Router] Cannot use the Post function outside the virtual HandleRequest function")
-        if(path != " " && _currentRequest->GetURL() != path) return false;
+        if(path != " " && _currentRequest->GetURL() != Util::RemoveLeading(path, '/')) return false;
         return _currentRequest->GetMethod() == HTTP::Method::Post;
     }
     bool Router::Delete(const std::string path) {
         ASSERT(_currentRequest, "[Network::Router] Cannot use the Delete function outside the virtual HandleRequest function")
-        if(path != " " && _currentRequest->GetURL() != path) return false;
+        if(path != " " && _currentRequest->GetURL() != Util::RemoveLeading(path, '/')) return false;
         return _currentRequest->GetMethod() == HTTP::Method::Delete;
     }
     bool Router::Connect(const std::string path) {
         ASSERT(_currentRequest, "[Network::Router] Cannot use the Connect function outside the virtual HandleRequest function")
-        if(path != " " && _currentRequest->GetURL() != path) return false;
+        if(path != " " && _currentRequest->GetURL() != Util::RemoveLeading(path, '/')) return false;
         return _currentRequest->GetMethod() == HTTP::Method::Connect;
     }
     bool Router::Options(const std::string path) {
         ASSERT(_currentRequest, "[Network::Router] Cannot use the Options function outside the virtual HandleRequest function")
-        if(path != " " && _currentRequest->GetURL() != path) return false;
+        if(path != " " && _currentRequest->GetURL() != Util::RemoveLeading(path, '/')) return false;
         return _currentRequest->GetMethod() == HTTP::Method::Options;
     }
     bool Router::Trace(const std::string path) {
         ASSERT(_currentRequest, "[Network::Router] Cannot use the Trace function outside the virtual HandleRequest function")
-        if(path != " " && _currentRequest->GetURL() != path) return false;
+        if(path != " " && _currentRequest->GetURL() != Util::RemoveLeading(path, '/')) return false;
         return _currentRequest->GetMethod() == HTTP::Method::Trace;
     }
     bool Router::Patch(const std::string path) {
         ASSERT(_currentRequest, "[Network::Router] Cannot use the Patch function outside the virtual HandleRequest function")
-        if(path != " " && _currentRequest->GetURL() != path) return false;
+        if(path != " " && _currentRequest->GetURL() != Util::RemoveLeading(path, '/')) return false;
         return _currentRequest->GetMethod() == HTTP::Method::Patch;
     }
     bool Router::WebsocketUpgrade(const std::string path) {
         ASSERT(_currentRequest, "[Network::Router] Cannot use the WebsocketUpgrade function outside the virtual HandleRequest function")
-        if(path != " " && _currentRequest->GetURL() != path) return false;
+        if(path != " " && _currentRequest->GetURL() != Util::RemoveLeading(path, '/')) return false;
         if(_currentRequest->GetHeader("Connection").find("Upgrade") == std::string::npos) return false;
         if(_currentRequest->GetHeader("Upgrade") != "websocket") return false;
         return _currentRequest->HasHeader("Sec-WebSocket-Key") && _currentRequest->HasHeader("Sec-WebSocket-Version");
@@ -227,6 +227,8 @@ namespace HTTP {
     std::shared_ptr<Response> Router::HandleRequestInternal(std::shared_ptr<HTTP::Request> request) {
         ASSERT(!_currentRequest, "[Network::Router] Detected routing loop or usage of HTTP::Router from multiple threads")
         _currentRequest = request;
+        // Remove leading /
+        _currentRequest->_url = Util::RemoveLeading(_currentRequest->_url, '/');
 
         // Check all registered routes if they want to respond
         for(const auto&[path, router] : _routes) {

@@ -11,15 +11,16 @@ namespace Network {
 
     /**
      * An utility class to make handeling websockets easier:
-     * - It will automatically accept any incoming websocket request based on the AllowRequest() function
+     * - It will automatically accept any incoming websocket requests
      * - It will bind this class to be the handeler of the websocket request if it is accepted
      */
-    template<Util::Derived<Websocket::BasicHandler> Handler>
-    class WebsocketRouter : private HTTP::Router, public Handler {
+    class WebsocketRouter : private HTTP::Router, public WebsocketHandler<WebsocketRouter> {
     public:
-
-    private:
-        
+        std::shared_ptr<Network::HTTP::Response> HandleRequest(Network::HTTP::Request& request) override {
+            if(Get("IsWebsocketAlive")) return Text("true");
+            if(WebsocketUpgrade()) return AcceptWebsocket(this);
+            return NotHandled();
+        }
     };
 
 }

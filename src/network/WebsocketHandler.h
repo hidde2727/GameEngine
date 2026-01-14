@@ -68,6 +68,17 @@ namespace Network {
      * 
      * The connecting client must specify it wants to use the 'gameengine-websocket-reflection-v1' websocket protocol (version may change, see ENGINE_NETWORK_WEBSOCKET_HANDLER_VERSION for accurate version)
      * 
+     * To accept incoming websocket messages, include the following in your HTTP router:
+     * ```
+     *  std::shared_ptr<Network::HTTP::Response> HandleRequest(Network::HTTP::Request& request) override {
+     *      // Not neccesary, but good to include (is for polling if the server is up after websocket disconnect)
+     *      if(Get("IsWebsocketAlive")) return Text("true");
+     *      // The actual important line (in this example this is a WebsocketHandler):
+     *      if(WebsocketUpgrade()) return AcceptWebsocket(this);
+     *      return NotHandled();
+     *  }
+     * ```
+     * 
      * @tparam Derived The class that inherits from WebsocketHandler
      * @tparam MessageTypeID The format to identify message types with, with uin8_t a maximimum of UINT8_MAX types can be registered
      * @warning All the members of a message type must be accesible by Util::Serializer, Util::Deserializer and Util::ClassStructureSerializer

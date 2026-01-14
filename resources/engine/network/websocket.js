@@ -546,186 +546,221 @@ function CreateDataNodeInternal(dataView) {
 /**************************************************************************
  * Websocket                                                              *
  *************************************************************************/
+class Websocket {
+    /**************************************************************************
+     * Public                                                                 *
+     *************************************************************************/
+    OnConnect           = () => {};
+    OnPacketRegister    = (name, id, node) => {};
+    OnMessage           = (message) => {};
+    OnDisconnect        = () => {};
 
-let server = {
-    socket: undefined,
-    messageTypeSize: 0,
-    dataModels: new Map(),
-    typeIDToName: new Map(),// Data model ID to name
-    OnConnect: () => {},
-    OnPacketRegister: (name, id, node) => {},
-    OnMessage: (message) => {},
-    OnDisconnect: () => {},
-    GetPacketType: GetPacketType,// function GetPacketType(nameString) {}
-    SendPacket: SendPacket// function SendPacket(<packet retrieved from GetPacketType>) {}
-}
-export default server;
-function SetupWebsocket() {
-    if(server.socket != undefined) {
-        server.socket.close();
-        server.socket = null;
+    constructor(path) {
+        this.#path = path;
+        this.#SetupWebsocket();
     }
-    server.socket = new WebSocket(`ws://${window.location.host}`, [`gameengine-websocket-reflection-v${websocketHandlerProtocolVersion}`]);
-    server.socket.addEventListener("open", OnWebsocketConnect);
-    server.socket.addEventListener("message", OnWebsocketMessage);
-    server.socket.addEventListener("close", OnWebsocketDisconnect);
-}
-SetupWebsocket();
 
 
-
-let tryingConnect = true;
-let reconnectTimeout;
-function WebsocketTryReconnect(everySecond=5) {
-    tryingConnect = true;
-    ShowDisconnectScreen();
-    console.log(`[websocket.js] Trying to reconnect in ${everySecond} seconds`);
-    reconnectTimeout = setTimeout(() => {
-        SetupWebsocket();
-        // OnWebsocketConnect handles the situation when the websocket connects
-    }, everySecond * 1000);
-}
-function CloseWebsocket(event){
-    server.socket.close();
-}
-function OnWebsocketConnect(event) {
-    if(server.socket.protocol !== `gameengine-websocket-reflection-v${websocketHandlerProtocolVersion}`) {
-        console.warn("[websocket.js] Websocket connected, but does not support the required protocol");
-        return WebsocketTryReconnect();
+    GetPacketType(name) {
+        const packet = this.#dataModels.get(name).Clone(true);
+        return packet.GetProxy();
     }
-    console.log("[websocket.js] Websocket connected");
-    clearTimeout(reconnectTimeout);
-    HideDisconnectScreen();
-    tryingConnect = false;
 
-    // Reset the protocol state
-    server.messageTypeSize = 0;
-    server.dataModels = new Map();
-    server.typeIDToName = new Map();
-
-    server.socket.binaryType = "arraybuffer";
-    window.addEventListener("beforeunload", CloseWebsocket);
-    if(server.OnConnect != undefined) server.OnConnect();
-}
-function OnWebsocketDisconnect(event) {
-    if(!tryingConnect) console.log("[websocket.js] Websocket disconnected");
-
-    window.removeEventListener("beforeunload", CloseWebsocket);
-    server.messageTypeSize = 0;
-    WebsocketTryReconnect();
-    if(server.OnDisconnect != undefined) server.OnDisconnect();
-}
-function OnWebsocketMessage(event) {
-try {
-    if(!typeof event.data == "ArrayBuffer") throw "[websocket.js] Received a message with the wrong binaryType";
-    const view = new ReadWriteBuffer({ buffer: event.data });
-    if(view.getUint8() != websocketCheckValue) throw "[websocket.js] Data check isn't 133";
-    if(server.messageTypeSize == 0) {
-        // This is the first message
-        if(event.data.byteLength != 4) throw "[websocket.js] Received too many bytes for the first packet";
-        if(view.getUint8() != binaryProtocolVersion) throw `[websocket.js] Wrong version of the binary protocol (${view.getUint8(-1, false)}!=${binaryProtocolVersion})`;
-        if(view.getUint8() != classStructureProtocolVersion) throw `[websocket.js] Wrong version of the class structure protocol (${view.getUint8(-1, false)}!=${classStructureProtocolVersion})`;
-        server.messageTypeSize = view.getUint8();
-        if(server.messageTypeSize > 8) throw "[websocket.js] Received a messageTypeSize that is to big";
-        return;
-    }
-    
-    // Get the message type:
-    let messageType = 0;
-    if(server.messageTypeSize == 1) messageType = view.getUint8();
-    if(server.messageTypeSize == 2) messageType = view.getUint16();
-    if(server.messageTypeSize == 4) messageType = view.getUint32();
-    if(server.messageTypeSize == 8) messageType = view.getUint64();
-
-    const flags = view.getUint8();
-    if(flags & outputFlag.IncludeTypeInfo) throw "[websocket.js] Don't know how to read type info";
-    if(flags & outputFlag.OutputLitleEndian) throw "[websocket.js] Data over websocket must be in big endian";
-    if(!(flags & outputFlag.OutputBigEndian)) throw "[websocket.js] Data over websocket must be in big endian";
-    if(!(flags & outputFlag.ExcludeVersioning)) throw "[websocket.js] Data must not contain versioning";
-    if(flags & outputFlag.ExcludeVariableNames) throw "[websocket.js] Data must include variable names";
-    if(flags & outputFlag.CheckVariableNames) throw "[websocket.js] Data must not check variable name equality";
-
-    // Actual message parsing:
-    if(messageType == 0) {
-        // It is a message registering a type
-        const registeringType = view.getUint8();
-        if(registeringType == 0 || registeringType == 1) throw "[websocket.js] Cannot register the type 0 and 1, these are reserved";
-        if(view.getUint32() != event.data.byteLength-8) throw `[websocket.js] Packet size is incorrect (${view.getUint32(-4)} != ${event.data.byteLength}-8)`;
-        if(view.getUint8() != flags) throw `[websocket.js] Message data has the wrong flags set (outer serialization has different flags from the inner data) (${view.getUint8(-1)}!=${flags})`;
-
-        let name, node;
-        ({name, node} = CreateDataNode(view));
-        node.SetTypeID(registeringType);
-        server.dataModels.set(name, node);
-        server.typeIDToName.set(registeringType, name);
-        console.log(`[websocket.js] A new packet type has been registered: ${name}`);
-
-        server.OnPacketRegister(name, registeringType, node);
-    }
-    else if(messageType == 1) {
-        // It is a message deregistering a type
-        const deregisteringType = view.getUint8();
-        const name = server.typeIDToName.get(deregisteringType);
-        if(deregisteringType == 0 || deregisteringType == 1) throw "[websocket.js] Cannot register the type 0 and 1, these are reserved";
-        server.dataModels.delete(name);
-        server.typeIDToName.delete(deregisteringType);
-        console.log(`[websocket.js] A new packet type has been deregistered: ${name}`);
-    } else {
-        // It is a known message type (or at least, we hope it is known)
-        if(!server.dataModels.has(server.typeIDToName.get(messageType))) throw "[websocket.js] Received a message type that was not previously registered";
-
-        let data = server.dataModels.get(server.typeIDToName.get(messageType)).Clone();
-        data.ReadFromWebsocket(view);
+    SendPacket(packet) {
+        if(this.#socket.readyState != Websocket.OPEN) throw "[websocket.js] Websocket is not connected, can't send a message now";
+        if(!packet?.IsWebsocketDataNode()) throw `[websocket.js] Can only send packets of the type WebsocketDataNode (trying to send ${typeof packet})`;
         
-        server.OnMessage(data);
+        let dataView = new ReadWriteBuffer();
+        dataView.setUint8(websocketCheckValue);
+        if(this.#messageTypeSize == 1) dataView.setUint8(packet.GetTypeID());
+        if(this.#messageTypeSize == 2) dataView.setUint16(packet.GetTypeID());
+        if(this.#messageTypeSize == 4) dataView.setUint32(packet.GetTypeID());
+        if(this.#messageTypeSize == 8) dataView.setUint64(packet.GetTypeID());
+        dataView.setUint8(10);// Binary serialization flags (exlude versioning, big endian)
+        
+        packet.Serialize(dataView);
+        if(dataView.getView().getUint8(0, false) != websocketCheckValue) {
+            const view = dataView.getView();
+            let messageStr = "Faulty message: [";
+            for(let i = 0; i < view.byteLength; i++) {
+                if(i != 0) messageStr += ", ";
+                messageStr += view.getUint8(i, false);
+            }
+            messageStr += "]";
+            throw `[websocket.js] ReadWriteBuffer is not functioning as expected (${messageStr})`;
+        }
+
+        this.#socket.send(dataView.getBuffer().slice());// Copy the whole buffer
     }
-    if(view.getReadingOffset() != event.data.byteLength) throw `[websocket.js] Message doesn't contain the same amount of bytes as the agreed packet type`;
-} catch(error) {
-    console.warn(`Caught exception while processing a websocket message: '${error}'`);
-    const view = new Uint8Array(event.data);
-    let messageStr = "Faulty message: [";
-    for(let i = 0; i < event.data.byteLength; i++) {
-        if(i != 0) messageStr += ", ";
-        messageStr += view[i];
+
+    /**************************************************************************
+     * Private                                                                *
+     *************************************************************************/
+    #socket              = null;
+    #path                = "";
+    #messageTypeSize     = 0;
+    #dataModels          = new Map();
+    #typeIDToName        = new Map();// Data model ID to name
+
+    #SetupWebsocket() {
+        if(this.#socket != null) {
+            this.#socket.close();
+            this.#socket = null;
+        }
+        this.#socket = new WebSocket(`ws://${window.location.host}/${this.#path}`, [`gameengine-websocket-reflection-v${websocketHandlerProtocolVersion}`]);
+        this.#socket.addEventListener("open", this.#OnWebsocketConnect.bind(this));
+        this.#socket.addEventListener("message", this.#OnWebsocketMessage.bind(this));
+        this.#socket.addEventListener("close", this.#OnWebsocketDisconnect.bind(this));
     }
-    messageStr += "]";
-    console.log(messageStr);
-}
-}
-/**************************************************************************
- * JS API                                                                 *
- *************************************************************************/
-function GetPacketType(name) {
-    const packet = server.dataModels.get(name).Clone(true);
-    return packet.GetProxy();
-}
-function SendPacket(packet) {
-    if(tryingConnect) throw "[websocket.js] Websocket is not connected, can't send a message now";
-    const dataModel = new WebsocketDataNode;
-    if(!packet?.IsWebsocketDataNode()) throw `[websocket.js] Can only send packets of the type WebsocketDataNode (trying to send ${typeof packet})`;
-    
-    let dataView = new ReadWriteBuffer();
-    dataView.setUint8(websocketCheckValue);
-    if(server.messageTypeSize == 1) dataView.setUint8(packet.GetTypeID());
-    if(server.messageTypeSize == 2) dataView.setUint16(packet.GetTypeID());
-    if(server.messageTypeSize == 4) dataView.setUint32(packet.GetTypeID());
-    if(server.messageTypeSize == 8) dataView.setUint64(packet.GetTypeID());
-    dataView.setUint8(10);// Binary serialization flags (exlude versioning, big endian)
-    
-    packet.Serialize(dataView);
-    if(dataView.getView().getUint8(0, false) != websocketCheckValue) {
-        const view = dataView.getView();
+
+    #reconnectTimeout;
+    // First poll an exposed end-point to check if the game is online, because when you poll a websocket connection
+    //      the browser makes every failed consecutive websocket request take longer and longer
+    #WebsocketTryReconnect(everySecond=5) {
+        ShowDisconnectScreen();
+        clearTimeout(this.#reconnectTimeout);
+        this.#reconnectTimeout = setTimeout(async () => {
+            fetch(new Request(`${window.location.protocol}//${window.location.host}/${this.#path}/IsWebsocketAlive`))
+                .then(((response) => {
+                    // The request reached the server, yay we have a connection again!
+                    this.#SetupWebsocket();
+                    return;
+                }).bind(this))
+                .catch(((err) => {
+                    // Try again
+                    this.#WebsocketTryReconnect(everySecond);
+                }).bind(this));
+        }, everySecond * 1000);
+    }
+    #CloseWebsocket(event){
+        this.#socket.close();
+    }
+    #OnWebsocketConnect(event) {
+        if(this.#socket.protocol !== `gameengine-websocket-reflection-v${websocketHandlerProtocolVersion}`) {
+            console.warn("[websocket.js] Websocket connected, but does not support the required protocol");
+            return this.#WebsocketTryReconnect();
+        }
+        console.log("[websocket.js] Websocket connected");
+        clearTimeout(this.#reconnectTimeout);
+        HideDisconnectScreen();
+
+        // Reset the protocol state
+        this.#messageTypeSize = 0;
+        this.#dataModels = new Map();
+        this.#typeIDToName = new Map();
+
+        this.#socket.binaryType = "arraybuffer";
+        window.addEventListener("beforeunload", this.#CloseWebsocket.bind(this));
+        if(this.OnConnect != undefined) this.OnConnect();
+    }
+    #OnWebsocketDisconnect(event) {
+        console.log("[websocket.js] Websocket disconnected");
+
+        window.removeEventListener("beforeunload", this.#CloseWebsocket.bind(this));
+        this.#WebsocketTryReconnect();
+        if(this.OnDisconnect != undefined) this.OnDisconnect();
+    }
+    #OnWebsocketMessage(event) {
+    try {
+        if(!typeof event.data == "ArrayBuffer") throw "[websocket.js] Received a message with the wrong binaryType";
+        const view = new ReadWriteBuffer({ buffer: event.data });
+        if(view.getUint8() != websocketCheckValue) throw "[websocket.js] Data check isn't 133";
+        if(this.#messageTypeSize == 0) {
+            // This is the first message
+            if(event.data.byteLength != 4) throw "[websocket.js] Received too many bytes for the first packet";
+            if(view.getUint8() != binaryProtocolVersion) throw `[websocket.js] Wrong version of the binary protocol (${view.getUint8(-1, false)}!=${binaryProtocolVersion})`;
+            if(view.getUint8() != classStructureProtocolVersion) throw `[websocket.js] Wrong version of the class structure protocol (${view.getUint8(-1, false)}!=${classStructureProtocolVersion})`;
+            this.#messageTypeSize = view.getUint8();
+            if(this.#messageTypeSize > 8) throw "[websocket.js] Received a #messageTypeSize that is to big";
+            return;
+        }
+        
+        // Get the message type:
+        let messageType = 0;
+        if(this.#messageTypeSize == 1) messageType = view.getUint8();
+        if(this.#messageTypeSize == 2) messageType = view.getUint16();
+        if(this.#messageTypeSize == 4) messageType = view.getUint32();
+        if(this.#messageTypeSize == 8) messageType = view.getUint64();
+
+        const flags = view.getUint8();
+        if(flags & outputFlag.IncludeTypeInfo) throw "[websocket.js] Don't know how to read type info";
+        if(flags & outputFlag.OutputLitleEndian) throw "[websocket.js] Data over websocket must be in big endian";
+        if(!(flags & outputFlag.OutputBigEndian)) throw "[websocket.js] Data over websocket must be in big endian";
+        if(!(flags & outputFlag.ExcludeVersioning)) throw "[websocket.js] Data must not contain versioning";
+        if(flags & outputFlag.ExcludeVariableNames) throw "[websocket.js] Data must include variable names";
+        if(flags & outputFlag.CheckVariableNames) throw "[websocket.js] Data must not check variable name equality";
+
+        // Actual message parsing:
+        if(messageType == 0) {
+            // It is a message registering a type
+            const registeringType = view.getUint8();
+            if(registeringType == 0 || registeringType == 1) throw "[websocket.js] Cannot register the type 0 and 1, these are reserved";
+            if(view.getUint32() != event.data.byteLength-8) throw `[websocket.js] Packet size is incorrect (${view.getUint32(-4)} != ${event.data.byteLength}-8)`;
+            if(view.getUint8() != flags) throw `[websocket.js] Message data has the wrong flags set (outer serialization has different flags from the inner data) (${view.getUint8(-1)}!=${flags})`;
+
+            let name, node;
+            ({name, node} = CreateDataNode(view));
+            node.SetTypeID(registeringType);
+            this.#dataModels.set(name, node);
+            this.#typeIDToName.set(registeringType, name);
+            console.log(`[websocket.js] A new packet type has been registered: ${name}`);
+
+            this.OnPacketRegister(name, registeringType, node);
+        }
+        else if(messageType == 1) {
+            // It is a message deregistering a type
+            const deregisteringType = view.getUint8();
+            const name = this.#typeIDToName.get(deregisteringType);
+            if(deregisteringType == 0 || deregisteringType == 1) throw "[websocket.js] Cannot register the type 0 and 1, these are reserved";
+            this.#dataModels.delete(name);
+            this.#typeIDToName.delete(deregisteringType);
+            console.log(`[websocket.js] A new packet type has been deregistered: ${name}`);
+        } else {
+            // It is a known message type (or at least, we hope it is known)
+            if(!this.#dataModels.has(this.#typeIDToName.get(messageType))) throw "[websocket.js] Received a message type that was not previously registered";
+
+            let data = this.#dataModels.get(this.#typeIDToName.get(messageType)).Clone();
+            data.ReadFromWebsocket(view);
+            
+            this.OnMessage(data);
+        }
+        if(view.getReadingOffset() != event.data.byteLength) throw `[websocket.js] Message doesn't contain the same amount of bytes as the agreed packet type`;
+    } catch(error) {
+        console.warn(`Caught exception while processing a websocket message: '${error}'`);
+        const view = new Uint8Array(event.data);
         let messageStr = "Faulty message: [";
-        for(let i = 0; i < view.byteLength; i++) {
+        for(let i = 0; i < event.data.byteLength; i++) {
             if(i != 0) messageStr += ", ";
-            messageStr += view.getUint8(i, false);
+            messageStr += view[i];
         }
         messageStr += "]";
-        throw `[websocket.js] ReadWriteBuffer is not functioning as expected (${messageStr})`;
+        console.log(messageStr);
     }
-
-    server.socket.send(dataView.getBuffer().slice());// Copy the whole buffer
+    }
+};
+let sockets = new Map();
+function HasWebsocket(path="") {
+    return sockets.has(path);
 }
+function AddWebsocket(path="") {
+    if(HasWebsocket(path)) return sockets.get(path);
+    sockets.set(path, new Websocket(path));
+    return sockets.get(path);
+}
+function GetWebsocket(path="") {
+    return AddWebsocket(path);
+}
+function RemoveWebsocket(path="") {
+    sockets.delete(path);
+}
+
+let server = {
+    Create: AddWebsocket,
+    Get: GetWebsocket,
+    Has: HasWebsocket,
+    Remove: RemoveWebsocket
+}
+export default server;
 
 /**************************************************************************
  * Disconnect screen                                                      *

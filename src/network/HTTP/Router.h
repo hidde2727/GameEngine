@@ -9,6 +9,7 @@
 
 #include "util/TemplateConcepts.h"
 #include "util/WeirdPointer.h"
+#include "util/Strings.h"
 
 namespace Engine {
 namespace Network {
@@ -116,10 +117,14 @@ namespace HTTP {
          * ```
          * if(!Get()) return BadRequest();
          * // Checks if the current request is a GET request for index.html
-         * if(Get("/index.html")) {
+         * if(Get("index.html")) {// Corresponding URL: https://localhost/index.html
+         *     return File("index.html");
+         * }
+         * if(Get("")) {// Corresponding URL: https://localhost/
          *     return File("index.html");
          * }
          * ```
+         * Note that the default param of " " is used to indicate no path checking should be done (a space is illegal in a url)
          * 
          * @name RequestMethods
          * @warning Only use these functions when handeling a request inside the HandleRequest function
@@ -184,7 +189,7 @@ namespace HTTP {
     protected:
         std::shared_ptr<Response> HandleRequestInternal(std::shared_ptr<Request> request);
     private:
-        std::shared_ptr<Response> AcceptWebsocket(Util::WeirdPointer<Websocket::BasicHandler> handler);    
+        std::shared_ptr<Response> AcceptWebsocket(Util::WeirdPointer<Websocket::BasicHandler> handler);
 
         std::map<std::string, Util::WeirdPointer<Router>> _routes;
         Util::WeirdPointer<Router> _defaultTo = nullptr;
